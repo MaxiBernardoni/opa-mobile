@@ -24,7 +24,7 @@ export default function OutfitsScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* Floating header */}
-      <SafeAreaView style={styles.floatingHeader} pointerEvents="box-none">
+      <SafeAreaView style={[styles.floatingHeader, { pointerEvents: 'box-none' }]}>
         <View style={styles.headerInner}>
           <TouchableOpacity>
             <Text style={styles.truckIcon}>🚚</Text>
