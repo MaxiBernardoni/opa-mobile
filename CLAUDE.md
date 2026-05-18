@@ -96,12 +96,26 @@ export const colors = {
 
 ## Decisiones técnicas tomadas
 
-- **`--legacy-peer-deps` obligatorio** en todos los `npm install`. Conflicto entre `react-native@0.81.5` y `react-native-screens@4.25.0` (requiere RN ≥ 0.82). No actualizar RN sin revisar compatibilidad con Expo SDK 54.
+- **`--legacy-peer-deps` obligatorio** en todos los `npm install`. Hay conflictos de peer deps entre múltiples dependencias de Expo SDK 54. No correr `npm install` sin este flag.
+- **`newArchEnabled: false` en app.json** — la nueva arquitectura de React Native es incompatible con `react-native-screens@4.16.0` en RN 0.81.5. No cambiar a `true` hasta actualizar a RN ≥ 0.82.
+- **`"updates": { "enabled": false }` en app.json** — el proyecto tiene EAS configurado (`eas.json`) pero no usa EAS Update. Sin esto, Expo Go intenta descargar el bundle desde los servidores de Expo en lugar del servidor local.
 - **`package.json` main = `"expo-router/entry"`** — ya configurado, no cambiar.
+- **`babel.config.js` y `metro.config.js` son obligatorios** — sin ellos Metro no puede compilar el proyecto. Usan `babel-preset-expo` y `expo/metro-config` respectivamente.
 - **Mock data en `constants/mockData.ts`** — la app funciona sin Supabase para la Demo 1. Contiene 5 outfits, 5 marcas, 5 prendas con imágenes de picsum.photos.
 - **`@react-native-async-storage/async-storage` está en v3** (se esperaba v2.2.0) — genera warning pero funciona. No downgradearlo sin probar.
 - **Fuente Merge One** no se pudo descargar automáticamente (red corporativa bloquea fonts.gstatic.com). La línea está comentada en `app/_layout.tsx`.
 - **Supabase migrations pendientes** — los schemas están definidos arriba pero aún no se aplicaron al proyecto `vecnktrbjolahcalkbml`.
+- **`pointerEvents` como style prop** — en `app/(tabs)/outfits.tsx` el SafeAreaView flotante usa `style={{ pointerEvents: 'box-none' }}`. En RN 0.71+ `pointerEvents` como prop directo está deprecado y rompe en algunos entornos.
+- **Dependencias peer de expo-router no estaban en package.json** — `react-native-gesture-handler`, `react-native-safe-area-context`, `react-native-screens`, `expo-linking`, `expo-constants`, `expo-updates`, `react-native-worklets` y `react-native-is-edge-to-edge` son requeridas por expo-router v6 o reanimated v4 y deben estar declaradas explícitamente.
+
+## Modo de desarrollo recomendado
+
+```bash
+npx expo start --web --clear   # Web en el browser de la PC — funciona en cualquier red
+npx expo start --clear          # Celular con Expo Go — requiere misma red WiFi y Expo Go SDK 54
+```
+
+En redes corporativas con restricciones de acceso a internet, usar siempre el modo web.
 
 ---
 
@@ -125,6 +139,9 @@ export const colors = {
 - [x] Outfit Scroll screen (full-screen, paginado vertical)
 - [x] Profile screen con grid de outfits
 - [x] Data mock (no requiere Supabase)
+- [x] Soporte web (`npx expo start --web`)
+- [x] `babel.config.js` y `metro.config.js` configurados
+- [x] Todas las dependencias peer de expo-router declaradas
 
 ## Pendientes
 

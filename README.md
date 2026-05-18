@@ -11,7 +11,7 @@ App mobile de descubrimiento de moda centrada en outfits como unidad principal d
 | Estado global | Zustand |
 | Estilos | NativeWind (Tailwind para React Native) |
 | Imágenes | Expo Image |
-| Animaciones | React Native Reanimated |
+| Animaciones | React Native Reanimated v4 |
 | Backend | Supabase (Project ID: `vecnktrbjolahcalkbml`) |
 | Lenguaje | TypeScript |
 
@@ -25,7 +25,7 @@ cd opa-mobile
 npm install --legacy-peer-deps
 ```
 
-> `--legacy-peer-deps` es obligatorio. Hay un conflicto entre `react-native@0.81.5` y `react-native-screens@4.25.0` que requiere este flag en todos los `npm install`.
+> `--legacy-peer-deps` es obligatorio en todos los `npm install`. Hay conflictos de peer deps entre varias dependencias de Expo SDK 54.
 
 ### 2. Variables de entorno
 
@@ -52,11 +52,18 @@ Sin este paso la app funciona igual usando fuentes del sistema.
 
 ### 4. Arrancar
 
+**Web (recomendado — funciona en cualquier red):**
+```bash
+npx expo start --web --clear
+```
+
+**Celular con Expo Go (misma red WiFi que la PC):**
 ```bash
 npx expo start --clear
 ```
+Escaneá el QR con Expo Go. Requiere la versión de Expo Go compatible con SDK 54.
 
-Para ver en dispositivo físico, el teléfono y la PC deben estar en la **misma red WiFi**. Escaneá el QR con la app **Expo Go**.
+> **Redes corporativas:** Si Expo Go no puede descargar el runtime de SDK 54 por restricciones de red, usá el modo web o actualizá Expo Go usando datos móviles del teléfono.
 
 ## Estructura del proyecto
 
@@ -85,7 +92,9 @@ opa/
 ├── hooks/                  # useOutfits, useProfile, useWardrobe
 ├── lib/supabase.ts         # Cliente Supabase
 ├── store/                  # Zustand stores (auth, outfits, wardrobe)
-└── types/index.ts          # Tipos globales TypeScript
+├── types/index.ts          # Tipos globales TypeScript
+├── babel.config.js         # Config de Babel — requerido por Metro
+└── metro.config.js         # Config de Metro — requerido para bundling
 ```
 
 ## Estado actual — Demo 1
@@ -97,12 +106,13 @@ opa/
 - [x] Outfit Scroll screen (full-screen, paginado vertical)
 - [x] Profile screen con grid de outfits
 - [x] Data mock (5 outfits, 5 marcas, 5 prendas)
+- [x] Soporte web (`npx expo start --web`)
 
 ## Pendientes
 
 - [ ] Añadir fuente Merge One (ver instrucciones arriba)
 - [ ] Completar `.env` con la anon key de Supabase
-- [ ] Aplicar migraciones de Supabase (schemas en el brief de producto)
+- [ ] Aplicar migraciones de Supabase (schemas en CLAUDE.md)
 - [ ] Reemplazar mock data por queries reales a Supabase
 - [ ] Pantallas de detalle: outfit/[id] y product/[id]
 - [ ] Pantalla de búsqueda
