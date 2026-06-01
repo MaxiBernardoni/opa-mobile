@@ -1,25 +1,86 @@
 import React, { useState } from 'react'
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-  StatusBar, ScrollView, ActivityIndicator,
+  StatusBar, ScrollView, ActivityIndicator, Alert,
 } from 'react-native'
 import { Image } from 'expo-image'
+import { useRouter } from 'expo-router'
 import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { useOutfits } from '../../hooks/useOutfits'
-import { mockProfile } from '../../constants/mockData'
+import { useAuthStore } from '../../store/useAuthStore'
+import { supabase } from '../../lib/supabase'
 
 const PROFILE_TABS = ['Grid', 'Favoritos', 'Pedidos']
 const PROFILE_ICONS = ['⊞', '♡', '📦']
 
 export default function ProfileScreen() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
-  const { outfits, loading } = useOutfits()
+  const { outfits, loading: outfitsLoading } = useOutfits()
+  const { session, profile, initialized, clear } = useAuthStore()
 
-  // While auth is not implemented, use mock profile data for display
-  const profile = mockProfile
+  async function handleLogout() {
+    Alert.alert('Cerrar sesión', '¿Estás seguro/a?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.auth.signOut()
+          clear()
+        },
+      },
+    ])
+  }
+
+  // Show spinner while initializing auth
+  if (!initialized) {
+    return (
+      <SafeAreaView style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={colors.rosaOpa} size="large" />
+      </SafeAreaView>
+    )
+  }
+
+  // Not logged in — show auth gate
+  if (!session) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.gateContainer}>
+          <Text style={styles.gateLogo}>OPA</Text>
+          <Text style={styles.gateTitle}>Tu perfil te espera</Text>
+          <Text style={styles.gateSubtitle}>
+            Iniciá sesión para ver tu armario, tus outfits guardados y seguir a tus marcas favoritas.
+          </Text>
+          <TouchableOpacity
+            style={styles.gateBtn}
+            onPress={() => router.push('/auth')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.gateBtnText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.gateSecondaryBtn}
+            onPress={() => router.push('/auth')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.gateSecondaryBtnText}>Crear cuenta</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  // Logged in — show full profile
+  const displayUsername = profile?.username ?? session.user.email?.split('@')[0] ?? 'usuario'
+  const displayName = profile?.display_name ?? ''
+  const bio = profile?.bio ?? ''
+  const tags = profile?.tags ?? []
+  const avatarUrl = profile?.avatar_url
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -28,37 +89,45 @@ export default function ProfileScreen() {
 
         {/* Settings */}
         <View style={styles.settingsRow}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout}>
             <Text style={styles.settingsIcon}>⚙</Text>
           </TouchableOpacity>
         </View>
 
         {/* Avatar + info */}
         <View style={styles.headerSection}>
-          <Image
-            source={{ uri: profile.avatar_url ?? `https://picsum.photos/seed/profile/110/110` }}
-            style={styles.avatar}
-            contentFit="cover"
-          />
-          <Text style={styles.username}>@{profile.username}</Text>
-          <Text style={styles.fullName}>{profile.full_name}</Text>
-          <Text style={styles.bio}>{profile.bio}</Text>
-          <View style={styles.tagsRow}>
-            {profile.style_tags.map((tag: string) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
+          <View style={styles.avatarContainer}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitial}>
+                  {displayUsername[0]?.toUpperCase() ?? '?'}
+                </Text>
               </View>
-            ))}
+            )}
           </View>
+          <Text style={styles.username}>@{displayUsername}</Text>
+          {displayName ? <Text style={styles.fullName}>{displayName}</Text> : null}
+          {bio ? <Text style={styles.bio}>{bio}</Text> : null}
+          {tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {tags.map((tag: string) => (
+                <View key={tag} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Seguidores', value: profile.followers_count },
-            { label: 'Seguidos', value: profile.following_count },
-            { label: 'Outfits', value: profile.outfits_count },
-            { label: 'Guardados', value: 34 },
+            { label: 'Seguidores', value: profile?.followers_count ?? 0 },
+            { label: 'Seguidos', value: profile?.following_count ?? 0 },
+            { label: 'Outfits', value: profile?.outfits_count ?? 0 },
+            { label: 'Guardados', value: 0 },
           ].map((stat) => (
             <View key={stat.label} style={styles.statItem}>
               <Text style={styles.statValue}>{stat.value.toLocaleString()}</Text>
@@ -88,7 +157,7 @@ export default function ProfileScreen() {
 
         {/* Content per tab */}
         {activeTab === 0 && (
-          loading ? (
+          outfitsLoading ? (
             <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 32 }} />
           ) : (
             <View style={styles.grid}>
@@ -109,11 +178,13 @@ export default function ProfileScreen() {
         )}
         {activeTab === 1 && (
           <View style={styles.emptyTab}>
+            <Text style={styles.emptyTabIcon}>♡</Text>
             <Text style={styles.emptyTabText}>Todavía no guardaste outfits</Text>
           </View>
         )}
         {activeTab === 2 && (
           <View style={styles.emptyTab}>
+            <Text style={styles.emptyTabIcon}>📦</Text>
             <Text style={styles.emptyTabText}>No tenés pedidos activos</Text>
           </View>
         )}
@@ -126,14 +197,82 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.blanco },
+
+  // Auth gate
+  gateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xxl,
+    gap: spacing.md,
+  },
+  gateLogo: {
+    fontSize: 48,
+    fontFamily: fonts.mergeOne,
+    color: colors.rosaOpa,
+    letterSpacing: 8,
+    marginBottom: spacing.sm,
+  },
+  gateTitle: {
+    fontSize: 22,
+    fontFamily: fonts.palanquinDark,
+    color: colors.negro,
+    textAlign: 'center',
+  },
+  gateSubtitle: {
+    fontSize: 14,
+    color: colors.grisClaro,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+  gateBtn: {
+    backgroundColor: colors.rosaOpa,
+    borderRadius: radius.button,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xxl,
+    alignItems: 'center',
+    width: '100%',
+  },
+  gateBtnText: {
+    color: colors.blanco,
+    fontSize: 15,
+    fontFamily: fonts.palanquinDark,
+  },
+  gateSecondaryBtn: {
+    borderWidth: 1,
+    borderColor: colors.rosaOpa,
+    borderRadius: radius.button,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xxl,
+    alignItems: 'center',
+    width: '100%',
+  },
+  gateSecondaryBtnText: {
+    color: colors.rosaOpa,
+    fontSize: 15,
+    fontFamily: fonts.palanquinDark,
+  },
+
+  // Profile content
   settingsRow: { alignItems: 'flex-end', paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   settingsIcon: { fontSize: 22, color: colors.negro },
   headerSection: { alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  avatarContainer: { marginBottom: spacing.sm },
   avatar: {
     width: 110, height: 110,
     borderRadius: radius.avatar,
     backgroundColor: colors.grisMedio,
-    marginBottom: spacing.sm,
+  },
+  avatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.rosaOpaLight,
+  },
+  avatarInitial: {
+    fontSize: 40,
+    fontFamily: fonts.mergeOne,
+    color: colors.rosaOpa,
   },
   username: { fontSize: 18, fontFamily: fonts.palanquinDark, color: colors.negro, marginBottom: 2 },
   fullName: { fontSize: 14, color: colors.grisClaro, marginBottom: spacing.sm },
@@ -170,6 +309,7 @@ const styles = StyleSheet.create({
   gridImage: { width: '100%', height: '100%' },
   likesRow: { position: 'absolute', bottom: 6, left: 6 },
   likesText: { color: colors.blanco, fontSize: 11, fontWeight: '600' },
-  emptyTab: { padding: spacing.xl, alignItems: 'center' },
-  emptyTabText: { color: colors.grisClaro, fontSize: 14 },
+  emptyTab: { padding: spacing.xxl, alignItems: 'center', gap: spacing.sm },
+  emptyTabIcon: { fontSize: 36 },
+  emptyTabText: { color: colors.grisClaro, fontSize: 14, textAlign: 'center' },
 })
