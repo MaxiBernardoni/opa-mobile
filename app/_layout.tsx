@@ -9,8 +9,7 @@ SplashScreen.preventAutoHideAsync()
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     PalanquinDark_400Regular,
-    // MergeOne_400Regular: require('../assets/fonts/MergeOne-Regular.ttf'),
-    // Añadí MergeOne-Regular.ttf en assets/fonts/ para activar esta fuente
+    MergeOne_400Regular: require('../assets/fonts/MergeOne-Regular.ttf'),
   })
 
   useEffect(() => {
