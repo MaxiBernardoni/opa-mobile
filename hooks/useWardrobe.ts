@@ -17,8 +17,8 @@ export function useWardrobe(userId?: string) {
   async function fetchWardrobe(id: string) {
     try {
       const { data } = await supabase
-        .from('wardrobe')
-        .select('*, garment:garments(*, brand:brands(*))')
+        .from('prendas_armario')
+        .select('*, garment:prendas(*, brand:marcas(*))')
         .eq('user_id', id)
       setGarments(data?.map((w: any) => w.garment) || [])
     } finally {

@@ -1,13 +1,15 @@
+// Matches actual Supabase schema (tables in Spanish)
 export interface Profile {
   id: string
   username: string
-  full_name: string | null
+  display_name: string | null
   bio: string | null
   avatar_url: string | null
-  style_tags: string[]
+  tags: string[]
   followers_count: number
   following_count: number
   outfits_count: number
+  is_brand: boolean
   created_at: string
 }
 
@@ -15,7 +17,8 @@ export interface Brand {
   id: string
   name: string
   logo_url: string | null
-  verified: boolean
+  description: string | null
+  tags: string[]
   created_at: string
 }
 
@@ -24,41 +27,35 @@ export interface Garment {
   brand_id: string
   name: string
   price: number
-  slot: 'torso' | 'piernas' | 'calzado' | 'extras'
+  category: string | null
   image_url: string | null
-  colors: string[]
-  sizes: string[]
-  style_tags: string[]
+  color: string | null
+  available_sizes: string[]
   created_at: string
   brand?: Brand
 }
 
 export interface Outfit {
   id: string
-  creator_id: string
-  brand_id: string
-  title: string
+  creator_id: string | null
+  title: string | null
   description: string | null
-  image_url: string
-  total_price: number
-  discount_percent: number
-  occasion: string[]
-  style_tags: string[]
+  cover_image_url: string | null
+  occasion: string | null
+  style: string | null
   likes_count: number
-  saves_count: number
-  published_at: string
-  brand?: Brand
+  created_at: string
   creator?: Profile
-  garments?: OutfitGarmentWithData[]
+  garments?: OutfitItemWithData[]
 }
 
-export interface OutfitGarment {
+export interface OutfitItem {
+  id: string
   outfit_id: string
   garment_id: string
-  position_x: number
-  position_y: number
+  slot: string | null
 }
 
-export interface OutfitGarmentWithData extends OutfitGarment {
+export interface OutfitItemWithData extends OutfitItem {
   garment: Garment
 }

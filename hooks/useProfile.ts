@@ -17,7 +17,7 @@ export function useProfile(userId?: string) {
   async function fetchProfile(id: string) {
     try {
       const { data } = await supabase
-        .from('profiles')
+        .from('perfiles')
         .select('*')
         .eq('id', id)
         .single()

@@ -15,8 +15,12 @@ export function useOutfits() {
     try {
       const { data, error } = await supabase
         .from('outfits')
-        .select('*, brand:brands(*), creator:profiles(*)')
-        .order('published_at', { ascending: false })
+        .select(`
+          *,
+          creator:perfiles(*),
+          garments:outfit_items(*, garment:prendas(*, brand:marcas(*)))
+        `)
+        .order('created_at', { ascending: false })
         .limit(20)
 
       if (error) throw error
