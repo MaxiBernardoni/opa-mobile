@@ -1,5 +1,6 @@
 import React from 'react'
-import { TouchableOpacity, Image, StyleSheet, View, Text } from 'react-native'
+import { TouchableOpacity, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { Outfit } from '../../types'
 import { colors } from '../../constants/colors'
 import { radius } from '../../constants/radius'
@@ -15,15 +16,10 @@ export function OutfitCard({ outfit, onPress, width = 200, height = 356 }: Props
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={[styles.card, { width, height }]}>
       <Image
-        source={{ uri: outfit.image_url }}
+        source={{ uri: outfit.cover_image_url ?? `https://picsum.photos/seed/${outfit.id}/400/711` }}
         style={styles.image}
-        resizeMode="cover"
+        contentFit="cover"
       />
-      {outfit.discount_percent > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>-{outfit.discount_percent}%</Text>
-        </View>
-      )}
     </TouchableOpacity>
   )
 }

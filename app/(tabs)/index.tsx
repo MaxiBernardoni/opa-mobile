@@ -1,23 +1,38 @@
 import React from 'react'
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView, FlatList,
-  TouchableOpacity, Image, StatusBar,
+  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  TouchableOpacity, StatusBar, ActivityIndicator,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { colors } from '../../constants/colors'
+import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { mockOutfits, mockBrands, mockGarments } from '../../constants/mockData'
+import { useOutfits } from '../../hooks/useOutfits'
 import { OutfitCard } from '../../components/outfit/OutfitCard'
 import { SectionHeader } from '../../components/home/SectionHeader'
+import { HorizontalSlider } from '../../components/home/HorizontalSlider'
+import { BrandsSlider } from '../../components/home/BrandsSlider'
+import { Brand, Garment } from '../../types'
 
 export default function HomeScreen() {
   const router = useRouter()
+  const { outfits, loading } = useOutfits()
+
+  const garments: Garment[] = outfits.flatMap(o => o.garments?.map(g => g.garment) ?? [])
+  const uniqueGarments = garments.filter((g, i, a) => g && a.findIndex(x => x?.id === g.id) === i).slice(0, 8)
+
+  const brands: Brand[] = outfits.flatMap(o =>
+    o.garments?.map(g => g.garment?.brand).filter(Boolean) ?? []
+  ) as Brand[]
+  const uniqueBrands = brands.filter((b, i, a) => b && a.findIndex(x => x?.id === b.id) === i).slice(0, 8)
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>OPA</Text>
@@ -26,75 +41,53 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Outfits carousel */}
-        <SectionHeader title="OUTFITS" onPress={() => router.push('/(tabs)/outfits')} />
-        <FlatList
-          horizontal
-          data={mockOutfits.slice(0, 3)}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-          renderItem={({ item }) => (
-            <OutfitCard
-              outfit={item}
-              onPress={() => router.push('/(tabs)/outfits')}
-              width={200}
-              height={356}
-            />
-          )}
-        />
+        {loading ? (
+          <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 40 }} />
+        ) : (
+          <>
+            {/* Outfits carousel */}
+            <SectionHeader title="OUTFITS" onPress={() => router.push('/(tabs)/outfits')} />
+            <HorizontalSlider>
+              {outfits.slice(0, 3).map(item => (
+                <OutfitCard
+                  key={item.id}
+                  outfit={item}
+                  onPress={() => router.push('/(tabs)/outfits')}
+                  width={200}
+                  height={356}
+                />
+              ))}
+            </HorizontalSlider>
 
-        {/* Últimas prendas */}
-        <SectionHeader title="ÚLTIMAS PRENDAS" />
-        <FlatList
-          horizontal
-          data={mockGarments}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.garmentCard} activeOpacity={0.8}>
-              <Image
-                source={{ uri: item.image_url ?? '' }}
-                style={styles.garmentImage}
-                resizeMode="cover"
-              />
-              <Text style={styles.garmentName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.garmentPrice}>€{item.price.toFixed(2)}</Text>
-            </TouchableOpacity>
-          )}
-        />
+            {/* Últimas prendas */}
+            <SectionHeader title="ÚLTIMAS PRENDAS" />
+            <HorizontalSlider>
+              {uniqueGarments.map(item => (
+                <TouchableOpacity key={item.id} style={styles.garmentCard} activeOpacity={0.8}>
+                  <Image
+                    source={{ uri: item.image_url ?? `https://picsum.photos/seed/${item.id}/115/144` }}
+                    style={styles.garmentImage}
+                    contentFit="cover"
+                  />
+                  <Text style={styles.garmentName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.garmentPrice}>${item.price.toFixed(2)}</Text>
+                </TouchableOpacity>
+              ))}
+            </HorizontalSlider>
 
-        {/* Marcas */}
-        <SectionHeader title="LAS MARCAS QUE LA GENTE ELIGE" />
-        <FlatList
-          horizontal
-          data={mockBrands}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.brandCard} activeOpacity={0.8}>
-              <View style={styles.brandLogoPlaceholder}>
-                <Text style={styles.brandInitial}>{item.name[0]}</Text>
-              </View>
-              <Text style={styles.brandName} numberOfLines={1}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
+            {/* Marcas */}
+            <SectionHeader title="LAS MARCAS QUE LA GENTE ELIGE" />
+            <BrandsSlider brands={uniqueBrands} />
 
-        {/* Lo último que viste */}
-        <SectionHeader title="LO ÚLTIMO QUE VISTE" />
-        <FlatList
-          horizontal
-          data={[1, 2, 3, 4]}
-          keyExtractor={(item) => String(item)}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-          renderItem={() => (
-            <View style={[styles.recentCard, { backgroundColor: colors.grisMedio }]} />
-          )}
-        />
+            {/* Lo último que viste */}
+            <SectionHeader title="LO ÚLTIMO QUE VISTE" />
+            <HorizontalSlider>
+              {[1, 2, 3, 4].map(i => (
+                <View key={i} style={[styles.recentCard, { backgroundColor: colors.grisMedio }]} />
+              ))}
+            </HorizontalSlider>
+          </>
+        )}
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -104,7 +97,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.blanco },
-  scroll: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -117,17 +109,11 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: colors.rosaOpa,
     letterSpacing: 4,
+    fontFamily: fonts.mergeOne,
   },
   headerIcon: { padding: 4 },
   headerIconText: { fontSize: 22 },
-  horizontalList: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  garmentCard: {
-    width: 115,
-    marginRight: 10,
-  },
+  garmentCard: { width: 115 },
   garmentImage: {
     width: 115,
     height: 144,
@@ -138,44 +124,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.negro,
     marginTop: 4,
-    fontWeight: '600',
+    fontFamily: fonts.mergeOne,
   },
   garmentPrice: {
     fontSize: 11,
     color: colors.rosaOpa,
-    fontWeight: '700',
-  },
-  brandCard: {
-    width: 115,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  brandLogoPlaceholder: {
-    width: 115,
-    height: 115,
-    borderRadius: radius.card,
-    borderWidth: 1.5,
-    borderColor: colors.negro,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.blanco,
-  },
-  brandInitial: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: colors.negro,
-  },
-  brandName: {
-    fontSize: 11,
-    color: colors.negro,
-    marginTop: 4,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontFamily: fonts.mergeOne,
   },
   recentCard: {
     width: 100,
     height: 140,
     borderRadius: radius.card,
-    marginRight: 10,
   },
 })
