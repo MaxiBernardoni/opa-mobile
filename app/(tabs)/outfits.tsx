@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react'
 import {
   View, FlatList, StyleSheet, Dimensions, TouchableOpacity, Text,
-  StatusBar, SafeAreaView,
+  StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native'
-import { mockOutfits } from '../../constants/mockData'
+import { useOutfits } from '../../hooks/useOutfits'
 import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
 import { colors } from '../../constants/colors'
 
@@ -12,19 +12,26 @@ const { height: SH } = Dimensions.get('window')
 export default function OutfitsScreen() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [tab, setTab] = useState<'marcas' | 'descubrir'>('descubrir')
+  const { outfits, loading } = useOutfits()
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setActiveIndex(viewableItems[0].index ?? 0)
-    }
+    if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0)
   })
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={colors.blanco} size="large" />
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       {/* Floating header */}
-      <SafeAreaView style={[styles.floatingHeader, { pointerEvents: 'box-none' }]}>
+      <SafeAreaView style={[styles.floatingHeader, { pointerEvents: 'box-none' } as any]}>
         <View style={styles.headerInner}>
           <TouchableOpacity>
             <Text style={styles.truckIcon}>🚚</Text>
@@ -45,7 +52,7 @@ export default function OutfitsScreen() {
       </SafeAreaView>
 
       <FlatList
-        data={mockOutfits}
+        data={outfits}
         keyExtractor={(item) => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -62,17 +69,8 @@ export default function OutfitsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.negro,
-  },
-  floatingHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
+  container: { flex: 1, backgroundColor: colors.negro },
+  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   headerInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -80,9 +78,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  truckIcon: {
-    fontSize: 22,
-  },
+  truckIcon: { fontSize: 22 },
   tabs: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -93,31 +89,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   tabItem: { paddingHorizontal: 4 },
-  tabText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  tabActive: {
-    color: colors.blanco,
-    fontWeight: '700',
-  },
-  tabSep: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 13,
-  },
+  tabText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
+  tabActive: { color: colors.blanco, fontWeight: '700' },
+  tabSep: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
   addBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.blanco,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 32, height: 32, borderRadius: 16,
+    borderWidth: 2, borderColor: colors.blanco,
+    alignItems: 'center', justifyContent: 'center',
   },
-  addBtnText: {
-    color: colors.blanco,
-    fontSize: 20,
-    lineHeight: 22,
-  },
+  addBtnText: { color: colors.blanco, fontSize: 20, lineHeight: 22 },
 })

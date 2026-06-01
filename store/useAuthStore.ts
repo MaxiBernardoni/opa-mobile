@@ -1,12 +1,25 @@
 import { create } from 'zustand'
+import { Session, User } from '@supabase/supabase-js'
 import { Profile } from '../types'
 
 interface AuthState {
-  user: Profile | null
-  setUser: (user: Profile | null) => void
+  session: Session | null
+  user: User | null
+  profile: Profile | null
+  initialized: boolean
+  setSession: (session: Session | null) => void
+  setProfile: (profile: Profile | null) => void
+  setInitialized: (initialized: boolean) => void
+  clear: () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
+  session: null,
   user: null,
-  setUser: (user) => set({ user }),
+  profile: null,
+  initialized: false,
+  setSession: (session) => set({ session, user: session?.user ?? null }),
+  setProfile: (profile) => set({ profile }),
+  setInitialized: (initialized) => set({ initialized }),
+  clear: () => set({ session: null, user: null, profile: null }),
 }))
