@@ -1,6 +1,8 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { colors } from '../../constants/colors'
+import { fonts } from '../../constants/fonts'
+import { spacing } from '../../constants/spacing'
 
 interface Props {
   title: string
@@ -9,22 +11,40 @@ interface Props {
 
 export function SectionHeader({ title, onPress }: Props) {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.container} activeOpacity={0.7}>
-      <Text style={styles.title}>{title} {'>'}</Text>
-    </TouchableOpacity>
+    <View style={styles.row}>
+      <Text style={styles.title}>{title}</Text>
+      {onPress && (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.arrow}>
+          <Text style={styles.arrowText}>→</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
   },
   title: {
     fontSize: 13,
     fontWeight: '800',
     color: colors.negro,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     textTransform: 'uppercase',
+    fontFamily: fonts.mergeOne,
+  },
+  arrow: {
+    padding: 4,
+  },
+  arrowText: {
+    fontSize: 16,
+    color: colors.rosaOpa,
+    fontWeight: '700',
   },
 })

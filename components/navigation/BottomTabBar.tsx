@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, TouchableOpacity, Text, StyleSheet, Image as RNImage } from 'react-native'
+import { View, TouchableOpacity, StyleSheet, Image as RNImage } from 'react-native'
 import { Image } from 'expo-image'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { colors } from '../../constants/colors'
@@ -14,15 +14,7 @@ const TAB_ICONS: Record<string, { default: string; active: string }> = {
   profile:  { default: `${STORAGE}/user.png`,    active: `${STORAGE}/user_rosa.png` },
 }
 
-const TAB_LABELS: Record<string, string> = {
-  index:    'Home',
-  outfits:  'OPA',
-  search:   'Buscar',
-  wardrobe: 'Armario',
-  profile:  'Perfil',
-}
-
-export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View style={styles.container}>
       {state.routes.map((route, index) => {
@@ -39,28 +31,21 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
           <TouchableOpacity
             key={route.key}
             onPress={onPress}
-            style={[styles.tab, isFocused && !isCenter && styles.tabActive]}
+            style={[styles.tab, isCenter && styles.tabCenter, isFocused && !isCenter && styles.tabActive]}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconWrap, isCenter && styles.iconCenter]}>
-              {isCenter ? (
-                <RNImage
-                  source={{ uri: icons?.default }}
-                  style={styles.iconImgCenter}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Image
-                  source={{ uri: isFocused ? icons?.active : icons?.default }}
-                  style={styles.iconImg}
-                  contentFit="contain"
-                />
-              )}
-            </View>
-            {!isCenter && (
-              <Text style={[styles.label, isFocused && styles.labelActive]}>
-                {TAB_LABELS[route.name] ?? route.name}
-              </Text>
+            {isCenter ? (
+              <RNImage
+                source={{ uri: icons?.default }}
+                style={styles.iconCenter}
+                resizeMode="contain"
+              />
+            ) : (
+              <Image
+                source={{ uri: isFocused ? icons?.active : icons?.default }}
+                style={styles.icon}
+                contentFit="contain"
+              />
             )}
           </TouchableOpacity>
         )
@@ -74,53 +59,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.blanco,
     borderTopWidth: 1,
-    borderTopColor: colors.negro,
-    paddingBottom: 20,
-    paddingTop: 8,
+    borderTopColor: '#E8E8E8',
+    paddingBottom: 24,
+    paddingTop: 10,
+    paddingHorizontal: 8,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginHorizontal: 4,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginHorizontal: 2,
   },
-  tabActive: {
-    backgroundColor: colors.rosaOpaLight,
-  },
-  iconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCenter: {
-    width: 50,
-    height: 50,
+  tabActive: { backgroundColor: colors.rosaOpaLight },
+  tabCenter: {
     backgroundColor: colors.rosaOpa,
-    borderRadius: 12,
-    marginTop: -20,
+    borderRadius: 14,
+    marginHorizontal: 4,
+    marginTop: -18,
     shadowColor: colors.rosaOpa,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-    padding: 10,
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 10,
+    paddingVertical: 14,
   },
-  iconImg: {
-    width: 22,
-    height: 22,
-  },
-  iconImgCenter: {
-    width: 26,
-    height: 26,
-    tintColor: colors.blanco,
-  },
-  label: {
-    fontSize: 10,
-    marginTop: 2,
-    color: colors.grisClaro,
-  },
-  labelActive: {
-    color: colors.rosaOpa,
-  },
+  icon: { width: 24, height: 24 },
+  iconCenter: { width: 26, height: 26, tintColor: colors.blanco },
 })

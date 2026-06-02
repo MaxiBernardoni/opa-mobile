@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
-  TouchableOpacity, StatusBar, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity,
+  StatusBar, ActivityIndicator, Animated, Dimensions, FlatList,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -10,86 +10,170 @@ import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { useOutfits } from '../../hooks/useOutfits'
-import { OutfitCard } from '../../components/outfit/OutfitCard'
 import { SectionHeader } from '../../components/home/SectionHeader'
-import { HorizontalSlider } from '../../components/home/HorizontalSlider'
-import { BrandsSlider } from '../../components/home/BrandsSlider'
-import { Brand, Garment } from '../../types'
+import { Brand, Garment, Outfit } from '../../types'
 
+const { width: SW } = Dimensions.get('window')
+const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
+
+// Carousel config
+const CARD_W = 220
+const CARD_H = 370
+const CARD_GAP = 12
+const FULL_W = CARD_W + CARD_GAP * 2
+
+// ─── Outfit Carousel with depth effect ───────────────────────────────────────
+function OutfitCarousel({ outfits, onPress }: { outfits: Outfit[]; onPress: () => void }) {
+  const scrollX = useRef(new Animated.Value(0)).current
+  const sidePad = (SW - CARD_W) / 2
+
+  return (
+    <Animated.FlatList
+      data={outfits.slice(0, 5)}
+      keyExtractor={item => item.id}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={FULL_W}
+      decelerationRate="fast"
+      contentContainerStyle={{ paddingHorizontal: sidePad - CARD_GAP }}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+        { useNativeDriver: true }
+      )}
+      scrollEventThrottle={16}
+      renderItem={({ item, index }) => {
+        const inputRange = [
+          (index - 1) * FULL_W,
+          index * FULL_W,
+          (index + 1) * FULL_W,
+        ]
+        const scale = scrollX.interpolate({
+          inputRange,
+          outputRange: [0.84, 1, 0.84],
+          extrapolate: 'clamp',
+        })
+        const opacity = scrollX.interpolate({
+          inputRange,
+          outputRange: [0.65, 1, 0.65],
+          extrapolate: 'clamp',
+        })
+        return (
+          <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+            <Animated.View style={[styles.outfitCard, { transform: [{ scale }], opacity }]}>
+              <Image
+                source={{ uri: item.cover_image_url ?? `https://picsum.photos/seed/${item.id}/220/370` }}
+                style={styles.outfitCardImage}
+                contentFit="cover"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        )
+      }}
+    />
+  )
+}
+
+// ─── Home ────────────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter()
   const { outfits, loading } = useOutfits()
 
-  const garments: Garment[] = outfits.flatMap(o => o.garments?.map(g => g.garment) ?? [])
-  const uniqueGarments = garments.filter((g, i, a) => g && a.findIndex(x => x?.id === g.id) === i).slice(0, 8)
+  const garments: Garment[] = outfits
+    .flatMap(o => o.garments?.map(g => g.garment) ?? [])
+    .filter((g, i, a) => g && a.findIndex(x => x?.id === g.id) === i)
+    .slice(0, 8) as Garment[]
 
-  const brands: Brand[] = outfits.flatMap(o =>
-    o.garments?.map(g => g.garment?.brand).filter(Boolean) ?? []
-  ) as Brand[]
-  const uniqueBrands = brands.filter((b, i, a) => b && a.findIndex(x => x?.id === b.id) === i).slice(0, 8)
+  const brands: Brand[] = outfits
+    .flatMap(o => o.garments?.map(g => g.garment?.brand).filter(Boolean) ?? [])
+    .filter((b, i, a) => b && a.findIndex(x => x?.id === (b as Brand).id) === i)
+    .slice(0, 6) as Brand[]
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Header */}
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.logo}>OPA</Text>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Text style={styles.headerIconText}>🚚</Text>
+          <Image
+            source={{ uri: `${STORAGE}/logoOPA-transparente.png` }}
+            style={styles.logoImg}
+            contentFit="contain"
+          />
+          <TouchableOpacity style={styles.truckBtn}>
+            <Image
+              source={{ uri: `${STORAGE}/camion_blanco.png` }}
+              style={styles.truckIcon}
+              contentFit="contain"
+            />
           </TouchableOpacity>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 60 }} />
         ) : (
           <>
-            {/* Outfits carousel */}
-            <SectionHeader title="OUTFITS" onPress={() => router.push('/(tabs)/outfits')} />
-            <HorizontalSlider>
-              {outfits.slice(0, 3).map(item => (
-                <OutfitCard
-                  key={item.id}
-                  outfit={item}
-                  onPress={() => router.push('/(tabs)/outfits')}
-                  width={200}
-                  height={356}
-                />
-              ))}
-            </HorizontalSlider>
+            {/* ── Outfits ─────────────────────────────────────────────────── */}
+            <SectionHeader title="Outfits" onPress={() => router.push('/(tabs)/outfits')} />
+            <OutfitCarousel outfits={outfits} onPress={() => router.push('/(tabs)/outfits')} />
 
-            {/* Últimas prendas */}
-            <SectionHeader title="ÚLTIMAS PRENDAS" />
-            <HorizontalSlider>
-              {uniqueGarments.map(item => (
-                <TouchableOpacity key={item.id} style={styles.garmentCard} activeOpacity={0.8}>
-                  <Image
-                    source={{ uri: item.image_url ?? `https://picsum.photos/seed/${item.id}/115/144` }}
-                    style={styles.garmentImage}
-                    contentFit="cover"
-                  />
-                  <Text style={styles.garmentName} numberOfLines={1}>{item.name}</Text>
+            {/* ── Últimas prendas ─────────────────────────────────────────── */}
+            <SectionHeader title="Últimas Prendas" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {garments.map(item => (
+                <TouchableOpacity key={item.id} style={styles.garmentCard} activeOpacity={0.85}>
+                  <View style={styles.garmentImageWrap}>
+                    <Image
+                      source={{ uri: item.image_url ?? undefined }}
+                      style={styles.garmentImage}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <Text style={styles.garmentName} numberOfLines={2}>{item.name}</Text>
                   <Text style={styles.garmentPrice}>${item.price.toFixed(2)}</Text>
                 </TouchableOpacity>
               ))}
-            </HorizontalSlider>
+            </ScrollView>
 
-            {/* Marcas */}
-            <SectionHeader title="LAS MARCAS QUE LA GENTE ELIGE" />
-            <BrandsSlider brands={uniqueBrands} />
-
-            {/* Lo último que viste */}
-            <SectionHeader title="LO ÚLTIMO QUE VISTE" />
-            <HorizontalSlider>
-              {[1, 2, 3, 4].map(i => (
-                <View key={i} style={[styles.recentCard, { backgroundColor: colors.grisMedio }]} />
+            {/* ── Marcas ──────────────────────────────────────────────────── */}
+            <SectionHeader title="Las Marcas que la Gente Elige" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {brands.map(brand => (
+                <TouchableOpacity key={brand.id} style={styles.brandCard} activeOpacity={0.85}>
+                  {brand.logo_url ? (
+                    <Image source={{ uri: brand.logo_url }} style={styles.brandLogo} contentFit="contain" />
+                  ) : (
+                    <Text style={styles.brandName} numberOfLines={2}>{brand.name}</Text>
+                  )}
+                </TouchableOpacity>
               ))}
-            </HorizontalSlider>
+            </ScrollView>
+
+            {/* ── Lo último que viste ─────────────────────────────────────── */}
+            <SectionHeader title="Lo Último que Viste" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {[1, 2, 3, 4].map(i => (
+                <View key={i} style={styles.recentCard}>
+                  <Text style={styles.recentEmpty}>Aún no{'\n'}hay nada{'\n'}que mostrar</Text>
+                </View>
+              ))}
+            </ScrollView>
           </>
         )}
 
-        <View style={{ height: 20 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -97,43 +181,107 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.blanco },
+  scroll: { flexGrow: 1 },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
-  logo: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.rosaOpa,
-    letterSpacing: 4,
-    fontFamily: fonts.mergeOne,
+  logoImg: {
+    width: 90,
+    height: 36,
   },
-  headerIcon: { padding: 4 },
-  headerIconText: { fontSize: 22 },
-  garmentCard: { width: 115 },
-  garmentImage: {
-    width: 115,
-    height: 144,
+  truckBtn: { padding: 4 },
+  truckIcon: { width: 32, height: 32 },
+
+  // Outfit carousel
+  outfitCard: {
+    width: CARD_W,
+    height: CARD_H,
     borderRadius: radius.card,
+    overflow: 'hidden',
+    marginHorizontal: CARD_GAP,
     backgroundColor: colors.grisMedio,
+    shadowColor: colors.negro,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
   },
+  outfitCardImage: { width: '100%', height: '100%' },
+
+  // Horizontal scroll base
+  hScroll: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
+
+  // Garments
+  garmentCard: { width: 120 },
+  garmentImageWrap: {
+    width: 120,
+    height: 150,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    backgroundColor: colors.grisBorde,
+  },
+  garmentImage: { width: '100%', height: '100%' },
   garmentName: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.negro,
-    marginTop: 4,
-    fontFamily: fonts.mergeOne,
+    marginTop: 6,
+    lineHeight: 16,
   },
   garmentPrice: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.rosaOpa,
-    fontFamily: fonts.mergeOne,
+    marginTop: 2,
   },
-  recentCard: {
-    width: 100,
-    height: 140,
+
+  // Brands
+  brandCard: {
+    width: 110,
+    height: 110,
     borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.negro,
+    backgroundColor: colors.blanco,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    padding: 8,
+  },
+  brandLogo: { width: '100%', height: '100%' },
+  brandName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.negro,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // Recently viewed
+  recentCard: {
+    width: 110,
+    height: 150,
+    borderRadius: radius.card,
+    backgroundColor: colors.grisBorde,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.sm,
+  },
+  recentEmpty: {
+    fontSize: 10,
+    color: colors.grisClaro,
+    textAlign: 'center',
+    lineHeight: 15,
   },
 })
