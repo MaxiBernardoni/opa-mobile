@@ -1,11 +1,10 @@
 import React from 'react'
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { View, TouchableOpacity, Text, StyleSheet, Image as RNImage } from 'react-native'
 import { Image } from 'expo-image'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { colors } from '../../constants/colors'
 
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/nav'
-const OPA_LOGO_WHITE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/logoOPA-blanco.png'
 
 const TAB_ICONS: Record<string, { default: string; active: string }> = {
   index:    { default: `${STORAGE}/home.png`,    active: `${STORAGE}/home_rosa.png` },
@@ -44,11 +43,19 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             activeOpacity={0.7}
           >
             <View style={[styles.iconWrap, isCenter && styles.iconCenter]}>
-              <Image
-                source={{ uri: isCenter ? OPA_LOGO_WHITE : (isFocused ? icons?.active : icons?.default) }}
-                style={isCenter ? styles.iconImgCenter : styles.iconImg}
-                contentFit="contain"
-              />
+              {isCenter ? (
+                <RNImage
+                  source={{ uri: icons?.default }}
+                  style={styles.iconImgCenter}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Image
+                  source={{ uri: isFocused ? icons?.active : icons?.default }}
+                  style={styles.iconImg}
+                  contentFit="contain"
+                />
+              )}
             </View>
             {!isCenter && (
               <Text style={[styles.label, isFocused && styles.labelActive]}>
@@ -104,8 +111,9 @@ const styles = StyleSheet.create({
     height: 22,
   },
   iconImgCenter: {
-    width: 30,
-    height: 20,
+    width: 26,
+    height: 26,
+    tintColor: colors.blanco,
   },
   label: {
     fontSize: 10,
