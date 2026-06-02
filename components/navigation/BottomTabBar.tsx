@@ -5,6 +5,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { colors } from '../../constants/colors'
 
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/nav'
+const OPA_LOGO_WHITE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/logoOPA-blanco.png'
 
 const TAB_ICONS: Record<string, { default: string; active: string }> = {
   index:    { default: `${STORAGE}/home.png`,    active: `${STORAGE}/home_rosa.png` },
@@ -44,7 +45,7 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
           >
             <View style={[styles.iconWrap, isCenter && styles.iconCenter]}>
               <Image
-                source={{ uri: isFocused && !isCenter ? icons?.active : icons?.default }}
+                source={{ uri: isCenter ? OPA_LOGO_WHITE : (isFocused ? icons?.active : icons?.default) }}
                 style={isCenter ? styles.iconImgCenter : styles.iconImg}
                 contentFit="contain"
               />
@@ -103,9 +104,8 @@ const styles = StyleSheet.create({
     height: 22,
   },
   iconImgCenter: {
-    width: 26,
-    height: 26,
-    tintColor: colors.blanco,
+    width: 30,
+    height: 20,
   },
   label: {
     fontSize: 10,
