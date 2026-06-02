@@ -1,23 +1,25 @@
 import React from 'react'
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { colors } from '../../constants/colors'
-import { fonts } from '../../constants/fonts'
 
-const TAB_ICONS: Record<string, string> = {
-  index: '⌂',
-  outfits: '◈',
-  search: '⊕',
-  wardrobe: '▣',
-  profile: '○',
+const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/nav'
+
+const TAB_ICONS: Record<string, { default: string; active: string }> = {
+  index:    { default: `${STORAGE}/home.png`,    active: `${STORAGE}/home_rosa.png` },
+  outfits:  { default: `${STORAGE}/outfit.png`,  active: `${STORAGE}/outfit_rosa.png` },
+  search:   { default: `${STORAGE}/search.png`,  active: `${STORAGE}/search_rosa.png` },
+  wardrobe: { default: `${STORAGE}/armario.png`, active: `${STORAGE}/armario_rosa.png` },
+  profile:  { default: `${STORAGE}/user.png`,    active: `${STORAGE}/user_rosa.png` },
 }
 
 const TAB_LABELS: Record<string, string> = {
-  index: 'Home',
-  outfits: 'OPA',
-  search: 'Buscar',
+  index:    'Home',
+  outfits:  'OPA',
+  search:   'Buscar',
   wardrobe: 'Armario',
-  profile: 'Perfil',
+  profile:  'Perfil',
 }
 
 export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -26,25 +28,26 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       {state.routes.map((route, index) => {
         const isFocused = state.index === index
         const isCenter = route.name === 'outfits'
+        const icons = TAB_ICONS[route.name]
 
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name)
-          }
+          if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name)
         }
 
         return (
           <TouchableOpacity
             key={route.key}
             onPress={onPress}
-            style={[styles.tab, isFocused && styles.tabActive]}
+            style={[styles.tab, isFocused && !isCenter && styles.tabActive]}
             activeOpacity={0.7}
           >
             <View style={[styles.iconWrap, isCenter && styles.iconCenter]}>
-              <Text style={[styles.icon, isCenter && styles.iconLarge]}>
-                {TAB_ICONS[route.name] ?? '·'}
-              </Text>
+              <Image
+                source={{ uri: isFocused && !isCenter ? icons?.active : icons?.default }}
+                style={isCenter ? styles.iconImgCenter : styles.iconImg}
+                contentFit="contain"
+              />
             </View>
             {!isCenter && (
               <Text style={[styles.label, isFocused && styles.labelActive]}>
@@ -93,14 +96,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
+    padding: 10,
   },
-  icon: {
-    fontSize: 20,
-    color: colors.negro,
+  iconImg: {
+    width: 22,
+    height: 22,
   },
-  iconLarge: {
-    fontSize: 22,
-    color: colors.blanco,
+  iconImgCenter: {
+    width: 26,
+    height: 26,
+    tintColor: colors.blanco,
   },
   label: {
     fontSize: 10,
