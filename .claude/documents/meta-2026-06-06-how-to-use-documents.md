@@ -21,7 +21,7 @@ Todos los documentos siguen este formato:
 | Parte | Descripción | Ejemplo |
 |---|---|---|
 | `{content}` | Categoría del documento (ver categorías abajo) | `database` |
-| `{date}` | Fecha de creación en formato `YYYY-MM-DD` | `2026-06-06` |
+| `{date}` | Fecha de creación en formato `YYYY-DD-MM` | `2026-06-06` |
 | `{title}` | Título descriptivo en kebab-case | `schema-and-seed` |
 
 **Ejemplo completo:** `database-2026-06-06-schema-and-seed.md`
