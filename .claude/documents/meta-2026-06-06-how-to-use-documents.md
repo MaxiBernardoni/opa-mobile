@@ -1,156 +1,159 @@
-# Meta — Cómo usar los documentos de .claude/documents/
+# Meta — How to Use the Documents in .claude/documents/
 
-Este documento explica el sistema de documentación del proyecto OPA para que cualquier instancia de Claude Code pueda leer, interpretar, actualizar y crear documentos correctamente.
+> ⚠️ This document has been superseded by `meta-2026-06-07-documentation-style-guide.md` for style and creation guidelines. The content below remains valid for understanding the overall system.
 
----
-
-## Propósito de esta carpeta
-
-`.claude/documents/` contiene documentación técnica del estado actual del proyecto. Está pensada para ser leída por Claude Code al comenzar una sesión o tarea, de modo que pueda entender qué se construyó, qué decisiones se tomaron y qué falta hacer — sin necesidad de explorar todo el código desde cero.
+This document explains the documentation system for the OPA project so that any Claude Code instance can read, interpret, update, and create documents correctly.
 
 ---
 
-## Formato del nombre de archivo
+## Purpose of this folder
 
-Todos los documentos siguen este formato:
+`.claude/documents/` contains technical documentation of the current project state. It is meant to be read by Claude Code at the start of a session or task, so it can understand what was built, what decisions were made, and what remains to be done — without needing to explore the entire codebase from scratch.
+
+---
+
+## Filename format
+
+All documents follow this format:
 
 ```
-{content}-{date}-{title}.md
+{category}-{date}-{title}.md
 ```
 
-| Parte | Descripción | Ejemplo |
+| Part | Description | Example |
 |---|---|---|
-| `{content}` | Categoría del documento (ver categorías abajo) | `database` |
-| `{date}` | Fecha de creación en formato `YYYY-DD-MM` | `2026-06-06` |
-| `{title}` | Título descriptivo en kebab-case | `schema-and-seed` |
+| `{category}` | Document category (see valid categories below) | `database` |
+| `{date}` | Creation date in `YYYY-MM-DD` format | `2026-06-06` |
+| `{title}` | Descriptive title in kebab-case | `schema-and-seed` |
 
-**Ejemplo completo:** `database-2026-06-06-schema-and-seed.md`
+**Full example:** `database-2026-06-06-schema-and-seed.md`
 
-### Categorías válidas
+### Valid categories
 
-| Categoría | Contenido |
+| Category | Contents |
 |---|---|
-| `database` | Schema de tablas, migraciones, seed data, storage, auth |
-| `backend` | Integración con Supabase, hooks, stores, tipos, Edge Functions |
-| `frontend` | Pantallas, componentes, rutas, animaciones, config técnica |
-| `design` | Sistema visual: colores, tipografía, espaciado, componentes de UI |
-| `meta` | Documentación sobre el sistema de documentación en sí |
+| `database` | Table schema, migrations, seed data, storage, auth |
+| `backend` | Supabase integration, hooks, stores, types, Edge Functions |
+| `frontend` | Screens, components, routes, animations, technical config |
+| `design` | Visual system: colors, typography, spacing, UI components |
+| `meta` | Documentation about the documentation system itself |
 
-Si una nueva categoría es necesaria, debe ser de una sola palabra en minúsculas y en español o inglés según encaje mejor con el proyecto.
-
----
-
-## Cómo leer los documentos
-
-1. **Empezar por este archivo (`meta-`)** para entender el sistema.
-2. Leer los documentos relevantes a la tarea actual. No es necesario leerlos todos.
-3. Dentro de cada documento, la estructura es:
-   - **Resumen del área** al inicio
-   - **Estado actual** con detalles técnicos
-   - **Pendientes** al final (lista de tareas no implementadas)
-
-El campo `Pendientes` al final de cada documento es especialmente importante: indica qué no está hecho todavía y qué no debe asumirse como implementado.
+If a new category is needed, it must be a single lowercase word.
 
 ---
 
-## Cómo crear un documento nuevo
+## How to read the documents
 
-Crear un documento nuevo cuando:
-- Se implementa algo significativo que no está cubierto por ningún documento existente
-- Se agrega una nueva categoría de funcionalidad
-- El documento existente de esa categoría se volvió demasiado largo para ser útil
+1. **Start with this file (`meta-`)** to understand the system.
+2. Read the documents relevant to the current task. There is no need to read all of them.
+3. Inside each document, the structure is:
+   - **Area summary** at the top
+   - **Current state** with technical details
+   - **Pending** at the end (list of unimplemented tasks)
 
-### Pasos
-
-1. Determinar la categoría correcta (ver tabla de categorías arriba)
-2. Usar la fecha del día en formato `YYYY-MM-DD`
-3. Elegir un título descriptivo en kebab-case
-4. Crear el archivo en `.claude/documents/` con el nombre correcto
-5. Seguir el formato de sección que se describe abajo
-6. Commitear y pushear junto con los cambios de código relacionados
+The `Pending` section at the end of each document is especially important: it indicates what is not yet done and must not be assumed as implemented.
 
 ---
 
-## Cuándo actualizar un documento existente vs. crear uno nuevo
+## How to create a new document
 
-| Situación | Acción |
+Create a new document when:
+- Something significant was implemented that is not covered by any existing document
+- A new category of functionality was added
+- An existing document for that category has become too long to be useful
+
+### Steps
+
+1. Determine the correct category (see categories table above)
+2. Use today's date in `YYYY-MM-DD` format
+3. Choose a descriptive title in kebab-case
+4. Create the file in `.claude/documents/` with the correct name
+5. Follow the section format described in `meta-2026-06-07-documentation-style-guide.md`
+6. Commit and push together with the related code changes
+
+---
+
+## When to edit an existing document vs. create a new one
+
+| Situation | Action |
 |---|---|
-| Se agregó o cambió algo dentro del área que ya cubre el documento | **Editar el documento existente** — actualizar las secciones afectadas y los Pendientes |
-| El área creció tanto que el documento es difícil de navegar | **Crear un documento nuevo** con fecha actualizada y archivar el viejo (agregar nota al inicio del viejo indicando que fue reemplazado) |
-| Se implementa un área completamente nueva | **Crear un documento nuevo** con la categoría que corresponda |
-| Un Pendiente fue completado | **Editar el documento existente** — mover el ítem de Pendientes a la sección correspondiente |
+| Something was added or changed within the area the document already covers | **Edit the existing document** — update affected sections and Pending |
+| The area grew so much that the document is hard to navigate | **Create a new document** with an updated date and archive the old one |
+| A completely new area was implemented | **Create a new document** with the appropriate category |
+| A Pending item was completed | **Edit the existing document** — move the item from Pending to the relevant section |
 
-**Regla general:** editar > crear. Solo crear uno nuevo si el alcance es claramente distinto o el documento existente ya no es manejable.
+**General rule:** edit over create. Only create a new one if the scope is clearly distinct or the existing document is no longer manageable.
 
 ---
 
-## Formato interno de cada documento
+## Internal document format
 
-Todos los documentos deben seguir esta estructura base:
+All documents must follow this base structure:
 
 ```markdown
-# {Categoría} — {Título descriptivo}
+# {Category} — {Descriptive Title}
 
-Párrafo corto explicando qué cubre este documento.
-
----
-
-## {Sección 1}
-
-Contenido...
+Short paragraph explaining what this document covers.
 
 ---
 
-## {Sección N}
+## {Section 1}
 
-Contenido...
+Content...
 
 ---
 
-## Pendientes
+## {Section N}
 
-- [ ] Ítem no implementado
-- [ ] Otro ítem pendiente
+Content...
+
+---
+
+## Pending
+
+- [ ] Unimplemented item
+- [ ] Another pending item
 ```
 
-### Reglas de formato
+### Formatting rules
 
-- Usar tablas para comparar opciones o listar campos con múltiples atributos
-- Usar bloques de código (` ``` `) para SQL, TypeScript, rutas de archivo y comandos
-- Los títulos de sección deben ser descriptivos, no genéricos ("Tablas", no "Datos")
-- El apartado `Pendientes` es **obligatorio** y siempre va al final
-- No incluir decisiones sin justificación: si algo se hizo de una forma específica por una razón técnica, explicarlo brevemente
+- Use tables to compare options or list fields with multiple attributes
+- Use code blocks (` ``` `) for SQL, TypeScript, file paths, and commands
+- Section titles must be descriptive, not generic ("Tables", not "Data")
+- The `Pending` section is **mandatory** and always goes at the end
+- Do not include decisions without justification: if something was done a specific way for a technical reason, explain it briefly
 
 ---
 
-## Cómo resolver conflictos entre documentos
+## How to resolve conflicts between documents
 
-Si dos documentos contienen información contradictoria sobre el mismo tema:
+If two documents contain contradictory information about the same topic:
 
-1. **El documento con fecha más reciente tiene precedencia** sobre el más antiguo
-2. Actualizar el documento más antiguo para que sea consistente con el nuevo
-3. Si la contradicción es intencional (cambio de decisión técnica), agregar una nota en el documento viejo:
+1. **The document with the most recent date takes precedence** over the older one
+2. Update the older document to be consistent with the newer one
+3. If the contradiction is intentional (a technical decision change), add a note to the old document:
    ```
-   > ⚠️ Esta sección fue reemplazada. Ver `{nuevo-documento}.md` para el estado actual.
+   > ⚠️ This section was superseded. See `{new-document}.md` for the current state.
    ```
 
 ---
 
-## Qué NO incluir en los documentos
+## What NOT to include in documents
 
-- Código completo de archivos enteros (solo snippets relevantes)
-- Decisiones pendientes de aprobación del usuario (eso va en la conversación)
-- TODOs vagos sin contexto ("mejorar performance")
-- Información que ya está en el código y es obvia por los nombres
+- Complete file contents (relevant snippets only)
+- Decisions pending user approval (those stay in the conversation)
+- Vague TODOs without context ("improve performance")
+- Information already in the code and obvious from identifiers
 
 ---
 
-## Documentos actuales
+## Current documents
 
-| Archivo | Cubre |
+| File | Covers |
 |---|---|
-| `database-2026-06-06-schema-and-seed.md` | Schema de tablas, seed data, storage buckets, auth trigger |
-| `backend-2026-06-06-supabase-integration.md` | Cliente Supabase, auth flow, hooks de datos, tipos TypeScript |
-| `frontend-2026-06-06-screens-and-components.md` | Pantallas, componentes, design tokens, config técnica |
-| `design-2026-06-06-visual-system.md` | Paleta, tipografía, tarjetas, recursos en Storage, principios |
-| `meta-2026-06-06-how-to-use-documents.md` | Este archivo |
+| `database-2026-06-06-schema-and-seed.md` | Table schema, seed data, storage buckets, auth trigger |
+| `backend-2026-06-06-supabase-integration.md` | Supabase client, auth flow, data hooks, TypeScript types |
+| `frontend-2026-06-06-screens-and-components.md` | Screens, components, design tokens, technical config |
+| `design-2026-06-06-visual-system.md` | Color palette, typography, cards, Storage resources, principles |
+| `meta-2026-06-06-how-to-use-documents.md` | This file |
+| `meta-2026-06-07-documentation-style-guide.md` | Authoritative style guide for creating and editing documents |

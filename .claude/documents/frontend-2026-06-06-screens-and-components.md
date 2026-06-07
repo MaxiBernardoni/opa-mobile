@@ -1,122 +1,127 @@
-# Frontend — Pantallas y Componentes
+# Frontend — Screens and Components
 
-## Stack
-- React Native + Expo SDK 54 (managed workflow)
-- Expo Router v6 (file-based routing)
-- NativeWind instalado (pero se usa principalmente StyleSheet)
-- Expo Image (`expo-image`) para imágenes con caché
-- React Native Reanimated para animaciones
-- Zustand para estado global
+This document covers all implemented screens, components, design tokens, and relevant technical configuration for the OPA app.
 
 ---
 
-## Estructura de rutas
+## Stack
+
+- React Native + Expo SDK 54 (managed workflow)
+- Expo Router v6 (file-based routing)
+- NativeWind installed (but `StyleSheet` is used primarily)
+- Expo Image (`expo-image`) for images with caching
+- React Native Reanimated for animations
+- Zustand for global state
+
+---
+
+## Route Structure
 
 ```
 app/
-  _layout.tsx          # Root layout: fuentes, auth init, Stack navigator
+  _layout.tsx          # Root layout: fonts, auth init, Stack navigator
   (tabs)/
-    _layout.tsx        # Tab layout con BottomTabBar custom
+    _layout.tsx        # Tab layout with custom BottomTabBar
     index.tsx          # Home
     outfits.tsx        # Outfit Scroll (TikTok-style)
-    search.tsx         # Búsqueda (placeholder)
-    wardrobe.tsx       # Armario (placeholder)
-    profile.tsx        # Perfil
+    search.tsx         # Search (placeholder)
+    wardrobe.tsx       # Wardrobe (placeholder)
+    profile.tsx        # Profile
   auth/
     index.tsx          # Login/Signup modal
 ```
 
 ---
 
-## Pantallas implementadas
+## Implemented Screens
 
 ### Home (`app/(tabs)/index.tsx`)
-- Header: logo OPA transparente (izquierda) + ícono camión blanco (derecha)
-- **Outfit Carousel** con efecto de profundidad:
+- Header: transparent OPA logo (left) + white truck icon (right)
+- **Outfit Carousel** with depth effect:
   - `Animated.FlatList` horizontal, `snapToInterval`
-  - `scrollX` interpolado → `scale` (0.84→1→0.84) y `opacity` (0.65→1→0.65)
-  - Tarjetas: 220×370px, radio 15, sombra
-  - Padding lateral = `(screenWidth - 220) / 2` para centrar
-- **Últimas Prendas**: scroll horizontal, tarjetas 120×150, nombre + precio rosa
-- **Marcas**: scroll horizontal, tarjetas 110×110 cuadradas con borde negro. Muestra logo si existe, nombre si no
-- **Lo Último que Viste**: 4 tarjetas grises placeholder (110×150)
-- Conectado a datos reales via `useOutfits()`
+  - `scrollX` interpolated → `scale` (0.84→1→0.84) and `opacity` (0.65→1→0.65)
+  - Cards: 220×370px, radius 15, shadow
+  - Side padding = `(screenWidth - 220) / 2` to center cards
+- **Latest Garments**: horizontal scroll, 120×150 cards, name + pink price
+- **Brands**: horizontal scroll, 110×110 square cards with black border. Shows logo if available, name otherwise
+- **Recently Viewed**: 4 grey placeholder cards (110×150)
+- Connected to real data via `useOutfits()`
 
 ### Outfit Scroll (`app/(tabs)/outfits.tsx`)
-- `FlatList` full-screen con `pagingEnabled` — scroll vertical tipo TikTok
-- Header flotante: camión (izq) + tabs "Tus marcas / Descubrir" (centro) + botón + (der)
-- `OutfitScrollItem` por item: imagen full-screen + UI superpuesta
-- Labels flotantes de prendas con thumbnail + nombre + precio
-- Botones de acción: Like · Guardar · Compartir (estado local)
-- Info de marca abajo izquierda: avatar + nombre + título outfit
-- Bottom bar: precio total calculado de las prendas + "Ver outfit"
-- Conectado a `useOutfits()`
+- Full-screen `FlatList` with `pagingEnabled` — vertical TikTok-style scroll
+- Floating header: truck (left) + "Your brands / Discover" tabs (center) + + button (right)
+- `OutfitScrollItem` per item: full-screen image + overlaid UI
+- Floating garment labels with thumbnail + name + price
+- Action buttons: Like · Save · Share (local state)
+- Brand info bottom-left: avatar + name + outfit title
+- Bottom bar: total price calculated from garments + "View outfit"
+- Connected to `useOutfits()`
 
-### Perfil (`app/(tabs)/profile.tsx`)
-Tiene tres estados:
+### Profile (`app/(tabs)/profile.tsx`)
+Three states:
 
-1. **Inicializando** (`!initialized`): `ActivityIndicator` centrado
-2. **Sin sesión** (`!session`): Auth gate
-   - Logo OPA, título "Tu perfil te espera", subtítulo
-   - Botón "Iniciar sesión" (rosa) + "Crear cuenta" (borde rosa)
-   - Ambos navegan a `/auth`
-3. **Con sesión**: perfil completo
-   - Avatar circular 110×110 (inicial si no hay foto)
-   - Username, nombre, bio, style tags
-   - Stats: Seguidores · Seguidos · Outfits · Guardados
-   - Navbar interna: Grid · Favoritos · Pedidos
-   - Grid 3 columnas de outfits (130×231px) con contador likes
-   - Botón logout (ícono ⚙ arriba derecha)
+1. **Initializing** (`!initialized`): centered `ActivityIndicator`
+2. **No session** (`!session`): Auth gate
+   - OPA logo, title, subtitle
+   - "Sign in" button (pink) + "Create account" button (pink border)
+   - Both navigate to `/auth`
+3. **With session**: full profile
+   - Circular avatar 110×110 (initial letter if no photo)
+   - Username, name, bio, style tags
+   - Stats: Followers · Following · Outfits · Saved
+   - Internal navbar: Grid · Favorites · Orders
+   - 3-column outfit grid (130×231px) with like counter
+   - Logout button (⚙ icon, top right)
 
 ### Auth (`app/auth/index.tsx`)
-- Modal con `presentation: 'modal'`, `animation: 'slide_from_bottom'`
-- Switcher login / signup
+- Modal with `presentation: 'modal'`, `animation: 'slide_from_bottom'`
+- Login / signup switcher
 - Login: email + password → `supabase.auth.signInWithPassword`
-- Signup: username + nombre + email + password → `supabase.auth.signUp`
-- Validación básica (campos vacíos, password mínimo 6 chars)
-- Redirige a `/(tabs)` al completar
+- Signup: username + name + email + password → `supabase.auth.signUp`
+- Basic validation (empty fields, minimum 6-char password)
+- Redirects to `/(tabs)` on completion
 
 ---
 
-## Componentes
+## Components
 
-### Navegación
+### Navigation
 **`components/navigation/BottomTabBar.tsx`**
-- 5 tabs: Home · Outfits (centro) · Search · Wardrobe · Profile
-- Iconos PNG desde Supabase Storage (`assets/nav/`)
-- Tab central (Outfits): fondo rosa (`#EB006B`), elevado `marginTop: -18`, sombra rosa
-  - Usa `Image` de React Native (no expo-image) con `tintColor: 'white'` para el ícono
-- Tabs regulares: `expo-image`, activo muestra ícono `_rosa.png` + fondo `rosaOpaLight`
-- Sin etiquetas de texto
+- 5 tabs: Home · Outfits (center) · Search · Wardrobe · Profile
+- PNG icons from Supabase Storage (`assets/nav/`)
+- Center tab (Outfits): pink background (`#EB006B`), elevated `marginTop: -18`, pink shadow
+  - Uses React Native `Image` (not expo-image) with `tintColor: 'white'` for the icon
+- Regular tabs: `expo-image`, active shows `_rosa.png` icon + `rosaOpaLight` background
+- No text labels
 
 ### Home
-- **`SectionHeader`**: título UPPERCASE bold (Merge One) + flecha → rosa clickeable
-- **`HorizontalSlider`**: wrapper genérico de `ScrollView` horizontal
-- **`BrandsSlider`**: slider específico de marcas
+- **`SectionHeader`**: UPPERCASE bold title (Merge One) + clickable pink arrow →
+- **`HorizontalSlider`**: generic horizontal `ScrollView` wrapper
+- **`BrandsSlider`**: brand-specific slider
 
 ### Outfit
-- **`OutfitScrollItem`**: item completo del feed vertical
-- **`OutfitCard`**: tarjeta de outfit para el carousel
-- **`OutfitGarmentLabel`**: chip flotante con thumbnail circular + nombre + precio
-- **`OutfitBottomBar`**: barra inferior blanca con precio total + botón "Ver outfit"
+- **`OutfitScrollItem`**: full item for the vertical feed
+- **`OutfitCard`**: outfit card for the carousel
+- **`OutfitGarmentLabel`**: floating chip with circular thumbnail + name + price
+- **`OutfitBottomBar`**: white bottom panel with total price + "View outfit" button
 
 ### Profile
-- **`ProfileHeader`**: avatar + username + nombre + bio + tags
-- **`ProfileStats`**: fila de estadísticas
-- **`ProfileNavbar`**: tabs internos Grid/Favoritos/Pedidos con indicador activo
-- **`OutfitGrid`**: grid 3 columnas de outfits
+- **`ProfileHeader`**: avatar + username + name + bio + tags
+- **`ProfileStats`**: stats row
+- **`ProfileNavbar`**: internal Grid/Favorites/Orders tabs with active indicator
+- **`OutfitGrid`**: 3-column outfit grid
 
-### UI primitivos
-- **`Button`**: botón primario/secundario con variantes
-- **`Tag`**: chip de estilo con borde
-- **`Avatar`**: imagen circular con fallback a inicial
-- **`Badge`**: indicador numérico
+### UI Primitives
+- **`Button`**: primary/secondary button with variants
+- **`Tag`**: style chip with border
+- **`Avatar`**: circular image with fallback to initial letter
+- **`Badge`**: numeric indicator
 
 ---
 
 ## Design Tokens
 
-Definidos en `constants/`:
+Defined in `constants/`:
 
 ```ts
 // colors.ts
@@ -131,8 +136,8 @@ grisOscuro: '#4E4E4E'
 bordeTag: '#A6A6AC'
 
 // fonts.ts
-mergeOne: 'MergeOne-Regular'      // Títulos y secciones
-palanquinDark: 'PalanquinDark'    // Botones, usernames
+mergeOne: 'MergeOne-Regular'      // Section titles and headings
+palanquinDark: 'PalanquinDark'    // Buttons, usernames
 
 // radius.ts
 card: 15, chip: 10, button: 8, tag: 8, avatar: 9999
@@ -141,25 +146,25 @@ card: 15, chip: 10, button: 8, tag: 8, avatar: 9999
 xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 ```
 
-**Fuente Merge One:** archivo `assets/fonts/MergeOne-Regular.ttf` cargado con `expo-font` en `_layout.tsx`.
+**Merge One font:** file `assets/fonts/MergeOne-Regular.ttf` loaded with `expo-font` in `_layout.tsx`.
 
 ---
 
-## Configuración técnica relevante
+## Relevant Technical Configuration
 
-- `newArchEnabled: false` en `app.json` (incompatible con RN 0.81.5)
-- `"updates": { "enabled": false }` en `app.json` (evita que Expo Go descargue bundle remoto)
-- `--legacy-peer-deps` requerido en todos los `npm install`
-- `pointerEvents` como prop de style (no como prop directo) en RN 0.71+
-- `babel.config.js` y `metro.config.js` son obligatorios
+- `newArchEnabled: false` in `app.json` — incompatible with react-native-screens@4.16.0 on RN 0.81.5; do not change to `true` until upgrading to RN ≥ 0.82
+- `"updates": { "enabled": false }` in `app.json` — prevents Expo Go from downloading the remote bundle instead of the local dev server
+- `--legacy-peer-deps` required for all `npm install` — peer dependency conflicts between Expo SDK 54 packages
+- `pointerEvents` as a style prop (not a direct prop) in RN 0.71+
+- `babel.config.js` and `metro.config.js` are mandatory — Metro cannot compile the project without them
 
 ---
 
-## Pendientes
+## Pending
 
-- [ ] Pantalla de búsqueda funcional
-- [ ] Pantalla de armario con lógica real
-- [ ] Pantallas de detalle: `outfit/[id]` y `product/[id]`
-- [ ] Marcar prendas del armario que ya tiene el usuario en el outfit scroll
-- [ ] Animaciones de like/guardar
-- [ ] Skeleton loading en lugar de ActivityIndicator
+- [ ] Functional search screen
+- [ ] Wardrobe screen with real logic
+- [ ] Detail screens: `outfit/[id]` and `product/[id]`
+- [ ] Highlight wardrobe garments the user already owns in the outfit scroll
+- [ ] Like/save animations
+- [ ] Skeleton loading instead of ActivityIndicator

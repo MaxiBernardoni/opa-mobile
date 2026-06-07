@@ -1,47 +1,52 @@
-# Design — Sistema Visual
+# Design — Visual System
 
-## Concepto
-OPA es una app de descubrimiento de moda. La experiencia visual es lo primero: inmersiva, aspiracional y fluida. Se siente más cercana a TikTok/Pinterest que a una tienda online tradicional.
-
-**Tres pilares:**
-1. Descubrimiento de outfits
-2. Armario personal inteligente
-3. Compra contextual (completar un look)
+This document covers OPA's visual design system: color palette, typography, spacing, key UI components, Storage resources, and design principles.
 
 ---
 
-## Paleta de colores
+## Concept
 
-| Token | Valor | Uso |
+OPA is a fashion discovery app. The visual experience comes first: immersive, aspirational, and fluid. It feels closer to TikTok/Pinterest than a traditional online store.
+
+**Three pillars:**
+1. Outfit discovery
+2. Smart personal wardrobe
+3. Contextual shopping (completing a look)
+
+---
+
+## Color Palette
+
+| Token | Value | Usage |
 |---|---|---|
-| `rosaOpa` | `#EB006B` | Color primario: botones, acentos, precios, indicadores activos |
-| `rosaOpaLight` | `rgba(235, 0, 107, 0.2)` | Fondo de tab activo en navbar |
-| `negro` | `#000000` | Textos principales, bordes de tarjetas de marcas |
-| `blanco` | `#FFFFFF` | Fondos, textos sobre fondo oscuro |
-| `grisClaro` | `#838383` | Textos secundarios, placeholders |
-| `grisBorde` | `#F2F2F2` | Bordes, fondos secundarios |
-| `grisMedio` | `#D9D9D9` | Skeletons, placeholders de imagen |
-| `grisOscuro` | `#4E4E4E` | Textos terciarios |
-| `bordeTag` | `#A6A6AC` | Bordes de chips de estilo |
+| `rosaOpa` | `#EB006B` | Primary color: buttons, accents, prices, active indicators |
+| `rosaOpaLight` | `rgba(235, 0, 107, 0.2)` | Active tab background in navbar |
+| `negro` | `#000000` | Main text, brand card borders |
+| `blanco` | `#FFFFFF` | Backgrounds, text on dark backgrounds |
+| `grisClaro` | `#838383` | Secondary text, placeholders |
+| `grisBorde` | `#F2F2F2` | Borders, secondary backgrounds |
+| `grisMedio` | `#D9D9D9` | Skeletons, image placeholders |
+| `grisOscuro` | `#4E4E4E` | Tertiary text |
+| `bordeTag` | `#A6A6AC` | Style chip borders |
 
 ---
 
-## Tipografía
+## Typography
 
-| Font | Uso |
+| Font | Usage |
 |---|---|
-| **Merge One** (serif) | Títulos de sección, logo OPA en text, headings |
-| **Palanquin Dark** (sans) | Botones, usernames, textos de UI |
-| System default | Precios, descripciones cortas |
+| **Merge One** (serif) | Section titles, OPA logo as text, headings |
+| **Palanquin Dark** (sans) | Buttons, usernames, UI text |
+| System default | Prices, short descriptions |
 
-**Carga de fuentes:**
+**Font loading:**
 - `MergeOne-Regular.ttf` → `assets/fonts/MergeOne-Regular.ttf`
 - `PalanquinDark` → via `@expo-google-fonts/palanquin-dark`
-- Cargadas con `useFonts` en `app/_layout.tsx`
+- Loaded with `useFonts` in `app/_layout.tsx`
 
 ---
 
-## Espaciado y radios
+## Spacing and Radius
 
 ```
 Spacing: xs=4, sm=8, md=12, lg=16, xl=24, xxl=32
@@ -50,54 +55,54 @@ Radius:  card=15, chip=10, button=8, tag=8, avatar=9999
 
 ---
 
-## Componentes de diseño clave
+## Key Design Components
 
 ### Bottom Tab Bar
-- 5 tabs sin texto, solo íconos PNG
-- Tab central (Outfits) elevado `marginTop: -18`
-- Fondo rosa `#EB006B` + sombra rosa + radio 14
-- Ícono central blanco (`tintColor: white` via RNImage)
-- Tabs activos: fondo `rosaOpaLight` + ícono `_rosa.png`
+- 5 tabs with no text labels, icons only (PNG)
+- Center tab (Outfits) elevated `marginTop: -18`
+- Pink background `#EB006B` + pink shadow + radius 14
+- White center icon (`tintColor: white` via RN Image)
+- Active tabs: `rosaOpaLight` background + `_rosa.png` icon
 
-### Cards de Outfit
-- **Carousel Home**: 220×370px, radio 15, sombra `negro` 8px
-- **Feed vertical**: full-screen (100vw × 100vh)
-- **Grid perfil**: 130×231px (ratio 9:16)
-- **Card outfits tab**: 200×356px
+### Outfit Cards
+- **Home carousel**: 220×370px, radius 15, `negro` shadow 8px
+- **Vertical feed**: full-screen (100vw × 100vh)
+- **Profile grid**: 130×231px (9:16 ratio)
+- **Outfits tab card**: 200×356px
 
-### Cards de Prendas
-- Home: 120×150px, radio 15, nombre + precio rosa
-- Armario: pendiente
+### Garment Cards
+- Home: 120×150px, radius 15, name + pink price
+- Wardrobe: pending
 
-### Cards de Marcas
-- Home: 110×110px cuadradas, borde negro 1.5px, radio 15
-- Muestra logo si existe, nombre uppercase si no
+### Brand Cards
+- Home: 110×110px square, 1.5px black border, radius 15
+- Shows logo if available, uppercase name otherwise
 
-### Labels flotantes en Outfit Scroll
-- Chip blanco con thumbnail circular + nombre + precio
-- Posicionados con coordenadas `position_x / position_y` (0 a 1) relativas a la imagen
-- Aparecen al interactuar (tap para revelar)
+### Floating Labels in Outfit Scroll
+- White chip with circular thumbnail + name + price
+- Positioned using `position_x / position_y` coordinates (0 to 1) relative to the image
+- Revealed on tap (tap to reveal interaction)
 
-### Botones de acción (Outfit Scroll)
-- Columna vertical a la derecha
-- Like ♡ · Guardar · Compartir
-- Estado local con animación al activar
+### Action Buttons (Outfit Scroll)
+- Vertical column on the right side
+- Like ♡ · Save · Share
+- Local state with animation on activation
 
-### Bottom Bar del Outfit
-- Panel blanco radio 15 en la parte inferior
-- Precio total calculado de la suma de prendas
-- Botón "Ver outfit" rosa full-width
+### Outfit Bottom Bar
+- White panel with radius 15 at the bottom
+- Total price calculated as sum of garments
+- Full-width pink "View outfit" button
 
 ---
 
-## Recursos en Supabase Storage
+## Resources in Supabase Storage
 
-### Bucket `assets` (público)
+### Bucket `assets` (public)
 ```
 assets/
-  logoOPA-transparente.png   # Logo para header home (fondo transparente)
-  logoOPA-blanco.png         # Logo blanco para fondos oscuros
-  camion_blanco.png          # Ícono de delivery
+  logoOPA-transparente.png   # Logo for home header (transparent background)
+  logoOPA-blanco.png         # White logo for dark backgrounds
+  camion_blanco.png          # Delivery icon
   nav/
     home.png / home_rosa.png
     outfit.png / outfit_rosa.png
@@ -106,7 +111,7 @@ assets/
     user.png / user_rosa.png
 ```
 
-### Bucket `avatars` (público)
+### Bucket `avatars` (public)
 ```
 avatars/
   brands/
@@ -115,25 +120,25 @@ avatars/
     batuk_avatar.jfif
 ```
 
-**URL base:** `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/`
+**Base URL:** `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/`
 
 ---
 
-## Principios de diseño
+## Design Principles
 
-- **Content first**: la imagen siempre es lo más importante, la UI es secundaria
-- **No sobrecargar**: información progresiva, revelar al interactuar
-- **Tap para revelar**: en el outfit scroll la info aparece al tocar
-- **Sin fricción**: el camino inspiración → compra debe ser lo más corto posible
-- **Aspiracional**: la app debe sentirse como un feed de moda curado, no un catálogo
+- **Content first**: the image is always the most important element; UI is secondary
+- **No overloading**: progressive information disclosure, reveal on interaction
+- **Tap to reveal**: in the outfit scroll, info appears on tap
+- **No friction**: the inspiration → purchase path must be as short as possible
+- **Aspirational**: the app should feel like a curated fashion feed, not a catalog
 
 ---
 
-## Pendientes
+## Pending
 
-- [ ] Skeleton loaders para estados de carga
-- [ ] Animaciones de like/guardar (spring, bounce)
-- [ ] Micro-interacciones en bottom tab bar
-- [ ] Modo oscuro (no planificado para Demo 1)
-- [ ] Pantalla de detalle de outfit con labels interactivos
-- [ ] Imágenes reales de outfits y prendas (Midway, Batuk, Doble V)
+- [ ] Skeleton loaders for loading states
+- [ ] Like/save animations (spring, bounce)
+- [ ] Micro-interactions in bottom tab bar
+- [ ] Dark mode (not planned for Demo 1)
+- [ ] Outfit detail screen with interactive labels
+- [ ] Real outfit and garment images (Midway, Batuk, Doble V)

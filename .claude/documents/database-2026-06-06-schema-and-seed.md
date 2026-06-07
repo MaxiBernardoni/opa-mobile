@@ -1,36 +1,41 @@
 # Database — Schema & Seed Data
 
-## Proyecto Supabase
+This document covers the Supabase database schema, seed data, storage buckets, and auth trigger for the OPA project.
+
+---
+
+## Supabase Project
+
 - **Project ID:** `vecnktrbjolahcalkbml`
 - **URL:** `https://vecnktrbjolahcalkbml.supabase.co`
 
 ---
 
-## Tablas
+## Tables
 
 ### `perfiles`
-Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
+Extends `auth.users`. Created automatically via trigger on registration.
 
-| Columna | Tipo | Notas |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid (PK) | = auth.users.id |
-| username | text | único, lowercase |
+| username | text | unique, lowercase |
 | display_name | text | nullable |
 | bio | text | nullable |
 | avatar_url | text | nullable |
-| tags | text[] | estilo personal |
+| tags | text[] | personal style tags |
 | followers_count | int | default 0 |
 | following_count | int | default 0 |
 | outfits_count | int | default 0 |
 | is_brand | bool | default false |
 | created_at | timestamptz | |
 
-**Trigger:** `handle_new_user()` — al insertar en `auth.users`, extrae `username` y `display_name` de `raw_user_meta_data` y crea el perfil automáticamente.
+**Trigger:** `handle_new_user()` — on insert into `auth.users`, extracts `username` and `display_name` from `raw_user_meta_data` and creates the profile automatically.
 
 ---
 
 ### `marcas`
-| Columna | Tipo | Notas |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid (PK) | |
 | name | text | |
@@ -39,13 +44,13 @@ Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 | owner_id | uuid | FK → perfiles.id, nullable |
 | instagram_handle | text | nullable |
 | website | text | nullable |
-| location | text | nullable (múltiples locales separados por /) |
+| location | text | nullable (multiple locations separated by /) |
 | tags | text[] | |
 | created_at | timestamptz | |
 
-**Seed data actual:**
+**Current seed data:**
 
-| Nombre | Logo | IG | Sitio | Ubicación |
+| Name | Logo | IG | Site | Location |
 |---|---|---|---|---|
 | Midway | `avatars/brands/midway_avatar.png` | midway.ar | midway.com.ar | Argerich 448 |
 | Doble V | `avatars/brands/doblev_avatar.png` | doblev.oficial | ladoblev.mitiendanube.com | Bogotá 3156 |
@@ -53,13 +58,13 @@ Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 | Pull&Bear | — picsum placeholder — | | | |
 | Stradivarius | — picsum placeholder — | | | |
 
-Los logos reales están en el bucket `avatars` (público). URL base:
+Real logos are in the `avatars` bucket (public). Base URL:
 `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/`
 
 ---
 
 ### `prendas`
-| Columna | Tipo | Notas |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid (PK) | |
 | brand_id | uuid | FK → marcas.id |
@@ -74,7 +79,7 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 ---
 
 ### `outfits`
-| Columna | Tipo | Notas |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid (PK) | |
 | creator_id | uuid | FK → perfiles.id, nullable |
@@ -88,20 +93,20 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 ---
 
 ### `outfit_items`
-Relaciona outfits con prendas (con posición para labels flotantes).
+Links outfits to garments, with position for floating labels.
 
-| Columna | Tipo | Notas |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid (PK) | |
 | outfit_id | uuid | FK → outfits.id |
 | garment_id | uuid | FK → prendas.id |
-| position_x | numeric | posición X del label flotante (0-1) |
-| position_y | numeric | posición Y del label flotante (0-1) |
+| position_x | numeric | X position of floating label (0–1) |
+| position_y | numeric | Y position of floating label (0–1) |
 
 ---
 
 ### `outfit_likes`
-| Columna | Tipo |
+| Column | Type |
 |---|---|
 | user_id | uuid (FK → perfiles.id) |
 | outfit_id | uuid (FK → outfits.id) |
@@ -109,7 +114,7 @@ Relaciona outfits con prendas (con posición para labels flotantes).
 ---
 
 ### `outfit_saves`
-| Columna | Tipo |
+| Column | Type |
 |---|---|
 | user_id | uuid (FK → perfiles.id) |
 | outfit_id | uuid (FK → outfits.id) |
@@ -117,27 +122,27 @@ Relaciona outfits con prendas (con posición para labels flotantes).
 ---
 
 ### `prendas_armario`
-Armario personal del usuario.
+User's personal wardrobe.
 
-| Columna | Tipo | Notas |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid (PK) | |
 | user_id | uuid | FK → perfiles.id |
 | garment_id | uuid | FK → prendas.id |
 | size | text | nullable |
 | color | text | nullable |
-| source | text | 'purchase' o 'manual' |
+| source | text | 'purchase' or 'manual' |
 
 ---
 
 ## Storage Buckets
 
-| Bucket | Acceso | Contenido |
+| Bucket | Access | Contents |
 |---|---|---|
-| `assets` | público | Iconos de navegación (`nav/`), logos, imágenes de la app |
-| `avatars` | público | Avatares de marcas (`brands/`), avatares de usuarios |
+| `assets` | public | Navigation icons (`nav/`), logos, app images |
+| `avatars` | public | Brand avatars (`brands/`), user avatars |
 
-**Paths de íconos de navegación:**
+**Navigation icon paths:**
 - `assets/nav/home.png` / `home_rosa.png`
 - `assets/nav/outfit.png` / `outfit_rosa.png`
 - `assets/nav/search.png` / `search_rosa.png`
@@ -148,16 +153,16 @@ Armario personal del usuario.
 
 ## Auth
 
-- Proveedor: Email/Password (Supabase Auth)
-- Persistencia: `AsyncStorage` via `@supabase/supabase-js`
-- Al registrarse se pueden pasar `username` y `display_name` en `options.data`
-- El trigger `handle_new_user()` crea el perfil automáticamente
+- Provider: Email/Password (Supabase Auth)
+- Persistence: `AsyncStorage` via `@supabase/supabase-js`
+- On sign up, `username` and `display_name` can be passed in `options.data`
+- The `handle_new_user()` trigger creates the profile automatically
 
 ---
 
-## Pendientes
+## Pending
 
-- [ ] Subir imágenes de outfits y prendas reales al bucket `assets`
-- [ ] Cargar seed data de outfits y prendas para Midway, Doble V y Batuk
-- [ ] Completar info de Pull&Bear y Stradivarius o reemplazarlos
-- [ ] Verificar RLS policies en todas las tablas
+- [ ] Upload real outfit and garment images to the `assets` bucket
+- [ ] Load seed data for outfits and garments for Midway, Doble V, and Batuk
+- [ ] Complete or replace Pull&Bear and Stradivarius entries
+- [ ] Audit RLS policies on all tables
