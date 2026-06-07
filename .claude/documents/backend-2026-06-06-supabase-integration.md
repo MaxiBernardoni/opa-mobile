@@ -1,13 +1,18 @@
 # Backend — Supabase Integration
 
-## Stack
-- **Supabase JS SDK** (`@supabase/supabase-js`)
-- **AsyncStorage** para persistencia de sesión en React Native
-- **Zustand** para estado global en el cliente
+This document covers the Supabase client setup, auth flow, data hooks, Zustand store, and TypeScript types used throughout the OPA app.
 
 ---
 
-## Configuración del cliente
+## Stack
+
+- **Supabase JS SDK** (`@supabase/supabase-js`)
+- **AsyncStorage** for session persistence in React Native
+- **Zustand** for global client-side state
+
+---
+
+## Client Configuration
 
 **`lib/supabase.ts`**
 ```ts
@@ -28,7 +33,7 @@ export const supabase = createClient(
 )
 ```
 
-**`.env`** (no commiteado):
+**`.env`** (not committed):
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://vecnktrbjolahcalkbml.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
@@ -38,18 +43,18 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 
 ## Auth
 
-### Flujo de inicialización (`app/_layout.tsx`)
-1. Al montar, llama `supabase.auth.getSession()` para restaurar sesión guardada
-2. Llama `supabase.auth.onAuthStateChange()` para escuchar cambios en tiempo real
-3. Si hay sesión, fetchea el perfil desde `perfiles`
-4. Setea `initialized = true` cuando termina (evita flash de UI incorrecta)
+### Initialization flow (`app/_layout.tsx`)
+1. On mount, calls `supabase.auth.getSession()` to restore saved session
+2. Calls `supabase.auth.onAuthStateChange()` to listen to real-time changes
+3. If session exists, fetches profile from `perfiles`
+4. Sets `initialized = true` when done (prevents incorrect UI flash)
 
 ### Login
 ```ts
 const { error } = await supabase.auth.signInWithPassword({ email, password })
 ```
 
-### Registro
+### Sign up
 ```ts
 const { error } = await supabase.auth.signUp({
   email,
@@ -66,12 +71,12 @@ const { error } = await supabase.auth.signUp({
 ### Logout
 ```ts
 await supabase.auth.signOut()
-clear() // limpia el store de Zustand
+clear() // clears the Zustand store
 ```
 
 ---
 
-## Estado global — Zustand (`store/useAuthStore.ts`)
+## Global State — Zustand (`store/useAuthStore.ts`)
 
 ```ts
 interface AuthState {
@@ -88,10 +93,10 @@ interface AuthState {
 
 ---
 
-## Hooks de datos
+## Data Hooks
 
 ### `hooks/useOutfits.ts`
-Trae outfits con joins completos:
+Fetches outfits with full joins:
 ```ts
 supabase
   .from('outfits')
@@ -108,10 +113,10 @@ supabase
 ```
 
 ### `hooks/useProfile.ts`
-Trae perfil por ID de usuario desde `perfiles`.
+Fetches a profile by user ID from `perfiles`.
 
 ### `hooks/useWardrobe.ts`
-Trae prendas del armario del usuario:
+Fetches the user's wardrobe items:
 ```ts
 supabase
   .from('prendas_armario')
@@ -121,9 +126,9 @@ supabase
 
 ---
 
-## Tipos TypeScript (`types/index.ts`)
+## TypeScript Types (`types/index.ts`)
 
-Los tipos están alineados al schema real en español:
+Types are aligned to the real Spanish-named schema:
 
 ```ts
 export interface Profile {
@@ -190,10 +195,10 @@ export interface Outfit {
 
 ---
 
-## Pendientes
+## Pending
 
-- [ ] Edge Functions para lógica server-side (likes, saves)
-- [ ] Realtime subscriptions para likes en vivo
-- [ ] Queries de búsqueda (full-text search en outfits/prendas)
-- [ ] Paginación en useOutfits (cursor-based)
-- [ ] RLS policies auditadas para todas las tablas
+- [ ] Edge Functions for server-side logic (likes, saves)
+- [ ] Realtime subscriptions for live like counts
+- [ ] Search queries (full-text search on outfits/garments)
+- [ ] Cursor-based pagination in useOutfits
+- [ ] Audited RLS policies for all tables
