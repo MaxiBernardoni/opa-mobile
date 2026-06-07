@@ -157,3 +157,4 @@ If two documents contain contradictory information about the same topic:
 | `design-2026-06-06-visual-system.md` | Color palette, typography, cards, Storage resources, principles |
 | `meta-2026-06-06-how-to-use-documents.md` | This file |
 | `meta-2026-06-07-documentation-style-guide.md` | Authoritative style guide for creating and editing documents |
+| `meta-2026-06-07-chat-structure.md` | Chat roles, domain boundaries, and initialization prompts |
