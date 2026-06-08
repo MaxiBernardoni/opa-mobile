@@ -12,27 +12,18 @@ interface OutfitGarmentLabelProps {
   positionY?: number
 }
 
-export function OutfitGarmentLabel({ garment, positionX = 0.3, positionY = 0.5 }: OutfitGarmentLabelProps) {
-  const alignRight = positionX <= 0.5
-
+export function OutfitGarmentLabel({ garment, positionX = 0.5, positionY = 0.5 }: OutfitGarmentLabelProps) {
   return (
     <View
       style={[
         styles.container,
-        alignRight
-          ? { left: `${positionX * 100}%` as any }
-          : { right: `${(1 - positionX) * 100}%` as any },
-        { top: `${positionY * 100}%` as any },
-        { flexDirection: alignRight ? 'row' : 'row-reverse' },
+        {
+          left: `${positionX * 100}%` as any,
+          top: `${positionY * 100}%` as any,
+        },
       ]}
     >
-      {/* Dot anchor */}
       <View style={styles.dot} />
-
-      {/* Connector line */}
-      <View style={styles.line} />
-
-      {/* Chip */}
       <View style={styles.chip}>
         <Image
           source={{ uri: garment.image_url ?? `https://picsum.photos/seed/${garment.id}/40/40` }}
@@ -51,20 +42,15 @@ export function OutfitGarmentLabel({ garment, positionX = 0.3, positionY = 0.5 }
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.blanco,
-    opacity: 0.85,
-  },
-  line: {
-    width: 24,
-    height: 1,
-    backgroundColor: colors.blanco,
-    opacity: 0.85,
+    marginLeft: 4,
+    marginBottom: 2,
   },
   chip: {
     flexDirection: 'row',
@@ -82,7 +68,7 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 32,
     height: 32,
-    borderRadius: 6,
+    borderRadius: 16,
   },
   info: {
     maxWidth: 100,

@@ -44,7 +44,6 @@ export interface Outfit {
   occasion: string | null
   style: string | null
   likes_count: number
-  discount_percent: number | null
   created_at: string
   creator?: Profile
   garments?: OutfitItemWithData[]
@@ -55,8 +54,6 @@ export interface OutfitItem {
   outfit_id: string
   garment_id: string
   slot: string | null
-  position_x: number | null
-  position_y: number | null
 }
 
 export interface OutfitItemWithData extends OutfitItem {
