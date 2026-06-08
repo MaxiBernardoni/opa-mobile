@@ -55,7 +55,11 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="dark-content" />
         <View style={styles.gateContainer}>
-          <Text style={styles.gateLogo}>OPA</Text>
+          <Image
+            source={{ uri: 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/logoOPA-transparente.png' }}
+            style={styles.gateLogo}
+            contentFit="contain"
+          />
           <Text style={styles.gateTitle}>Tu perfil te espera</Text>
           <Text style={styles.gateSubtitle}>
             Iniciá sesión para ver tu armario, tus outfits guardados y seguir a tus marcas favoritas.
@@ -211,10 +215,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   gateLogo: {
-    fontSize: 48,
-    fontFamily: fonts.mergeOne,
-    color: colors.rosaOpa,
-    letterSpacing: 8,
+    width: 160,
+    height: 80,
     marginBottom: spacing.sm,
   },
   gateTitle: {
