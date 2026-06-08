@@ -42,6 +42,11 @@ export default function AuthScreen() {
       Alert.alert('Email, contraseña y usuario son obligatorios')
       return
     }
+    const cleanUsername = username.toLowerCase().replace(/[^a-z0-9._]/g, '')
+    if (!cleanUsername) {
+      Alert.alert('Usuario inválido', 'El usuario solo puede contener letras, números, puntos y guiones bajos')
+      return
+    }
     if (password.length < 6) {
       Alert.alert('La contraseña debe tener al menos 6 caracteres')
       return
@@ -52,8 +57,8 @@ export default function AuthScreen() {
       password,
       options: {
         data: {
-          username: username.toLowerCase().replace(/\s/g, ''),
-          display_name: displayName || username,
+          username: cleanUsername,
+          display_name: displayName || cleanUsername,
         },
       },
     })
