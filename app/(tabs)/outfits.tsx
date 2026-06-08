@@ -26,13 +26,16 @@ export default function OutfitsScreen() {
   useEffect(() => {
     if (!outfitId || loading || outfits.length === 0 || didScrollRef.current) return
     const index = outfits.findIndex((o) => o.id === outfitId)
-    if (index <= 0) return
+    if (index < 0) return
     didScrollRef.current = true
-    // Small delay so FlatList has laid out items
-    setTimeout(() => {
-      flatListRef.current?.scrollToIndex({ index, animated: false })
-      setActiveIndex(index)
-    }, 100)
+    setActiveIndex(index)
+    if (index === 0) {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false })
+    } else {
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index, animated: false })
+      }, 100)
+    }
   }, [outfitId, loading, outfits])
 
   // Reset scroll flag when outfitId changes (new navigation)

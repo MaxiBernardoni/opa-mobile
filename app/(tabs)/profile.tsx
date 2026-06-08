@@ -184,7 +184,10 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={styles.gridCard}
                   activeOpacity={0.85}
-                  onPress={() => router.push({ pathname: '/(tabs)/outfits', params: { outfitId: item.id } })}
+                  onPress={() => router.push({
+                    pathname: '/user-outfits',
+                    params: { userId: session!.user.id, startIndex: String(outfits.indexOf(item)) },
+                  })}
                 >
                   <Image
                     source={{ uri: item.cover_image_url ?? `https://picsum.photos/seed/${item.id}/130/231` }}
