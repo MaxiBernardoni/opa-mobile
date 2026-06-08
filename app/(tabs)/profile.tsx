@@ -23,8 +23,8 @@ const PROFILE_ICONS = ['⊞', '♡', '📦']
 export default function ProfileScreen() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
-  const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
   const { session, profile, initialized, clear } = useAuthStore()
+  const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
 
   async function handleLogout() {
     Alert.alert('Cerrar sesión', '¿Estás seguro/a?', [
