@@ -3,9 +3,12 @@ import {
   View, FlatList, StyleSheet, Dimensions, TouchableOpacity, Text,
   StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { useOutfits } from '../../hooks/useOutfits'
 import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
 import { colors } from '../../constants/colors'
+
+const CAMION_URL = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/camion_blanco.png'
 
 const { height: SH } = Dimensions.get('window')
 
@@ -34,7 +37,7 @@ export default function OutfitsScreen() {
       <SafeAreaView style={[styles.floatingHeader, { pointerEvents: 'box-none' } as any]}>
         <View style={styles.headerInner}>
           <TouchableOpacity>
-            <Text style={styles.truckIcon}>🚚</Text>
+            <Image source={{ uri: CAMION_URL }} style={styles.truckIcon} contentFit="contain" />
           </TouchableOpacity>
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => setTab('marcas')} style={styles.tabItem}>
@@ -78,7 +81,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  truckIcon: { fontSize: 22 },
+  truckIcon: { width: 28, height: 28 },
   tabs: {
     flexDirection: 'row',
     alignItems: 'center',
