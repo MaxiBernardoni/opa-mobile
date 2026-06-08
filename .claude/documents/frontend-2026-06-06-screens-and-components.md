@@ -86,13 +86,18 @@ Three states:
 ## Components
 
 ### Navigation
-**`components/navigation/BottomTabBar.tsx`**
-- 5 tabs: Home · Outfits (center) · Search · Wardrobe · Profile
+**`components/navigation/BottomNavBar.tsx`**
+- 5 flat equal tabs: Home · Outfits · Search · Wardrobe · Profile
 - PNG icons from Supabase Storage (`assets/nav/`)
-- Center tab (Outfits): pink background (`#EB006B`), elevated `marginTop: -18`, pink shadow
-  - Uses React Native `Image` (not expo-image) with `tintColor: 'white'` for the icon
-- Regular tabs: `expo-image`, active shows `_rosa.png` icon + `rosaOpaLight` background
+- All tabs are the same size — no elevated center button
+- Active tab: `rosaOpaLight` background on `48×48` icon container (`borderRadius: 8`) + `_rosa.png` icon variant
+- Inactive tab: no background, default icon
+- Thin gray top border (`grisBorde`)
+- `paddingBottom` via `useSafeAreaInsets().bottom` (not hardcoded)
 - No text labels
+- Registered in `app/(tabs)/_layout.tsx` as `tabBar={(props) => <BottomNavBar {...props} />}`
+
+> `BottomTabBar.tsx` still exists but is unused (logic stripped). `BottomNavBar.tsx` is the active component.
 
 ### Home
 - **`SectionHeader`**: UPPERCASE bold title (Merge One) + clickable pink arrow →
