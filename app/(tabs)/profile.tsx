@@ -33,7 +33,7 @@ export default function ProfileScreen() {
         text: 'Cerrar sesión',
         style: 'destructive',
         onPress: async () => {
-          await supabase.auth.signOut({ scope: 'local' })
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
           clear()
         },
       },
