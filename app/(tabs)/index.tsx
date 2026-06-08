@@ -23,7 +23,7 @@ const CARD_GAP = 12
 const FULL_W = CARD_W + CARD_GAP * 2
 
 // ─── Outfit Carousel with depth effect ───────────────────────────────────────
-function OutfitCarousel({ outfits, onPress }: { outfits: Outfit[]; onPress: () => void }) {
+function OutfitCarousel({ outfits, onPress }: { outfits: Outfit[]; onPress: (id: string) => void }) {
   const scrollX = useRef(new Animated.Value(0)).current
   const sidePad = (SW - CARD_W) / 2
 
@@ -58,7 +58,7 @@ function OutfitCarousel({ outfits, onPress }: { outfits: Outfit[]; onPress: () =
           extrapolate: 'clamp',
         })
         return (
-          <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+          <TouchableOpacity onPress={() => onPress(item.id)} activeOpacity={0.9}>
             <Animated.View style={[styles.outfitCard, { transform: [{ scale }], opacity }]}>
               <Image
                 source={{ uri: item.cover_image_url ?? `https://picsum.photos/seed/${item.id}/220/370` }}
@@ -115,7 +115,10 @@ export default function HomeScreen() {
           <>
             {/* ── Outfits ─────────────────────────────────────────────────── */}
             <SectionHeader title="Outfits" onPress={() => router.push('/(tabs)/outfits')} />
-            <OutfitCarousel outfits={outfits} onPress={() => router.push('/(tabs)/outfits')} />
+            <OutfitCarousel
+              outfits={outfits}
+              onPress={(id) => router.push({ pathname: '/(tabs)/outfits', params: { outfitId: id } })}
+            />
 
             {/* ── Últimas prendas ─────────────────────────────────────────── */}
             <SectionHeader title="Últimas Prendas" />
