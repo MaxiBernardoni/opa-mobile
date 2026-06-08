@@ -4,6 +4,7 @@ import {
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
   ScrollView,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { colors } from '../../constants/colors'
@@ -167,7 +168,11 @@ export default function AuthScreen() {
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
 
-          <Text style={styles.logo}>OPA</Text>
+          <Image
+            source={{ uri: 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/logoOPA-transparente.png' }}
+            style={styles.logo}
+            contentFit="contain"
+          />
           <Text style={styles.tagline}>
             {mode === 'login' ? 'Bienvenido/a de vuelta' : 'Creá tu cuenta'}
           </Text>
@@ -300,11 +305,9 @@ const styles = StyleSheet.create({
   },
   closeText: { fontSize: 18, color: colors.grisClaro },
   logo: {
-    fontSize: 48,
-    fontFamily: fonts.mergeOne,
-    color: colors.rosaOpa,
-    letterSpacing: 8,
-    textAlign: 'center',
+    width: 160,
+    height: 80,
+    alignSelf: 'center',
     marginTop: spacing.lg,
     marginBottom: spacing.xs,
   },
