@@ -27,10 +27,11 @@ export default function AuthScreen() {
   // Field-level errors
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [loginError, setLoginError] = useState<string | null>(null)
 
   // ── Derived state ──────────────────────────────────────────────────────────
-  const signupBlocked = !!(usernameError || emailError)
+  const signupBlocked = !!(usernameError || emailError || passwordError)
   const loginBlocked = !!loginError
 
   // ── Username validation on change ──────────────────────────────────────────
@@ -43,6 +44,12 @@ export default function AuthScreen() {
     } else {
       setUsernameError(null)
     }
+  }
+
+  // ── Clear password error on change ────────────────────────────────────────
+  function handlePasswordChange(value: string) {
+    setPassword(value)
+    if (passwordError) setPasswordError(null)
   }
 
   // ── Clear login error as soon as user edits either field ───────────────────
@@ -88,9 +95,7 @@ export default function AuthScreen() {
     if (hasError || signupBlocked) return
 
     if (password.length < 6) {
-      // password errors handled via Alert since there's no inline field for it yet
-      setEmailError(null)
-      setUsernameError('La contraseña debe tener al menos 6 caracteres')
+      setPasswordError('La contraseña debe tener al menos 6 caracteres')
       return
     }
 
@@ -140,6 +145,7 @@ export default function AuthScreen() {
     setMode(next)
     setUsernameError(null)
     setEmailError(null)
+    setPasswordError(null)
     setLoginError(null)
     setEmail('')
     setPassword('')
@@ -228,13 +234,14 @@ export default function AuthScreen() {
 
             <Text style={styles.label}>Contraseña</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !!passwordError && styles.inputError]}
               placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••••'}
               placeholderTextColor={colors.grisMedio}
               value={password}
-              onChangeText={mode === 'login' ? handleLoginPasswordChange : setPassword}
+              onChangeText={mode === 'login' ? handleLoginPasswordChange : handlePasswordChange}
               secureTextEntry
             />
+            {mode === 'signup' && passwordError && <Text style={styles.fieldError}>{passwordError}</Text>}
 
             {/* Login error banner */}
             {mode === 'login' && loginError && (
