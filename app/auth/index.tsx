@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, ScrollView,
+  ScrollView,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -13,6 +13,8 @@ import { radius } from '../../constants/radius'
 
 type Mode = 'login' | 'signup'
 
+const USERNAME_REGEX = /^[a-z0-9._]+$/
+
 export default function AuthScreen() {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('login')
@@ -22,35 +24,76 @@ export default function AuthScreen() {
   const [displayName, setDisplayName] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Field-level errors
+  const [usernameError, setUsernameError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [loginError, setLoginError] = useState<string | null>(null)
+
+  // ── Derived state ──────────────────────────────────────────────────────────
+  const signupBlocked = !!(usernameError || emailError)
+  const loginBlocked = !!loginError
+
+  // ── Username validation on change ──────────────────────────────────────────
+  function handleUsernameChange(value: string) {
+    setUsername(value)
+    if (!value) { setUsernameError(null); return }
+    const clean = value.toLowerCase()
+    if (!USERNAME_REGEX.test(clean)) {
+      setUsernameError('Solo se permiten letras, números, puntos y guiones bajos')
+    } else {
+      setUsernameError(null)
+    }
+  }
+
+  // ── Clear login error as soon as user edits either field ───────────────────
+  function handleLoginEmailChange(value: string) {
+    setEmail(value)
+    if (loginError) setLoginError(null)
+  }
+
+  function handleLoginPasswordChange(value: string) {
+    setPassword(value)
+    if (loginError) setLoginError(null)
+  }
+
+  // ── Login ──────────────────────────────────────────────────────────────────
   async function handleLogin() {
     if (!email || !password) {
-      Alert.alert('Completá todos los campos')
+      setLoginError('Completá el email y la contraseña')
       return
     }
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
-      Alert.alert('Error al iniciar sesión', error.message)
+      setLoginError('El email o la contraseña son incorrectos')
     } else {
       router.replace('/(tabs)')
     }
   }
 
+  // ── Signup ─────────────────────────────────────────────────────────────────
   async function handleSignup() {
-    if (!email || !password || !username) {
-      Alert.alert('Email, contraseña y usuario son obligatorios')
-      return
+    // Re-validate before submit
+    let hasError = false
+    const cleanUsername = username.toLowerCase()
+    if (!cleanUsername || !USERNAME_REGEX.test(cleanUsername)) {
+      setUsernameError('Solo se permiten letras, números, puntos y guiones bajos')
+      hasError = true
     }
-    const cleanUsername = username.toLowerCase().replace(/[^a-z0-9._]/g, '')
-    if (!cleanUsername) {
-      Alert.alert('Usuario inválido', 'El usuario solo puede contener letras, números, puntos y guiones bajos')
-      return
+    if (!email) {
+      setEmailError('Ingresá un email válido')
+      hasError = true
     }
+    if (hasError || signupBlocked) return
+
     if (password.length < 6) {
-      Alert.alert('La contraseña debe tener al menos 6 caracteres')
+      // password errors handled via Alert since there's no inline field for it yet
+      setEmailError(null)
+      setUsernameError('La contraseña debe tener al menos 6 caracteres')
       return
     }
+
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -63,20 +106,48 @@ export default function AuthScreen() {
       },
     })
     setLoading(false)
+
     if (error) {
-      Alert.alert('Error al registrarse', error.message)
+      const msg = error.message.toLowerCase()
+      if (msg.includes('already registered') || msg.includes('email') || msg.includes('unique')) {
+        setEmailError('Ya existe una cuenta con ese mismo mail')
+      } else if (msg.includes('username') || msg.includes('usuario')) {
+        setUsernameError('Ya existe una cuenta con ese mismo usuario')
+      } else {
+        setEmailError(error.message)
+      }
     } else if (!data.session) {
-      // Email confirmation is required — session will be null until confirmed
-      Alert.alert(
-        'Revisá tu email',
-        'Te enviamos un link de confirmación. Una vez que confirmes tu cuenta podés iniciar sesión.',
-        [{ text: 'Entendido' }]
-      )
+      // Check if the username already exists in perfiles
+      const { data: existing } = await supabase
+        .from('perfiles')
+        .select('id')
+        .eq('username', cleanUsername)
+        .maybeSingle()
+
+      if (existing) {
+        setUsernameError('Ya existe una cuenta con ese mismo usuario')
+        return
+      }
+
+      router.replace('/(tabs)')
     } else {
       router.replace('/(tabs)')
     }
   }
 
+  // ── Switch mode ────────────────────────────────────────────────────────────
+  function switchMode(next: Mode) {
+    setMode(next)
+    setUsernameError(null)
+    setEmailError(null)
+    setLoginError(null)
+    setEmail('')
+    setPassword('')
+    setUsername('')
+    setDisplayName('')
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -99,7 +170,7 @@ export default function AuthScreen() {
           <View style={styles.modeSwitcher}>
             <TouchableOpacity
               style={[styles.modeTab, mode === 'login' && styles.modeTabActive]}
-              onPress={() => setMode('login')}
+              onPress={() => switchMode('login')}
             >
               <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
                 Iniciá sesión
@@ -107,7 +178,7 @@ export default function AuthScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
-              onPress={() => setMode('signup')}
+              onPress={() => switchMode('signup')}
             >
               <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
                 Registrate
@@ -121,14 +192,16 @@ export default function AuthScreen() {
               <>
                 <Text style={styles.label}>Usuario</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, !!usernameError && styles.inputError]}
                   placeholder="tu_usuario"
                   placeholderTextColor={colors.grisMedio}
                   value={username}
-                  onChangeText={setUsername}
+                  onChangeText={handleUsernameChange}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                {usernameError && <Text style={styles.fieldError}>{usernameError}</Text>}
+
                 <Text style={styles.label}>Nombre</Text>
                 <TextInput
                   style={styles.input}
@@ -142,15 +215,16 @@ export default function AuthScreen() {
 
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !!emailError && styles.inputError]}
               placeholder="tu@email.com"
               placeholderTextColor={colors.grisMedio}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={mode === 'login' ? handleLoginEmailChange : (v) => { setEmail(v); if (emailError) setEmailError(null) }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {mode === 'signup' && emailError && <Text style={styles.fieldError}>{emailError}</Text>}
 
             <Text style={styles.label}>Contraseña</Text>
             <TextInput
@@ -158,14 +232,24 @@ export default function AuthScreen() {
               placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••••'}
               placeholderTextColor={colors.grisMedio}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={mode === 'login' ? handleLoginPasswordChange : setPassword}
               secureTextEntry
             />
 
+            {/* Login error banner */}
+            {mode === 'login' && loginError && (
+              <View style={styles.loginErrorBanner}>
+                <Text style={styles.loginErrorText}>{loginError}</Text>
+              </View>
+            )}
+
             <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
+              style={[
+                styles.primaryBtn,
+                (loading || (mode === 'login' ? loginBlocked : signupBlocked)) && styles.primaryBtnDisabled,
+              ]}
               onPress={mode === 'login' ? handleLogin : handleSignup}
-              disabled={loading}
+              disabled={loading || (mode === 'login' ? loginBlocked : signupBlocked)}
               activeOpacity={0.85}
             >
               {loading
@@ -178,7 +262,7 @@ export default function AuthScreen() {
 
             <TouchableOpacity
               style={styles.switchLink}
-              onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              onPress={() => switchMode(mode === 'login' ? 'signup' : 'login')}
             >
               <Text style={styles.switchLinkText}>
                 {mode === 'login'
@@ -263,6 +347,27 @@ const styles = StyleSheet.create({
     color: colors.negro,
     backgroundColor: colors.blanco,
   },
+  inputError: {
+    borderColor: '#E53935',
+  },
+  fieldError: {
+    fontSize: 12,
+    color: '#E53935',
+    marginTop: 2,
+    marginLeft: 4,
+  },
+  loginErrorBanner: {
+    backgroundColor: 'rgba(229, 57, 53, 0.08)',
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  loginErrorText: {
+    fontSize: 13,
+    color: '#E53935',
+    textAlign: 'center',
+  },
   primaryBtn: {
     backgroundColor: colors.rosaOpa,
     borderRadius: radius.button,
@@ -270,7 +375,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.xl,
   },
-  primaryBtnDisabled: { opacity: 0.6 },
+  primaryBtnDisabled: { opacity: 0.45 },
   primaryBtnText: {
     color: colors.blanco,
     fontSize: 15,
