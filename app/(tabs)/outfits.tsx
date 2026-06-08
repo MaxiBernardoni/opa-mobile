@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   View, FlatList, StyleSheet, Dimensions, TouchableOpacity, Text,
   StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { useOutfits } from '../../hooks/useOutfits'
 import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
 import { colors } from '../../constants/colors'
@@ -13,10 +14,31 @@ export default function OutfitsScreen() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [tab, setTab] = useState<'marcas' | 'descubrir'>('descubrir')
   const { outfits, loading } = useOutfits()
+  const { outfitId } = useLocalSearchParams<{ outfitId?: string }>()
+  const flatListRef = useRef<FlatList>(null)
+  const didScrollRef = useRef(false)
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0)
   })
+
+  // Scroll to the requested outfit once data is ready
+  useEffect(() => {
+    if (!outfitId || loading || outfits.length === 0 || didScrollRef.current) return
+    const index = outfits.findIndex((o) => o.id === outfitId)
+    if (index <= 0) return
+    didScrollRef.current = true
+    // Small delay so FlatList has laid out items
+    setTimeout(() => {
+      flatListRef.current?.scrollToIndex({ index, animated: false })
+      setActiveIndex(index)
+    }, 100)
+  }, [outfitId, loading, outfits])
+
+  // Reset scroll flag when outfitId changes (new navigation)
+  useEffect(() => {
+    didScrollRef.current = false
+  }, [outfitId])
 
   if (loading) {
     return (
@@ -52,6 +74,7 @@ export default function OutfitsScreen() {
       </SafeAreaView>
 
       <FlatList
+        ref={flatListRef}
         data={outfits}
         keyExtractor={(item) => item.id}
         pagingEnabled
@@ -60,6 +83,7 @@ export default function OutfitsScreen() {
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+        getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
         renderItem={({ item, index }) => (
           <OutfitScrollItem outfit={item} isActive={index === activeIndex} />
         )}

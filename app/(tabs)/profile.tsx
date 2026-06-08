@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-  StatusBar, ScrollView, ActivityIndicator, Alert, Dimensions,
+  StatusBar, ScrollView, FlatList, ActivityIndicator, Alert, Dimensions,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -167,21 +167,36 @@ export default function ProfileScreen() {
         {activeTab === 0 && (
           outfitsLoading ? (
             <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 32 }} />
+          ) : outfits.length === 0 ? (
+            <View style={styles.emptyTab}>
+              <Text style={styles.emptyTabIcon}>🎽</Text>
+              <Text style={styles.emptyTabText}>Todavía no publicaste outfits</Text>
+            </View>
           ) : (
-            <View style={styles.grid}>
-              {outfits.map((outfit) => (
-                <TouchableOpacity key={outfit.id} style={styles.gridCard} activeOpacity={0.85}>
+            <FlatList
+              data={outfits}
+              keyExtractor={(item) => item.id}
+              numColumns={3}
+              scrollEnabled={false}
+              contentContainerStyle={styles.grid}
+              columnWrapperStyle={styles.gridRow}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.gridCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push({ pathname: '/(tabs)/outfits', params: { outfitId: item.id } })}
+                >
                   <Image
-                    source={{ uri: outfit.cover_image_url ?? `https://picsum.photos/seed/${outfit.id}/130/231` }}
+                    source={{ uri: item.cover_image_url ?? `https://picsum.photos/seed/${item.id}/130/231` }}
                     style={styles.gridImage}
                     contentFit="cover"
                   />
                   <View style={styles.likesRow}>
-                    <Text style={styles.likesText}>♡ {outfit.likes_count}</Text>
+                    <Text style={styles.likesText}>♡ {item.likes_count}</Text>
                   </View>
                 </TouchableOpacity>
-              ))}
-            </View>
+              )}
+            />
           )
         )}
         {activeTab === 1 && (
@@ -310,7 +325,8 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 0, left: '20%', right: '20%',
     height: 2, backgroundColor: colors.rosaOpa, borderRadius: 1,
   },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.md, gap: 4 },
+  grid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
+  gridRow: { gap: 4, marginBottom: 4 },
   gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * (16 / 9), borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
   gridImage: { width: '100%', height: '100%' },
   likesRow: { position: 'absolute', bottom: 6, left: 6 },
