@@ -74,6 +74,27 @@ await supabase.auth.signOut()
 clear() // clears the Zustand store
 ```
 
+### Delete account
+Called from `app/settings.tsx`. Two-step flow:
+1. Verify password: `supabase.auth.signInWithPassword({ email, password })`
+2. Delete via RPC: `supabase.rpc('delete_user')`
+
+The `delete_user()` function must exist in Supabase as a SQL function with `SECURITY DEFINER` so it can delete from `auth.users`. **This function has not been created yet** — account deletion will fail until it is.
+
+Suggested SQL (to be applied by the Database chat):
+```sql
+create or replace function delete_user()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  delete from perfiles where id = auth.uid();
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+```
+
 ---
 
 ## Global State — Zustand (`store/useAuthStore.ts`)
@@ -195,8 +216,63 @@ export interface Outfit {
 
 ---
 
+## Delete Account
+
+Triggered from `app/settings.tsx`. The screen verifies the password with `signInWithPassword` first, then calls:
+
+```ts
+await supabase.rpc('delete_user')
+```
+
+### SQL function `delete_user()` (applied — migration `create_delete_user_function`)
+
+```sql
+create or replace function delete_user()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'Not authenticated'; end if;
+
+  update marcas set owner_id = null where owner_id = uid;
+
+  delete from productos_orden
+    where order_id in (select id from orders where user_id = uid);
+  delete from reseñas where user_id = uid;
+  delete from orders where user_id = uid;
+
+  delete from outfits where creator_id = uid;
+
+  delete from perfiles where id = uid;
+  delete from auth.users where id = uid;
+end;
+$$;
+
+revoke all on function delete_user() from public;
+grant execute on function delete_user() to authenticated;
+```
+
+**Orden de borrado y por qué:**
+
+| Paso | Tabla | Motivo |
+|---|---|---|
+| 1 | `marcas.owner_id` → NULL | FK NO ACTION; no se borra la marca |
+| 2 | `productos_orden` | FK NO ACTION → `orders` |
+| 3 | `reseñas` | FK NO ACTION → `perfiles` |
+| 4 | `orders` | FK NO ACTION → `perfiles` |
+| 5 | `outfits` | FK NO ACTION → `perfiles`; `outfit_items`, `outfit_likes`, `outfits_guardados` tienen CASCADE desde `outfits` |
+| 6 | `perfiles` | `follows`, `outfit_likes`, `outfits_guardados`, `prendas_armario`, `productos_carrito` tienen CASCADE desde `perfiles` |
+| 7 | `auth.users` | `sessions`, `identities`, etc. tienen CASCADE desde `auth.users` |
+
+---
+
 ## Pending
 
+- [ ] `delete_user()` SQL function in Supabase (required for account deletion — see above)
 - [ ] Edge Functions for server-side logic (likes, saves)
 - [ ] Realtime subscriptions for live like counts
 - [ ] Search queries (full-text search on outfits/garments)

@@ -9,7 +9,7 @@ const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/publ
 
 const TAB_ICONS: Record<string, { default: string; active: string }> = {
   index:    { default: `${STORAGE}/home.png`,    active: `${STORAGE}/home_rosa.png` },
-  outfits:  { default: `${STORAGE}/outfit.png`,  active: `${STORAGE}/outfit_rosa.png` },
+  outfits:  { default: `${STORAGE}/outfit_v2.png`,  active: `${STORAGE}/outfit_rosa_v2.png` },
   search:   { default: `${STORAGE}/search.png`,  active: `${STORAGE}/search_rosa.png` },
   wardrobe: { default: `${STORAGE}/armario.png`, active: `${STORAGE}/armario_rosa.png` },
   profile:  { default: `${STORAGE}/user.png`,    active: `${STORAGE}/user_rosa.png` },
