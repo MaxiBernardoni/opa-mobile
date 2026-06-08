@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Garment } from '../types'
+import { WardrobeItem } from '../types'
 
 export function useWardrobe(userId?: string) {
-  const [garments, setGarments] = useState<Garment[]>([])
+  const [items, setItems] = useState<WardrobeItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -20,11 +20,11 @@ export function useWardrobe(userId?: string) {
         .from('prendas_armario')
         .select('*, garment:prendas(*, brand:marcas(*))')
         .eq('user_id', id)
-      setGarments(data?.map((w: any) => w.garment) || [])
+      setItems((data as WardrobeItem[]) ?? [])
     } finally {
       setLoading(false)
     }
   }
 
-  return { garments, loading }
+  return { items, loading }
 }
