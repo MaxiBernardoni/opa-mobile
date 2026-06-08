@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 
-const supabaseUrl = 'https://vecnktrbjolahcalkbml.supabase.co'
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://vecnktrbjolahcalkbml.supabase.co'
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 
 // SecureStore keys must be ≤ 255 chars; sanitize Supabase's dash-heavy keys.

@@ -47,7 +47,7 @@ export default function AuthScreen() {
       return
     }
     setLoading(true)
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -60,12 +60,15 @@ export default function AuthScreen() {
     setLoading(false)
     if (error) {
       Alert.alert('Error al registrarse', error.message)
-    } else {
+    } else if (!data.session) {
+      // Email confirmation is required — session will be null until confirmed
       Alert.alert(
-        '¡Bienvenido/a a OPA! 🎉',
-        'Tu cuenta fue creada exitosamente.',
-        [{ text: 'Continuar', onPress: () => router.replace('/(tabs)') }]
+        'Revisá tu email',
+        'Te enviamos un link de confirmación. Una vez que confirmes tu cuenta podés iniciar sesión.',
+        [{ text: 'Entendido' }]
       )
+    } else {
+      router.replace('/(tabs)')
     }
   }
 
