@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-  ScrollView, StatusBar,
+  ScrollView, StatusBar, Modal, TextInput, ActivityIndicator,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -45,6 +45,11 @@ export default function SettingsScreen() {
   const router = useRouter()
   const { session, profile, clear } = useAuthStore()
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [loading, setLoading] = useState(false)
+
   const displayUsername = profile?.username ?? session?.user.email?.split('@')[0] ?? 'usuario'
   const displayName = profile?.display_name ?? ''
   const avatarUrl = profile?.avatar_url
@@ -52,6 +57,50 @@ export default function SettingsScreen() {
   async function handleLogout() {
     await supabase.auth.signOut()
     clear()
+    router.replace('/(tabs)')
+  }
+
+  function openDeleteModal() {
+    setPassword('')
+    setPasswordError('')
+    setShowDeleteModal(true)
+  }
+
+  function closeDeleteModal() {
+    setShowDeleteModal(false)
+    setPassword('')
+    setPasswordError('')
+  }
+
+  async function handleDeleteAccount() {
+    if (!session?.user?.email) return
+    setLoading(true)
+    setPasswordError('')
+
+    // Verify password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password,
+    })
+
+    if (signInError) {
+      setPasswordError('Contraseña incorrecta. Intentá de nuevo.')
+      setLoading(false)
+      return
+    }
+
+    // Delete account via RPC
+    const { error: deleteError } = await supabase.rpc('delete_user')
+    if (deleteError) {
+      setPasswordError('Ocurrió un error al eliminar la cuenta. Intentá más tarde.')
+      setLoading(false)
+      return
+    }
+
+    await supabase.auth.signOut()
+    clear()
+    setLoading(false)
+    closeDeleteModal()
     router.replace('/(tabs)')
   }
 
@@ -140,7 +189,7 @@ export default function SettingsScreen() {
         {/* Delete account */}
         <View style={[styles.section, { marginBottom: spacing.xxl }]}>
           <View style={[styles.sectionCard, styles.deleteCard]}>
-            <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={openDeleteModal}>
               <View style={styles.rowIconWrap}>
                 <Image
                   source={{ uri: BASE + 'trash_rojo.png' }}
@@ -158,6 +207,65 @@ export default function SettingsScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Delete account modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDeleteModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Eliminar cuenta</Text>
+            <Text style={styles.modalSubtitle}>
+              Esta acción es permanente e irreversible. Todos tus datos serán eliminados.
+            </Text>
+            <Text style={styles.modalSubtitle}>Ingresá tu contraseña para confirmar:</Text>
+
+            <TextInput
+              style={[styles.input, passwordError ? styles.inputError : null]}
+              placeholder="Contraseña"
+              placeholderTextColor={colors.grisMedio}
+              value={password}
+              onChangeText={text => {
+                setPassword(text)
+                if (passwordError) setPasswordError('')
+              }}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {passwordError ? (
+              <Text style={styles.errorText}>{passwordError}</Text>
+            ) : null}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={closeDeleteModal}
+                disabled={loading}
+              >
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.deleteBtn, (!password || loading) && styles.deleteBtnDisabled]}
+                onPress={handleDeleteAccount}
+                disabled={!password || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.blanco} size="small" />
+                ) : (
+                  <Text style={styles.deleteBtnText}>Eliminar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   )
 }
@@ -248,5 +356,81 @@ const styles = StyleSheet.create({
     color: colors.grisClaro,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
+  },
+
+  // Delete modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: colors.blanco,
+    borderRadius: radius.card,
+    padding: spacing.xl,
+    width: '100%',
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: fonts.mergeOne,
+    color: colors.negro,
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: colors.grisOscuro,
+    lineHeight: 18,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.grisBorde,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: 15,
+    color: colors.negro,
+    marginTop: spacing.sm,
+  },
+  inputError: {
+    borderColor: '#D00000',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#D00000',
+    marginTop: 4,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.grisBorde,
+    borderRadius: radius.button,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    color: colors.grisOscuro,
+    fontFamily: fonts.palanquinDark,
+  },
+  deleteBtn: {
+    flex: 1,
+    backgroundColor: '#D00000',
+    borderRadius: radius.button,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  deleteBtnDisabled: { opacity: 0.4 },
+  deleteBtnText: {
+    fontSize: 14,
+    color: colors.blanco,
+    fontFamily: fonts.palanquinDark,
   },
 })
