@@ -21,7 +21,8 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
   const [saved, setSaved] = useState(false)
 
   const totalPrice = outfit.garments?.reduce((sum, item) => sum + (item.garment?.price ?? 0), 0) ?? 0
-  const firstBrand = outfit.garments?.[0]?.garment?.brand
+  const creator = outfit.creator
+  const creatorHandle = creator?.username ? `@${creator.username}` : (creator?.display_name ?? 'OPA')
 
   return (
     <View style={styles.container}>
@@ -66,14 +67,18 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Brand info */}
+        {/* Creator info */}
         <View style={styles.brandInfo}>
           <View style={styles.brandRow}>
-            <View style={styles.brandAvatar}>
-              <Text style={styles.brandAvatarText}>{firstBrand?.name?.[0] ?? 'O'}</Text>
-            </View>
+            {creator?.avatar_url ? (
+              <Image source={{ uri: creator.avatar_url }} style={styles.creatorAvatar} contentFit="cover" />
+            ) : (
+              <View style={styles.brandAvatar}>
+                <Text style={styles.brandAvatarText}>{(creator?.username ?? 'O')[0].toUpperCase()}</Text>
+              </View>
+            )}
             <View>
-              <Text style={styles.brandName}>{firstBrand?.name ?? 'OPA'}</Text>
+              <Text style={styles.brandName}>{creatorHandle}</Text>
               <Text style={styles.outfitTitle}>{outfit.title}</Text>
             </View>
           </View>
@@ -130,8 +135,9 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandAvatar: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: colors.rosaOpa, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.negro, alignItems: 'center', justifyContent: 'center',
   },
+  creatorAvatar: { width: 40, height: 40, borderRadius: 20 },
   brandAvatarText: { color: colors.blanco, fontWeight: '700', fontSize: 16 },
   brandName: { color: colors.blanco, fontWeight: '700', fontSize: 14 },
   outfitTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
