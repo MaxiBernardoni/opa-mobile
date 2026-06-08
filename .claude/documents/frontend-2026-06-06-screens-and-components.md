@@ -107,7 +107,7 @@ Accessible from the ⚙ icon in Profile. Requires active session.
 - Notificaciones (push)
 - Privacidad
 - Ayuda y soporte
-- `delete_user()` SQL function in Supabase (required for account deletion to work — must be created in DB chat)
+- ~~`delete_user()` SQL function in Supabase~~ ✅ Created (migration `create_delete_user_function`)
 
 ---
 
@@ -195,7 +195,7 @@ xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 
 ## Pending
 
-- [ ] `delete_user()` RPC function in Supabase (blocks account deletion)
+- [x] `delete_user()` RPC function in Supabase — ✅ created (migration `create_delete_user_function`)
 - [ ] Settings sub-screens: edit profile, security, notifications, measurements, etc.
 - [ ] Functional search screen
 - [ ] Wardrobe screen with real logic
