@@ -29,6 +29,7 @@ app/
     profile.tsx        # Profile
   auth/
     index.tsx          # Login/Signup modal
+  settings.tsx         # Settings screen
 ```
 
 ---
@@ -80,6 +81,33 @@ Three states:
 - Signup: username + name + email + password → `supabase.auth.signUp`
 - Basic validation (empty fields, minimum 6-char password)
 - Redirects to `/(tabs)` on completion
+
+### Settings (`app/settings.tsx`)
+Accessible from the ⚙ icon in Profile. Requires active session.
+
+**Implemented ✅**
+- Header with back button
+- Profile card: avatar + username + "Ver mi perfil" link
+- Section list: CUENTA · PREFERENCIAS · APLICACIÓN (UI only — no screens behind items yet)
+- **Cerrar sesión**: calls `supabase.auth.signOut()` + clears Zustand store → redirects to `/(tabs)`
+- **Eliminar cuenta**: modal with password confirmation
+  - Button disabled until password is typed
+  - Verifies password via `supabase.auth.signInWithPassword`
+  - Error in red below input if password is wrong
+  - Calls `supabase.rpc('delete_user')` on success → signOut → redirect
+  - Spinner during verification and deletion
+
+**Not implemented yet ❌**
+- Editar perfil (edit name, bio, avatar, tags)
+- Seguridad (change password, 2FA)
+- Email y notificaciones
+- Preferencias de estilo
+- Mis medidas
+- Talles preferidos
+- Notificaciones (push)
+- Privacidad
+- Ayuda y soporte
+- `delete_user()` SQL function in Supabase (required for account deletion to work — must be created in DB chat)
 
 ---
 
@@ -167,6 +195,8 @@ xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 
 ## Pending
 
+- [ ] `delete_user()` RPC function in Supabase (blocks account deletion)
+- [ ] Settings sub-screens: edit profile, security, notifications, measurements, etc.
 - [ ] Functional search screen
 - [ ] Wardrobe screen with real logic
 - [ ] Detail screens: `outfit/[id]` and `product/[id]`
