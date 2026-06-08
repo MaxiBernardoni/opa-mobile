@@ -55,7 +55,7 @@ export default function SettingsScreen() {
   const avatarUrl = profile?.avatar_url
 
   async function handleLogout() {
-    await supabase.auth.signOut({ scope: 'local' })
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     clear()
     router.replace('/(tabs)')
   }
@@ -97,7 +97,7 @@ export default function SettingsScreen() {
       return
     }
 
-    await supabase.auth.signOut({ scope: 'local' })
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     clear()
     setLoading(false)
     closeDeleteModal()
