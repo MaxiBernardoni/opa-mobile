@@ -24,8 +24,9 @@ export default function RootLayout() {
       else setInitialized(true)
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes — skip INITIAL_SESSION, already handled by getSession() above
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return
       setSession(session)
       if (session?.user) fetchProfile(session.user.id)
       else {
