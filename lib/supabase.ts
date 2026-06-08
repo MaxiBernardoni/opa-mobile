@@ -1,15 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as SecureStore from 'expo-secure-store'
 
 const supabaseUrl = 'https://vecnktrbjolahcalkbml.supabase.co'
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 
-// AsyncStorage v3 changed its internal implementation; wrap it in the
-// interface GoTrue expects (getItem / setItem / removeItem returning promises).
+// SecureStore keys must be ≤ 255 chars and alphanumeric; Supabase uses keys
+// with dashes so we hash them to a safe format.
+const toSafeKey = (key: string) =>
+  key.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 255)
+
 const storage = {
-  getItem: (key: string) => AsyncStorage.getItem(key),
-  setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
-  removeItem: (key: string) => AsyncStorage.removeItem(key),
+  getItem: (key: string) => SecureStore.getItemAsync(toSafeKey(key)),
+  setItem: (key: string, value: string) =>
+    SecureStore.setItemAsync(toSafeKey(key), value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(toSafeKey(key)),
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
