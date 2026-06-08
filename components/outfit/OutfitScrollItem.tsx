@@ -8,8 +8,17 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { radius } from '../../constants/radius'
 import { spacing } from '../../constants/spacing'
+import { OutfitGarmentLabel } from './OutfitGarmentLabel'
 
 const { width: SW, height: SH } = Dimensions.get('window')
+
+const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
+const ICON_LIKE        = `${STORAGE}/icons/like.png`
+const ICON_LIKE_ACTIVE = `${STORAGE}/icons/like_rosa.png`
+const ICON_SAVE        = `${STORAGE}/icons/save.png`
+const ICON_SAVE_ACTIVE = `${STORAGE}/icons/save_rosa.png`
+const ICON_SHARE       = `${STORAGE}/icons/share.png`
+const ICON_BAG         = `${STORAGE}/icons/bolsa_rosa.png`
 
 interface Props {
   outfit: Outfit
@@ -21,6 +30,8 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
   const [saved, setSaved] = useState(false)
 
   const totalPrice = outfit.garments?.reduce((sum, item) => sum + (item.garment?.price ?? 0), 0) ?? 0
+  const discount   = outfit.discount_percent ?? 0
+  const savings    = discount > 0 ? totalPrice * (discount / 100) : 0
   const firstBrand = outfit.garments?.[0]?.garment?.brand
 
   return (
@@ -33,48 +44,62 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
         <View style={styles.gradientOverlay} />
 
         {/* Garment labels */}
-        {outfit.garments?.slice(0, 3).map((og, i) => (
-          <View
-            key={og.garment_id}
-            style={[styles.garmentLabel, { left: 20 + i * 10, top: SH * (0.25 + i * 0.12) }]}
-          >
-            <Image
-              source={{ uri: og.garment?.image_url ?? `https://picsum.photos/seed/${og.garment_id}/40/40` }}
-              style={styles.garmentThumb}
-              contentFit="cover"
+        {outfit.garments?.slice(0, 3).map((og) =>
+          og.garment ? (
+            <OutfitGarmentLabel
+              key={og.garment_id}
+              garment={og.garment}
+              positionX={og.position_x ?? 0.25}
+              positionY={og.position_y ?? 0.4}
             />
-            <View style={styles.garmentInfo}>
-              <Text style={styles.garmentName} numberOfLines={1}>{og.garment?.name}</Text>
-              <Text style={styles.garmentPrice}>${og.garment?.price.toFixed(2)}</Text>
-            </View>
-          </View>
-        ))}
+          ) : null
+        )}
 
         {/* Action buttons */}
         <View style={styles.actions}>
           <TouchableOpacity onPress={() => setLiked(!liked)} style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>{liked ? '♥' : '♡'}</Text>
-            <Text style={styles.actionCount}>{outfit.likes_count + (liked ? 1 : 0)}</Text>
+            <Image
+              source={{ uri: liked ? ICON_LIKE_ACTIVE : ICON_LIKE }}
+              style={styles.actionIcon}
+              contentFit="contain"
+              tintColor={liked ? undefined : colors.blanco}
+            />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setSaved(!saved)} style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>{saved ? '🔖' : '🏷'}</Text>
-            <Text style={styles.actionCount}>{saved ? 1 : 0}</Text>
+            <Image
+              source={{ uri: saved ? ICON_SAVE_ACTIVE : ICON_SAVE }}
+              style={styles.actionIcon}
+              contentFit="contain"
+              tintColor={saved ? undefined : colors.blanco}
+            />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>↗</Text>
-            <Text style={styles.actionCount}>Compartir</Text>
+            <Image
+              source={{ uri: ICON_SHARE }}
+              style={styles.actionIcon}
+              contentFit="contain"
+              tintColor={colors.blanco}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Brand info */}
         <View style={styles.brandInfo}>
           <View style={styles.brandRow}>
-            <View style={styles.brandAvatar}>
-              <Text style={styles.brandAvatarText}>{firstBrand?.name?.[0] ?? 'O'}</Text>
-            </View>
+            {firstBrand?.logo_url ? (
+              <Image
+                source={{ uri: firstBrand.logo_url }}
+                style={styles.brandAvatar}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={[styles.brandAvatar, styles.brandAvatarFallback]}>
+                <Text style={styles.brandAvatarText}>{firstBrand?.name?.[0] ?? 'O'}</Text>
+              </View>
+            )}
             <View>
-              <Text style={styles.brandName}>{firstBrand?.name ?? 'OPA'}</Text>
-              <Text style={styles.outfitTitle}>{outfit.title}</Text>
+              <Text style={styles.brandName}>{firstBrand?.name?.toUpperCase() ?? 'OPA'}</Text>
+              <Text style={styles.outfitTitle} numberOfLines={1}>{outfit.title}</Text>
             </View>
           </View>
         </View>
@@ -82,10 +107,27 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
 
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
-        <View>
-          <Text style={styles.totalLabel}>Total look</Text>
-          <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
+        {/* Left: bag + price */}
+        <View style={styles.priceSection}>
+          <View style={styles.bagContainer}>
+            <Image source={{ uri: ICON_BAG }} style={styles.bagIcon} contentFit="contain" />
+          </View>
+          <View>
+            <Text style={styles.totalLabel}>Precio total</Text>
+            <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
+          </View>
         </View>
+
+        {/* Center: discount badge */}
+        {discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountSymbol}>%</Text>
+            <Text style={styles.discountOff}>{discount}% OFF</Text>
+            <Text style={styles.discountSavings}>Ahorras ${savings.toFixed(0)}</Text>
+          </View>
+        )}
+
+        {/* Right: CTA */}
         <TouchableOpacity style={styles.ctaButton}>
           <Text style={styles.ctaText}>Ver outfit</Text>
         </TouchableOpacity>
@@ -99,42 +141,33 @@ const styles = StyleSheet.create({
   image: { flex: 1, justifyContent: 'flex-end' },
   gradientOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: 200, backgroundColor: 'rgba(0,0,0,0.35)',
+    height: 220, backgroundColor: 'rgba(0,0,0,0.38)',
   },
-  garmentLabel: {
-    position: 'absolute',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.blanco,
-    borderRadius: radius.chip,
-    padding: 6,
-    maxWidth: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  garmentThumb: { width: 32, height: 32, borderRadius: 16, marginRight: 6 },
-  garmentInfo: { flex: 1 },
-  garmentName: { fontSize: 10, fontFamily: fonts.mergeOne, color: colors.negro },
-  garmentPrice: { fontSize: 10, fontFamily: fonts.mergeOne, color: colors.rosaOpa },
+
+  // Action buttons
   actions: {
-    position: 'absolute', right: 16, bottom: 120,
-    alignItems: 'center', gap: 20,
+    position: 'absolute', right: 16,
+    top: '40%',
+    alignItems: 'center', gap: 24,
   },
   actionBtn: { alignItems: 'center' },
-  actionIcon: { fontSize: 28, color: colors.blanco },
-  actionCount: { fontSize: 11, color: colors.blanco, marginTop: 2 },
-  brandInfo: { position: 'absolute', bottom: 110, left: 16, right: 80 },
+  actionIcon: { width: 28, height: 28 },
+
+  // Brand info
+  brandInfo: { position: 'absolute', bottom: 120, left: 16, right: 80 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: colors.rosaOpa, alignItems: 'center', justifyContent: 'center',
+  brandAvatar: { width: 40, height: 40, borderRadius: radius.avatar },
+  brandAvatarFallback: {
+    backgroundColor: colors.negro, alignItems: 'center', justifyContent: 'center',
   },
   brandAvatarText: { color: colors.blanco, fontWeight: '700', fontSize: 16 },
-  brandName: { color: colors.blanco, fontWeight: '700', fontSize: 14 },
+  brandName: {
+    color: colors.blanco, fontWeight: '700', fontSize: 14,
+    fontFamily: fonts.palanquinDark, textTransform: 'uppercase',
+  },
   outfitTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
+
+  // Bottom bar
   bottomBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: colors.blanco,
@@ -146,19 +179,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: 30,
-    shadowColor: '#000',
+    shadowColor: colors.negro,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 10,
   },
-  totalLabel: { fontSize: 11, color: colors.grisClaro, textTransform: 'uppercase', letterSpacing: 0.5 },
-  price: { fontSize: 20, fontWeight: '800', color: colors.negro, fontFamily: fonts.mergeOne },
+  priceSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  bagContainer: {
+    backgroundColor: colors.rosaOpaLight,
+    borderRadius: 8,
+    padding: 8,
+  },
+  bagIcon: { width: 20, height: 20 },
+  totalLabel: {
+    fontSize: 11, color: colors.grisClaro,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  price: {
+    fontSize: 20, fontWeight: '800',
+    color: colors.negro, fontFamily: fonts.mergeOne,
+  },
+
+  // Discount badge — circular, centered
+  discountBadge: {
+    backgroundColor: colors.rosaOpa,
+    borderRadius: 9999,
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  discountSymbol: {
+    color: colors.blanco, fontSize: 14, fontWeight: '700', lineHeight: 16,
+  },
+  discountOff: {
+    color: colors.blanco, fontSize: 10, fontWeight: '800', lineHeight: 12,
+  },
+  discountSavings: {
+    color: 'rgba(255,255,255,0.85)', fontSize: 8, lineHeight: 10, textAlign: 'center',
+  },
+
+  // CTA
   ctaButton: {
     backgroundColor: colors.rosaOpa,
     borderRadius: radius.button,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  ctaText: { color: colors.blanco, fontWeight: '700', fontSize: 14, fontFamily: fonts.palanquinDark },
+  ctaText: {
+    color: colors.blanco, fontWeight: '700',
+    fontSize: 14, fontFamily: fonts.palanquinDark,
+  },
 })

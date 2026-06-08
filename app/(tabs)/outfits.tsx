@@ -3,9 +3,12 @@ import {
   View, FlatList, StyleSheet, Dimensions, TouchableOpacity, Text,
   StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { useOutfits } from '../../hooks/useOutfits'
 import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
 import { colors } from '../../constants/colors'
+
+const CAMION_URL = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/camion_blanco.png'
 
 const { height: SH } = Dimensions.get('window')
 
@@ -34,15 +37,22 @@ export default function OutfitsScreen() {
       <SafeAreaView style={[styles.floatingHeader, { pointerEvents: 'box-none' } as any]}>
         <View style={styles.headerInner}>
           <TouchableOpacity>
-            <Text style={styles.truckIcon}>🚚</Text>
+            <Image
+              source={{ uri: CAMION_URL }}
+              style={styles.truckIcon}
+              contentFit="contain"
+              tintColor={colors.blanco}
+            />
           </TouchableOpacity>
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => setTab('marcas')} style={styles.tabItem}>
               <Text style={[styles.tabText, tab === 'marcas' && styles.tabActive]}>tus marcas</Text>
+              {tab === 'marcas' && <View style={styles.tabUnderline} />}
             </TouchableOpacity>
             <Text style={styles.tabSep}>/</Text>
             <TouchableOpacity onPress={() => setTab('descubrir')} style={styles.tabItem}>
               <Text style={[styles.tabText, tab === 'descubrir' && styles.tabActive]}>Descubrir</Text>
+              {tab === 'descubrir' && <View style={styles.tabUnderline} />}
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.addBtn}>
@@ -78,7 +88,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  truckIcon: { fontSize: 22 },
+  truckIcon: { width: 28, height: 28 },
   tabs: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -91,6 +101,7 @@ const styles = StyleSheet.create({
   tabItem: { paddingHorizontal: 4 },
   tabText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
   tabActive: { color: colors.blanco, fontWeight: '700' },
+  tabUnderline: { height: 2, backgroundColor: colors.rosaOpa, borderRadius: 1, marginTop: 2 },
   tabSep: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
   addBtn: {
     width: 32, height: 32, borderRadius: 16,
