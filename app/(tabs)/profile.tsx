@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-  StatusBar, ScrollView, ActivityIndicator, Alert,
+  StatusBar, ScrollView, ActivityIndicator, Alert, Dimensions,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -13,13 +13,17 @@ import { useOutfits } from '../../hooks/useOutfits'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 
+const SCREEN_WIDTH = Dimensions.get('window').width
+// 3 cards + 2 gaps of 4 + 2 side paddings of spacing.md (12)
+const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
+
 const PROFILE_TABS = ['Grid', 'Favoritos', 'Pedidos']
 const PROFILE_ICONS = ['⊞', '♡', '📦']
 
 export default function ProfileScreen() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
-  const { outfits, loading: outfitsLoading } = useOutfits()
+  const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
   const { session, profile, initialized, clear } = useAuthStore()
 
   async function handleLogout() {
@@ -305,7 +309,7 @@ const styles = StyleSheet.create({
     height: 2, backgroundColor: colors.rosaOpa, borderRadius: 1,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.md, gap: 4 },
-  gridCard: { width: 130, height: 231, borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
+  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * (16 / 9), borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
   gridImage: { width: '100%', height: '100%' },
   likesRow: { position: 'absolute', bottom: 6, left: 6 },
   likesText: { color: colors.blanco, fontSize: 11, fontWeight: '600' },

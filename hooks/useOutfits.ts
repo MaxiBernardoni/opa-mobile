@@ -2,18 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Outfit } from '../types'
 
-export function useOutfits() {
+export function useOutfits(creatorId?: string) {
   const [outfits, setOutfits] = useState<Outfit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchOutfits()
-  }, [])
+  }, [creatorId])
 
   async function fetchOutfits() {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('outfits')
         .select(`
           *,
@@ -23,6 +23,9 @@ export function useOutfits() {
         .order('created_at', { ascending: false })
         .limit(20)
 
+      if (creatorId) query = query.eq('creator_id', creatorId)
+
+      const { data, error } = await query
       if (error) throw error
       setOutfits(data || [])
     } catch (e: any) {
