@@ -1,0 +1,252 @@
+import React from 'react'
+import {
+  View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
+  ScrollView, StatusBar,
+} from 'react-native'
+import { Image } from 'expo-image'
+import { useRouter } from 'expo-router'
+import { colors } from '../constants/colors'
+import { fonts } from '../constants/fonts'
+import { spacing } from '../constants/spacing'
+import { radius } from '../constants/radius'
+import { useAuthStore } from '../store/useAuthStore'
+import { supabase } from '../lib/supabase'
+
+const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
+
+const SECTIONS = [
+  {
+    title: 'CUENTA',
+    items: [
+      { label: 'Editar perfil', desc: 'Actualizá tu información personal', icon: 'lapiz_rosa.png' },
+      { label: 'Seguridad', desc: 'Contraseña, sesión y verificación en dos pasos', icon: 'candado.png' },
+      { label: 'Email y notificaciones', desc: 'Gestioná tus notificaciones y preferencias', icon: 'carta.png' },
+    ],
+  },
+  {
+    title: 'PREFERENCIAS',
+    items: [
+      { label: 'Preferencias de estilo', desc: 'Colores, estilos, temporadas, todo lo que te guste', icon: 'percha_rosa.png' },
+      { label: 'Mis medidas', desc: 'Editá tus medidas para mejores recomendaciones', icon: 'cinta-metrica.png' },
+      { label: 'Talles preferidos', desc: 'Gestioná tus talles ideales por categoría', icon: 'zapatos_rosa.png' },
+    ],
+  },
+  {
+    title: 'APLICACIÓN',
+    items: [
+      { label: 'Notificaciones', desc: 'Administrá las notificaciones de la app', icon: 'campana.png' },
+      { label: 'Privacidad', desc: 'Controlá tu privacidad y datos', icon: 'escudo.png' },
+      { label: 'Ayuda y soporte', desc: 'Preguntas frecuentes y contacto', icon: 'pregunta_rosa.png' },
+    ],
+  },
+]
+
+export default function SettingsScreen() {
+  const router = useRouter()
+  const { session, profile, clear } = useAuthStore()
+
+  const displayUsername = profile?.username ?? session?.user.email?.split('@')[0] ?? 'usuario'
+  const displayName = profile?.display_name ?? ''
+  const avatarUrl = profile?.avatar_url
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    clear()
+    router.replace('/(tabs)')
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Configuración</Text>
+            <Text style={styles.headerSubtitle}>Gestioná tu cuenta y tus preferencias</Text>
+          </View>
+        </View>
+
+        {/* Profile card */}
+        <TouchableOpacity style={styles.profileCard} activeOpacity={0.85} onPress={() => router.back()}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.profileAvatar} contentFit="cover" />
+          ) : (
+            <View style={[styles.profileAvatar, styles.profileAvatarFallback]}>
+              <Text style={styles.profileAvatarInitial}>{displayUsername[0]?.toUpperCase() ?? '?'}</Text>
+            </View>
+          )}
+          <View style={styles.profileCardInfo}>
+            <Text style={styles.profileCardName}>{displayName || displayUsername}</Text>
+            <Text style={styles.profileCardUsername}>@{displayUsername}</Text>
+          </View>
+          <Text style={styles.profileCardLink}>Ver mi perfil {'>'}</Text>
+        </TouchableOpacity>
+
+        {/* Sections */}
+        {SECTIONS.map((section) => (
+          <View key={section.title} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.sectionCard}>
+              {section.items.map((item, i) => (
+                <View key={item.label}>
+                  <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+                    <View style={styles.rowIconWrap}>
+                      <Image
+                        source={{ uri: BASE + item.icon }}
+                        style={styles.rowIcon}
+                        contentFit="contain"
+                      />
+                    </View>
+                    <View style={styles.rowText}>
+                      <Text style={styles.rowLabel}>{item.label}</Text>
+                      <Text style={styles.rowDesc}>{item.desc}</Text>
+                    </View>
+                    <Text style={styles.rowArrow}>{'>'}</Text>
+                  </TouchableOpacity>
+                  {i < section.items.length - 1 && <View style={styles.divider} />}
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+
+        <Text style={styles.version}>OPA Versión 1.0</Text>
+
+        {/* Logout */}
+        <View style={styles.section}>
+          <View style={styles.sectionCard}>
+            <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={handleLogout}>
+              <View style={styles.rowIconWrap}>
+                <Image
+                  source={{ uri: BASE + 'cerrar-sesion_negro.png' }}
+                  style={styles.rowIcon}
+                  contentFit="contain"
+                />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={[styles.rowLabel, styles.logoutLabel]}>Cerrar sesión</Text>
+                <Text style={styles.rowDesc}>Salir de tu cuenta en este dispositivo</Text>
+              </View>
+              <Text style={styles.rowArrow}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Delete account */}
+        <View style={[styles.section, { marginBottom: spacing.xxl }]}>
+          <View style={[styles.sectionCard, styles.deleteCard]}>
+            <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+              <View style={styles.rowIconWrap}>
+                <Image
+                  source={{ uri: BASE + 'trash_rojo.png' }}
+                  style={styles.rowIcon}
+                  contentFit="contain"
+                />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={[styles.rowLabel, styles.deleteLabel]}>Eliminar cuenta</Text>
+                <Text style={styles.rowDesc}>Elimina este perfil definitivamente</Text>
+              </View>
+              <Text style={styles.rowArrow}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
+  )
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.grisBorde },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.grisBorde,
+  },
+  backBtn: { padding: 4 },
+  backArrow: { fontSize: 22, color: colors.negro },
+  headerTitle: { fontSize: 22, fontFamily: fonts.palanquinDark, color: colors.negro },
+  headerSubtitle: { fontSize: 12, color: colors.grisClaro, marginTop: 1 },
+
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.rosaOpaLight,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: radius.card,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  profileAvatar: { width: 52, height: 52, borderRadius: radius.avatar },
+  profileAvatarFallback: {
+    backgroundColor: colors.rosaOpa,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarInitial: { fontSize: 22, color: colors.blanco, fontFamily: fonts.mergeOne },
+  profileCardInfo: { flex: 1 },
+  profileCardName: { fontSize: 15, fontFamily: fonts.palanquinDark, color: colors.negro },
+  profileCardUsername: { fontSize: 12, color: colors.grisClaro, marginTop: 1 },
+  profileCardLink: { fontSize: 13, color: colors.rosaOpa, fontFamily: fonts.palanquinDark },
+
+  section: { marginHorizontal: spacing.lg, marginBottom: spacing.md },
+  sectionTitle: {
+    fontSize: 11,
+    color: colors.grisClaro,
+    fontFamily: fonts.palanquinDark,
+    letterSpacing: 0.8,
+    marginBottom: spacing.sm,
+    marginLeft: 2,
+  },
+  sectionCard: {
+    backgroundColor: colors.blanco,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+  },
+  deleteCard: { backgroundColor: 'rgba(235, 0, 107, 0.08)' },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    gap: spacing.md,
+  },
+  rowIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.rosaOpaLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowIcon: { width: 20, height: 20 },
+  rowText: { flex: 1 },
+  rowLabel: { fontSize: 14, fontFamily: fonts.palanquinDark, color: colors.negro },
+  rowDesc: { fontSize: 11, color: colors.grisClaro, marginTop: 1 },
+  rowArrow: { fontSize: 16, color: colors.grisClaro },
+  divider: { height: 1, backgroundColor: colors.grisBorde, marginLeft: 36 + spacing.md * 2 },
+
+  logoutLabel: { color: colors.negro },
+  deleteLabel: { color: colors.rosaOpa },
+
+  version: {
+    textAlign: 'right',
+    fontSize: 11,
+    color: colors.grisClaro,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+})
