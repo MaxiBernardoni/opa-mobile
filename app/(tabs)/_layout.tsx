@@ -1,10 +1,10 @@
 import { Tabs } from 'expo-router'
-import { BottomTabBar } from '../../components/navigation/BottomTabBar'
+import { BottomNavBar } from '../../components/navigation/BottomNavBar'
 
 export default function TabLayout() {
   return (
     <Tabs
-      tabBar={(props) => <BottomTabBar {...props} />}
+      tabBar={(props) => <BottomNavBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />
