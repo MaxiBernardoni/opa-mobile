@@ -1,168 +1,326 @@
 # Database — Schema & Seed Data
 
-This document covers the Supabase database schema, seed data, storage buckets, and auth trigger for the OPA project.
+_Última actualización: 2026-06-08_
 
----
-
-## Supabase Project
-
+## Proyecto Supabase
 - **Project ID:** `vecnktrbjolahcalkbml`
 - **URL:** `https://vecnktrbjolahcalkbml.supabase.co`
 
 ---
 
-## Tables
+## Migraciones aplicadas
+
+| Versión | Nombre |
+|---|---|
+| 20260515134052 | add_missing_columns_and_tables |
+| 20260515141552 | rename_garments_to_prendas |
+| 20260515141944 | rename_tables_to_spanish |
+| 20260515142208 | rename_more_tables_to_spanish |
+| 20260601111853 | add_public_read_policies |
+| 20260601114335 | create_storage_bucket_assets |
+| 20260601114442 | fix_storage_anon_upload_policy |
+| 20260601114756 | perfiles_auth_rls_policies |
+
+---
+
+## Tablas
 
 ### `perfiles`
-Extends `auth.users`. Created automatically via trigger on registration.
+Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 
-| Column | Type | Notes |
+| Columna | Tipo | Notas |
 |---|---|---|
 | id | uuid (PK) | = auth.users.id |
-| username | text | unique, lowercase |
-| display_name | text | nullable |
+| username | varchar | único |
+| display_name | varchar | nullable |
 | bio | text | nullable |
 | avatar_url | text | nullable |
-| tags | text[] | personal style tags |
+| instagram_handle | varchar | nullable |
+| tags | text[] | nullable — estilo personal |
 | followers_count | int | default 0 |
 | following_count | int | default 0 |
 | outfits_count | int | default 0 |
 | is_brand | bool | default false |
-| created_at | timestamptz | |
+| created_at | timestamp | default now() |
 
-**Trigger:** `handle_new_user()` — on insert into `auth.users`, extracts `username` and `display_name` from `raw_user_meta_data` and creates the profile automatically.
+**Trigger:** `handle_new_user()` — al insertar en `auth.users`, extrae `username` y `display_name` de `raw_user_meta_data` y crea el perfil automáticamente.
+
+**RLS:** habilitado. Policies auditadas en migración `perfiles_auth_rls_policies`.
+
+**Usuarios seed (3 filas):**
+
+| Username | Nombre | Estado |
+|---|---|---|
+| `@vale.rios` | Valentina Ríos | ✅ Completo |
+| `@mateo.h` | Mateo Herrera | ✅ Completo |
+| `@chechuabb` | Celina Abelson | ⏳ Pendiente |
 
 ---
 
 ### `marcas`
-| Column | Type | Notes |
+| Columna | Tipo | Notas |
 |---|---|---|
-| id | uuid (PK) | |
-| name | text | |
+| id | uuid (PK) | default gen_random_uuid() |
+| name | varchar | |
 | description | text | nullable |
 | logo_url | text | nullable |
 | owner_id | uuid | FK → perfiles.id, nullable |
-| instagram_handle | text | nullable |
-| website | text | nullable |
-| location | text | nullable (multiple locations separated by /) |
-| tags | text[] | |
-| created_at | timestamptz | |
+| instagram_handle | varchar | nullable |
+| website | varchar | nullable |
+| location | varchar | nullable (múltiples locales separados por /) |
+| tags | text[] | nullable |
+| created_at | timestamp | default now() |
 
-**Current seed data:**
+**RLS:** habilitado.
 
-| Name | Logo | IG | Site | Location |
-|---|---|---|---|---|
-| Midway | `avatars/brands/midway_avatar.png` | midway.ar | midway.com.ar | Argerich 448 |
-| Doble V | `avatars/brands/doblev_avatar.png` | doblev.oficial | ladoblev.mitiendanube.com | Bogotá 3156 |
-| Batuk | `avatars/brands/batuk_avatar.jfif` | batukba | batuk.com.ar | Av Santa Fe 2074 / Av. Cabildo 1939 / Av. Avellaneda 2980 |
-| Pull&Bear | — picsum placeholder — | | | |
-| Stradivarius | — picsum placeholder — | | | |
+**Seed data (7 marcas):**
 
-Real logos are in the `avatars` bucket (public). Base URL:
+| Nombre | Logo | IG | Sitio | Ubicación | Tipo |
+|---|---|---|---|---|---|
+| Midway | `avatars/brands/midway_avatar.png` | midway.ar | midway.com.ar | Argerich 448 | Real |
+| Doble V | `avatars/brands/doblev_avatar.png` | doblev.oficial | ladoblev.mitiendanube.com | Bogotá 3156 | Real |
+| Batuk | `avatars/brands/batuk_avatar.jfif` | batukba | batuk.com.ar | Av Santa Fe 2074 / Av. Cabildo 1939 / Av. Avellaneda 2980 | Real |
+| Forma | `avatars/brands/forma_avatar.png` | — | — | — | Ficción |
+| Revés | `avatars/brands/reves_avatar.png` | — | — | — | Ficción |
+| Capas | `avatars/brands/capas_avatar.png` | — | — | — | Ficción |
+| Sole | `avatars/brands/sole_avatar.png` | — | — | — | Ficción |
+
+> Pull&Bear y Stradivarius fueron reemplazados por marcas ficticias propias. Ónix fue creada y eliminada (joyería pasó a ser referencia visual únicamente).
+
+Los logos reales están en el bucket `avatars` (público). URL base:
 `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/`
 
 ---
 
 ### `prendas`
-| Column | Type | Notes |
+| Columna | Tipo | Notas |
 |---|---|---|
-| id | uuid (PK) | |
+| id | uuid (PK) | default gen_random_uuid() |
 | brand_id | uuid | FK → marcas.id |
-| name | text | |
+| name | varchar | |
+| description | text | nullable |
 | price | numeric | |
-| category | text | nullable (torso/piernas/calzado/extras) |
-| image_url | text | nullable |
-| color | text | nullable |
-| available_sizes | text[] | |
-| created_at | timestamptz | |
+| image_url | text | |
+| category | varchar | nullable — torso/piernas/calzado/extras |
+| color | varchar | |
+| style | varchar | nullable |
+| available_sizes | text[] | nullable |
+| stock_por_talle | jsonb | nullable — `{"XS": 10, "S": 10, "M": 10, ...}` |
+| created_at | timestamp | default now() |
+
+**Columnas eliminadas:** `talle` (redundante con `available_sizes` y `stock_por_talle`).
+
+**RLS:** habilitado.
+
+**Seed data:** 25 prendas. Las 5 prendas legacy con `style: null` fueron eliminadas.
+
+**Convención de imágenes:** `prendas/{marca}/{prenda}_{marca}_{coleccion}.png`
+Ejemplo: `prendas/forma/remera_forma_verano25.png`
 
 ---
 
 ### `outfits`
-| Column | Type | Notes |
+| Columna | Tipo | Notas |
 |---|---|---|
-| id | uuid (PK) | |
+| id | uuid (PK) | default gen_random_uuid() |
 | creator_id | uuid | FK → perfiles.id, nullable |
-| title | text | nullable |
+| title | varchar | nullable |
+| description | text | nullable |
 | cover_image_url | text | nullable |
-| occasion | text | nullable |
-| style | text | nullable |
+| occasion | varchar | nullable |
+| style | varchar | nullable |
 | likes_count | int | default 0 |
-| created_at | timestamptz | |
+| created_at | timestamp | default now() |
+
+**RLS:** habilitado.
+
+**Seed data (12 outfits):**
+
+*Valentina `@vale.rios` (4 outfits):*
+- Minimal Everyday — *clásico pero tuyo*
+- Street — *todo negro, nada aburrido*
+- Elevated — *noche sin esfuerzo*
+- Transitional — *otoño en Palermo*
+
+*Mateo `@mateo.h` (3 outfits):*
+- *capas y punto*
+- *todo gris*
+- *negro de noche*
+
+**Convención de imágenes:** `outfits/users/{username}/outfit_{username}_{nombre}.png`
+Ejemplo: `outfits/users/vale.rios/outfit_vale.rios_minimal-everyday.png`
 
 ---
 
 ### `outfit_items`
-Links outfits to garments, with position for floating labels.
+Relaciona outfits con prendas. Los labels flotantes se posicionan por slot lógico (no coordenadas flotantes).
 
-| Column | Type | Notes |
+| Columna | Tipo | Notas |
 |---|---|---|
-| id | uuid (PK) | |
-| outfit_id | uuid | FK → outfits.id |
-| garment_id | uuid | FK → prendas.id |
-| position_x | numeric | X position of floating label (0–1) |
-| position_y | numeric | Y position of floating label (0–1) |
+| id | uuid (PK) | default gen_random_uuid() |
+| outfit_id | uuid | FK → outfits.id, nullable |
+| garment_id | uuid | FK → prendas.id, nullable |
+| slot | varchar | nullable — torso/piernas/calzado/extras |
+
+> **Cambio respecto al diseño original:** `position_x` y `position_y` (coordenadas 0-1) fueron reemplazados por `slot` categórico. Si se necesita posicionamiento preciso de labels flotantes en el futuro, agregar `position_x numeric` y `position_y numeric`.
+
+**RLS:** habilitado.
+
+**Seed data:** 25 outfit_items.
+
+---
+
+### `outfits_guardados`
+Reemplaza el nombre original `outfit_saves`.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id, nullable |
+| outfit_id | uuid | FK → outfits.id, nullable |
+| created_at | timestamp | default now() |
+
+**RLS:** habilitado.
 
 ---
 
 ### `outfit_likes`
-| Column | Type |
-|---|---|
-| user_id | uuid (FK → perfiles.id) |
-| outfit_id | uuid (FK → outfits.id) |
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id, nullable |
+| outfit_id | uuid | FK → outfits.id, nullable |
+| created_at | timestamp | default now() |
+
+**RLS:** habilitado.
 
 ---
 
-### `outfit_saves`
-| Column | Type |
-|---|---|
-| user_id | uuid (FK → perfiles.id) |
-| outfit_id | uuid (FK → outfits.id) |
+### `follows`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| follower_id | uuid | FK → perfiles.id, nullable |
+| following_id | uuid | FK → perfiles.id, nullable |
+| created_at | timestamp | default now() |
+
+**RLS:** habilitado.
 
 ---
 
 ### `prendas_armario`
-User's personal wardrobe.
+Armario personal del usuario.
 
-| Column | Type | Notes |
+| Columna | Tipo | Notas |
 |---|---|---|
-| id | uuid (PK) | |
-| user_id | uuid | FK → perfiles.id |
-| garment_id | uuid | FK → prendas.id |
-| size | text | nullable |
-| color | text | nullable |
-| source | text | 'purchase' or 'manual' |
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id, nullable |
+| garment_id | uuid | FK → prendas.id, nullable |
+| added_at | timestamp | default now() |
+
+> **Columnas eliminadas vs. diseño original:** `size`, `color`, `source` ('purchase'/'manual') — simplificadas en esta iteración. Agregar cuando se implemente el flujo de compra.
+
+**RLS:** habilitado.
+
+---
+
+### `productos_carrito`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id, nullable |
+| garment_id | uuid | FK → prendas.id, nullable |
+| quantity | int | default 1 |
+| size | varchar | nullable |
+| added_at | timestamp | default now() |
+
+**RLS:** habilitado.
+
+---
+
+### `orders`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id, nullable |
+| status | varchar | default 'pending' |
+| total | numeric | |
+| discount | numeric | default 0, nullable |
+| shipping_address | text | nullable |
+| tracking_code | varchar | nullable |
+| estimated_delivery | date | nullable |
+| created_at | timestamp | default now() |
+| updated_at | timestamp | default now() |
+
+**RLS:** habilitado.
+
+---
+
+### `productos_orden`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| order_id | uuid | FK → orders.id, nullable |
+| garment_id | uuid | FK → prendas.id, nullable |
+| quantity | int | default 1 |
+| size | varchar | nullable |
+| unit_price | numeric | |
+
+**RLS:** habilitado.
+
+---
+
+### `reseñas`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id, nullable |
+| order_id | uuid | FK → orders.id, nullable |
+| garment_id | uuid | FK → prendas.id, nullable |
+| rating | int | CHECK 1–5, nullable |
+| comment | text | nullable |
+| created_at | timestamp | default now() |
+
+**RLS:** habilitado.
 
 ---
 
 ## Storage Buckets
 
-| Bucket | Access | Contents |
+| Bucket | Acceso | Contenido |
 |---|---|---|
-| `assets` | public | Navigation icons (`nav/`), logos, app images |
-| `avatars` | public | Brand avatars (`brands/`), user avatars |
+| `assets` | público | Iconos de navegación (`nav/`), imágenes de outfits (`outfits/`) e imágenes de prendas (`prendas/`) |
+| `avatars` | público | Avatares de marcas (`brands/`), avatares de usuarios (`users/`) |
 
-**Navigation icon paths:**
-- `assets/nav/home.png` / `home_rosa.png`
-- `assets/nav/outfit.png` / `outfit_rosa.png`
-- `assets/nav/search.png` / `search_rosa.png`
-- `assets/nav/armario.png` / `armario_rosa.png`
-- `assets/nav/user.png` / `user_rosa.png`
+### Convenciones de naming
+
+| Tipo | Patrón | Ejemplo |
+|---|---|---|
+| Imagen de prenda | `prendas/{marca}/{prenda}_{marca}_{coleccion}.png` | `prendas/forma/remera_forma_verano25.png` |
+| Imagen de outfit | `outfits/users/{username}/outfit_{username}_{nombre}.png` | `outfits/users/vale.rios/outfit_vale.rios_minimal-everyday.png` |
+| Avatar de usuario | `avatars/users/{username}_avatar.png` | `avatars/users/vale.rios_avatar.png` |
+| Logo de marca | `avatars/brands/{marca}_avatar.png` | `avatars/brands/forma_avatar.png` |
+| Ícono de nav | `assets/nav/{nombre}.png` / `{nombre}_rosa.png` | `assets/nav/home.png` |
+
+URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/`
 
 ---
 
 ## Auth
 
-- Provider: Email/Password (Supabase Auth)
-- Persistence: `AsyncStorage` via `@supabase/supabase-js`
-- On sign up, `username` and `display_name` can be passed in `options.data`
-- The `handle_new_user()` trigger creates the profile automatically
+- Proveedor: Email/Password (Supabase Auth)
+- Persistencia: `AsyncStorage` via `@supabase/supabase-js`
+- Al registrarse se pasan `username` y `display_name` en `options.data`
+- El trigger `handle_new_user()` crea el perfil automáticamente
 
 ---
 
-## Pending
+## Pendientes
 
-- [ ] Upload real outfit and garment images to the `assets` bucket
-- [ ] Load seed data for outfits and garments for Midway, Doble V, and Batuk
-- [ ] Complete or replace Pull&Bear and Stradivarius entries
-- [ ] Audit RLS policies on all tables
+- [ ] Completar perfil y outfits de `@chechuabb` (Celina Abelson)
+- [ ] Subir imágenes reales de outfits y prendas al bucket `assets`
+- [ ] Auditar RLS policies en tablas nuevas (`follows`, `productos_carrito`, `orders`, `productos_orden`, `reseñas`)
+- [ ] Agregar `position_x` / `position_y` a `outfit_items` si se implementan labels flotantes precisos
+- [ ] Restaurar `size`, `color`, `source` en `prendas_armario` cuando se implemente flujo de compra
+- [ ] Edge Functions para lógica de likes/saves (incrementar contadores atómicamente)
+- [ ] Completar info de marcas ficticias (Forma, Revés, Capas, Sole) con datos de contacto
