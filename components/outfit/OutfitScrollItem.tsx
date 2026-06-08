@@ -13,12 +13,12 @@ import { OutfitGarmentLabel } from './OutfitGarmentLabel'
 const { width: SW, height: SH } = Dimensions.get('window')
 
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
-const ICON_LIKE = `${STORAGE}/icons/like.png`
+const ICON_LIKE        = `${STORAGE}/icons/like.png`
 const ICON_LIKE_ACTIVE = `${STORAGE}/icons/like_rosa.png`
-const ICON_SAVE = `${STORAGE}/icons/save.png`
+const ICON_SAVE        = `${STORAGE}/icons/save.png`
 const ICON_SAVE_ACTIVE = `${STORAGE}/icons/save_rosa.png`
-const ICON_SHARE = `${STORAGE}/icons/share.png`
-const ICON_BAG = `${STORAGE}/icons/bolsa_rosa.png`
+const ICON_SHARE       = `${STORAGE}/icons/share.png`
+const ICON_BAG         = `${STORAGE}/icons/bolsa_rosa.png`
 
 interface Props {
   outfit: Outfit
@@ -30,8 +30,8 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
   const [saved, setSaved] = useState(false)
 
   const totalPrice = outfit.garments?.reduce((sum, item) => sum + (item.garment?.price ?? 0), 0) ?? 0
-  const discount = outfit.discount_percent ?? 0
-  const savings = discount > 0 ? totalPrice * (discount / 100) : 0
+  const discount   = outfit.discount_percent ?? 0
+  const savings    = discount > 0 ? totalPrice * (discount / 100) : 0
   const firstBrand = outfit.garments?.[0]?.garment?.brand
 
   return (
@@ -62,6 +62,7 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
               source={{ uri: liked ? ICON_LIKE_ACTIVE : ICON_LIKE }}
               style={styles.actionIcon}
               contentFit="contain"
+              tintColor={liked ? undefined : colors.blanco}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setSaved(!saved)} style={styles.actionBtn}>
@@ -69,6 +70,7 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
               source={{ uri: saved ? ICON_SAVE_ACTIVE : ICON_SAVE }}
               style={styles.actionIcon}
               contentFit="contain"
+              tintColor={saved ? undefined : colors.blanco}
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn}>
@@ -76,6 +78,7 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
               source={{ uri: ICON_SHARE }}
               style={styles.actionIcon}
               contentFit="contain"
+              tintColor={colors.blanco}
             />
           </TouchableOpacity>
         </View>
@@ -95,7 +98,7 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
               </View>
             )}
             <View>
-              <Text style={styles.brandName}>{firstBrand?.name ?? 'OPA'}</Text>
+              <Text style={styles.brandName}>{firstBrand?.name?.toUpperCase() ?? 'OPA'}</Text>
               <Text style={styles.outfitTitle} numberOfLines={1}>{outfit.title}</Text>
             </View>
           </View>
@@ -104,23 +107,27 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
 
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
-        {/* Price section */}
+        {/* Left: bag + price */}
         <View style={styles.priceSection}>
-          <Image source={{ uri: ICON_BAG }} style={styles.bagIcon} contentFit="contain" />
+          <View style={styles.bagContainer}>
+            <Image source={{ uri: ICON_BAG }} style={styles.bagIcon} contentFit="contain" />
+          </View>
           <View>
-            <Text style={styles.totalLabel}>Total look</Text>
+            <Text style={styles.totalLabel}>Precio total</Text>
             <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
           </View>
-
-          {/* Discount badge */}
-          {discount > 0 && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountTop}>{discount}% OFF</Text>
-              <Text style={styles.discountBottom}>Ahorras ${savings.toFixed(0)}</Text>
-            </View>
-          )}
         </View>
 
+        {/* Center: discount badge */}
+        {discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountSymbol}>%</Text>
+            <Text style={styles.discountOff}>{discount}% OFF</Text>
+            <Text style={styles.discountSavings}>Ahorras ${savings.toFixed(0)}</Text>
+          </View>
+        )}
+
+        {/* Right: CTA */}
         <TouchableOpacity style={styles.ctaButton}>
           <Text style={styles.ctaText}>Ver outfit</Text>
         </TouchableOpacity>
@@ -139,7 +146,8 @@ const styles = StyleSheet.create({
 
   // Action buttons
   actions: {
-    position: 'absolute', right: 16, bottom: 140,
+    position: 'absolute', right: 16,
+    top: '40%',
     alignItems: 'center', gap: 24,
   },
   actionBtn: { alignItems: 'center' },
@@ -148,14 +156,15 @@ const styles = StyleSheet.create({
   // Brand info
   brandInfo: { position: 'absolute', bottom: 120, left: 16, right: 80 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-  },
+  brandAvatar: { width: 40, height: 40, borderRadius: radius.avatar },
   brandAvatarFallback: {
     backgroundColor: colors.negro, alignItems: 'center', justifyContent: 'center',
   },
   brandAvatarText: { color: colors.blanco, fontWeight: '700', fontSize: 16 },
-  brandName: { color: colors.blanco, fontWeight: '700', fontSize: 14, fontFamily: fonts.palanquinDark },
+  brandName: {
+    color: colors.blanco, fontWeight: '700', fontSize: 14,
+    fontFamily: fonts.palanquinDark, textTransform: 'uppercase',
+  },
   outfitTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
 
   // Bottom bar
@@ -170,7 +179,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: 30,
-    shadowColor: '#000',
+    shadowColor: colors.negro,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -179,25 +188,52 @@ const styles = StyleSheet.create({
   priceSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm,
   },
-  bagIcon: { width: 24, height: 24 },
-  totalLabel: { fontSize: 11, color: colors.grisClaro, textTransform: 'uppercase', letterSpacing: 0.5 },
-  price: { fontSize: 20, fontWeight: '800', color: colors.negro, fontFamily: fonts.mergeOne },
+  bagContainer: {
+    backgroundColor: colors.rosaOpaLight,
+    borderRadius: 8,
+    padding: 8,
+  },
+  bagIcon: { width: 20, height: 20 },
+  totalLabel: {
+    fontSize: 11, color: colors.grisClaro,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  price: {
+    fontSize: 20, fontWeight: '800',
+    color: colors.negro, fontFamily: fonts.mergeOne,
+  },
+
+  // Discount badge — circular, centered
   discountBadge: {
     backgroundColor: colors.rosaOpa,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 9999,
+    width: 64,
+    height: 64,
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
   },
-  discountTop: { color: colors.blanco, fontSize: 10, fontWeight: '800' },
-  discountBottom: { color: colors.blanco, fontSize: 9, opacity: 0.9 },
+  discountSymbol: {
+    color: colors.blanco, fontSize: 14, fontWeight: '700', lineHeight: 16,
+  },
+  discountOff: {
+    color: colors.blanco, fontSize: 10, fontWeight: '800', lineHeight: 12,
+  },
+  discountSavings: {
+    color: 'rgba(255,255,255,0.85)', fontSize: 8, lineHeight: 10, textAlign: 'center',
+  },
+
+  // CTA
   ctaButton: {
     backgroundColor: colors.rosaOpa,
     borderRadius: radius.button,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  ctaText: { color: colors.blanco, fontWeight: '700', fontSize: 14, fontFamily: fonts.palanquinDark },
+  ctaText: {
+    color: colors.blanco, fontWeight: '700',
+    fontSize: 14, fontFamily: fonts.palanquinDark,
+  },
 })
