@@ -57,34 +57,30 @@ Radius:  card=15, chip=10, button=8, tag=8, avatar=9999
 
 ## Key Design Components
 
-### Bottom Tab Bar
+### Bottom Nav Bar (`BottomNavBar`)
+
+> Component: `components/navigation/BottomNavBar.tsx`  
+> Registered in `app/(tabs)/_layout.tsx`
 
 **Container:**
 - `flexDirection: row`, `backgroundColor: blanco`
-- `borderTopWidth: 0` — no separator line, use shadow only if needed
-- `paddingBottom`: use `useSafeAreaInsets().bottom` (do NOT hardcode 24) to adapt to home indicator
-- `paddingTop: 10`, `paddingHorizontal: 8`
+- `borderTopWidth: 1`, `borderTopColor: grisBorde` — thin gray separator
+- `paddingBottom`: `useSafeAreaInsets().bottom` (not hardcoded)
+- `paddingTop: 8`, `paddingHorizontal: 4`
 
-**Regular tab (inactive):**
-- `flex: 1`, `alignItems: center`, `justifyContent: center`
-- `paddingVertical: 6`, `borderRadius: 10`, `marginHorizontal: 2`
+**5 flat equal tabs — no elevated center button:**
+- Each tab: `flex: 1`, `alignItems: center`, `justifyContent: center`
+
+**Tab inactive:**
 - No background
+- Icon: default version (`home.png`, `outfit.png`, etc.) from `assets/nav/`
+- Icon size: `28×28px`
 
-**Regular tab (active):**
-- `rosaOpaLight` background applied only to the icon container (`44×44px`, `borderRadius: 10`), NOT the full `flex: 1` tab
-- Icon: `_rosa.png` version from Supabase Storage
+**Tab active:**
+- Icon container: `48×48px`, `borderRadius: 8`, `backgroundColor: rosaOpaLight`
+- Icon: `_rosa.png` variant from `assets/nav/`
+- Icon size: `28×28px`
 - Use `expo-image` (`Image` from `expo-image`) with `contentFit="contain"`
-
-**Center tab — Outfits (ALWAYS the same, active or not):**
-- `backgroundColor: rosaOpa (#EB006B)`
-- `borderRadius: 14`
-- `marginTop: -18` (elevated above the nav)
-- `marginHorizontal: 4`
-- `paddingVertical: 14`
-- Pink shadow: `shadowColor: rosaOpa, offset: {0,4}, opacity: 0.45, radius: 10, elevation: 10`
-- Icon: `outfit.png` (always the default version, not the rosa variant)
-- Icon size: `26×26px`
-- **CRITICAL:** use `expo-image` (`Image` from `expo-image`) with `tintColor={colors.blanco}` as a **direct prop** (NOT inside `style`). `RNImage` with `style.tintColor` does not work on web and is deprecated in RN 0.71+.
 
 ### Outfit Cards
 - **Home carousel**: 220×370px, radius 15, `negro` shadow 8px
