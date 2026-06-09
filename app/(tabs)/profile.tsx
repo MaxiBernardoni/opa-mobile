@@ -10,6 +10,7 @@ import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { useOutfits } from '../../hooks/useOutfits'
+import { useSavedOutfits } from '../../hooks/useSavedOutfits'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState(0)
   const { session, profile, initialized, clear } = useAuthStore()
   const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
+  const { outfits: savedOutfits, loading: savedLoading } = useSavedOutfits(session?.user.id)
 
   async function handleLogout() {
     Alert.alert('Cerrar sesión', '¿Estás seguro/a?', [
@@ -203,10 +205,42 @@ export default function ProfileScreen() {
           )
         )}
         {activeTab === 1 && (
-          <View style={styles.emptyTab}>
-            <Text style={styles.emptyTabIcon}>♡</Text>
-            <Text style={styles.emptyTabText}>Todavía no guardaste outfits</Text>
-          </View>
+          savedLoading ? (
+            <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 32 }} />
+          ) : savedOutfits.length === 0 ? (
+            <View style={styles.emptyTab}>
+              <Text style={styles.emptyTabIcon}>♡</Text>
+              <Text style={styles.emptyTabText}>Todavía no guardaste outfits</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={savedOutfits}
+              keyExtractor={(item) => item.id}
+              numColumns={3}
+              scrollEnabled={false}
+              contentContainerStyle={styles.grid}
+              columnWrapperStyle={styles.gridRow}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={styles.gridCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push({
+                    pathname: '/user-outfits',
+                    params: { userId: session!.user.id, startIndex: String(index) },
+                  })}
+                >
+                  <Image
+                    source={{ uri: item.cover_image_url ?? `https://picsum.photos/seed/${item.id}/130/231` }}
+                    style={styles.gridImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.likesRow}>
+                    <Text style={styles.likesText}>♡ {item.likes_count}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )
         )}
         {activeTab === 2 && (
           <View style={styles.emptyTab}>
