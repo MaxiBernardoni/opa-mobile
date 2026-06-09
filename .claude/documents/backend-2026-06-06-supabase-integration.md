@@ -287,3 +287,6 @@ grant execute on function delete_user() to authenticated;
 - [ ] Cursor-based pagination in useOutfits
 - [ ] Audited RLS policies for all tables
 - [ ] UI + hook para guardar prendas (`prendas_guardadas` ya existe en DB)
+- [ ] Integrar `useSizeGuide` y `useRecommendedSize` en `app/product/[id].tsx` — hooks existen pero la pantalla de detalle de producto aún no está implementada
+- [ ] Integrar `useUserMeasurements` en pantalla de configuración — hook existe pero no hay UI para que el usuario ingrese sus medidas
+- [ ] Lógica de outfit scroll filtrado por medidas similares — query en `useOutfits` (o nuevo hook `useOutfitsBySimilarMeasurements`) que priorice outfits de creadores con `user_measurements` parecidas a las del usuario autenticado; requiere definir criterio de "similar" (ej: ±5cm en cintura y busto)
