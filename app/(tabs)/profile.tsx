@@ -23,14 +23,14 @@ const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/
 
 // Main tabs
 const MAIN_TABS = [
-  { key: 'grid', icon: BASE + 'grid.png', iconActive: BASE + 'grid_rosa.png' },
+  { key: 'grid', icon: BASE + 'Grid.png', iconActive: BASE + 'Grid_rosa.png' },
   { key: 'favoritos', icon: BASE + 'estrella_gris.png', iconActive: BASE + 'estrella_negra.png' },
   { key: 'pedidos', icon: BASE + 'caja_negra.png', iconActive: BASE + 'caja_rosa.png' },
 ]
 
 // Sub-tabs within Favoritos
 const FAV_SUBTABS = [
-  { key: 'outfits', icon: BASE + 'outfit_v2.png', iconActive: BASE + 'outfit_rosa_v2.png' },
+  { key: 'outfits', icon: BASE + 'nav/outfit_v2.png', iconActive: BASE + 'nav/outfit_rosa_v2.png' },
   { key: 'prendas', icon: BASE + 'percha_negra.png', iconActive: BASE + 'percha_rosa.png' },
 ]
 
