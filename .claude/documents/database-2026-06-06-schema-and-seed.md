@@ -1,6 +1,6 @@
 # Database — Schema & Seed Data
 
-_Última actualización: 2026-06-08_
+_Última actualización: 2026-06-09_
 
 ## Proyecto Supabase
 - **Project ID:** `vecnktrbjolahcalkbml`
@@ -20,6 +20,7 @@ _Última actualización: 2026-06-08_
 | 20260601114335 | create_storage_bucket_assets |
 | 20260601114442 | fix_storage_anon_upload_policy |
 | 20260601114756 | perfiles_auth_rls_policies |
+| 20260609xxxxxx | likes_saves_follows_rls_and_triggers |
 
 ---
 
@@ -129,7 +130,8 @@ Ejemplo: `prendas/forma/remera_forma_verano25.png`
 | cover_image_url | text | nullable |
 | occasion | varchar | nullable |
 | style | varchar | nullable |
-| likes_count | int | default 0 |
+| likes_count | int | default 0 — mantenido por trigger `on_outfit_like` |
+| saves_count | int | default 0 — mantenido por trigger `on_outfit_save` |
 | created_at | timestamp | default now() |
 
 **RLS:** habilitado.
@@ -180,7 +182,9 @@ Reemplaza el nombre original `outfit_saves`.
 | outfit_id | uuid | FK → outfits.id, nullable |
 | created_at | timestamp | default now() |
 
-**RLS:** habilitado.
+**RLS:** habilitado — SELECT público, INSERT/DELETE solo propio (`user_id = auth.uid()`).
+
+**Trigger:** `on_outfit_save` → llama `handle_outfit_save()` → actualiza `outfits.saves_count` ±1.
 
 ---
 
@@ -192,7 +196,9 @@ Reemplaza el nombre original `outfit_saves`.
 | outfit_id | uuid | FK → outfits.id, nullable |
 | created_at | timestamp | default now() |
 
-**RLS:** habilitado.
+**RLS:** habilitado — SELECT público, INSERT/DELETE solo propio (`user_id = auth.uid()`).
+
+**Trigger:** `on_outfit_like` → llama `handle_outfit_like()` → actualiza `outfits.likes_count` ±1.
 
 ---
 
@@ -204,7 +210,11 @@ Reemplaza el nombre original `outfit_saves`.
 | following_id | uuid | FK → perfiles.id, nullable |
 | created_at | timestamp | default now() |
 
-**RLS:** habilitado.
+**Constraints:** UNIQUE `(follower_id, following_id)` — no se puede seguir dos veces al mismo usuario.
+
+**RLS:** habilitado — SELECT público, INSERT solo propio (`follower_id = auth.uid()`), DELETE solo propio.
+
+**Trigger:** `on_follow` → llama `handle_follow()` → actualiza `perfiles.following_count` en el follower y `perfiles.followers_count` en el following, ±1.
 
 ---
 
@@ -319,7 +329,8 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 
 - [ ] Completar perfil y outfits de `@chechuabb` (Celina Abelson)
 - [ ] Subir imágenes reales de outfits y prendas al bucket `assets`
-- [ ] Auditar RLS policies en tablas nuevas (`follows`, `productos_carrito`, `orders`, `productos_orden`, `reseñas`)
+- [x] RLS policies en `outfit_likes`, `outfits_guardados`, `follows` — completas
+- [ ] Auditar RLS policies en tablas nuevas (`productos_carrito`, `orders`, `productos_orden`, `reseñas`)
 - [ ] Agregar `position_x` / `position_y` a `outfit_items` si se implementan labels flotantes precisos
 - [ ] Restaurar `size`, `color`, `source` en `prendas_armario` cuando se implemente flujo de compra
 - [ ] Edge Functions para lógica de likes/saves (incrementar contadores atómicamente)
