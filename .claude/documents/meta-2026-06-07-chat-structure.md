@@ -109,7 +109,7 @@ When a chat makes a change that affects another domain:
 2. Tell the user what changed and which other chat is affected
 3. Suggest running `/sync` to generate a briefing prompt for the affected chat
 
-The `/sync` skill is a global Claude Code command (not in the repo). It is recreated at each session start via `.claude/hooks/session-start.sh`.
+The `/sync` skill is a global Claude Code skill defined in `~/.claude/skills/sync/SKILL.md`. It is not part of the repo.
 
 ---
 
@@ -141,8 +141,13 @@ Everything the user sees and everything that fetches or mutates data:
 - Visual design decisions (color values, spacing scale, component specs) → Design chat
 - If you need a schema change or a new column, document it and tell the user to brief the Database chat using /sync
 
-## Read before starting work
-In order:
+## Before starting work
+Run this first to make sure you have the latest version of the repo:
+```
+git pull origin main
+```
+
+Then read in order:
 1. .claude/documents/meta-2026-06-07-documentation-style-guide.md
 2. .claude/documents/frontend-2026-06-06-screens-and-components.md
 3. .claude/documents/backend-2026-06-06-supabase-integration.md
@@ -191,8 +196,13 @@ Everything visual and experiential:
 - Supabase Storage bucket configuration → Database chat
 - Screen routing logic → Frontend chat
 
-## Read before starting work
-In order:
+## Before starting work
+Run this first to make sure you have the latest version of the repo:
+```
+git pull origin main
+```
+
+Then read in order:
 1. .claude/documents/meta-2026-06-07-documentation-style-guide.md
 2. .claude/documents/design-2026-06-06-visual-system.md
 3. .claude/documents/frontend-2026-06-06-screens-and-components.md (to understand what is built)
@@ -248,8 +258,13 @@ Everything at the data layer:
 - How data is displayed (UI) → Frontend + Design chats
 - TypeScript types → Frontend chat (but you define the source of truth for field names and types)
 
-## Read before starting work
-In order:
+## Before starting work
+Run this first to make sure you have the latest version of the repo:
+```
+git pull origin main
+```
+
+Then read in order:
 1. .claude/documents/meta-2026-06-07-documentation-style-guide.md
 2. .claude/documents/database-2026-06-06-schema-and-seed.md
 3. .claude/documents/backend-2026-06-06-supabase-integration.md (to understand how the app queries your tables)
