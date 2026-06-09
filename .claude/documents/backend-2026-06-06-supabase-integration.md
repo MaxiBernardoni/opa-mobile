@@ -137,13 +137,22 @@ supabase
 Fetches a profile by user ID from `perfiles`.
 
 ### `hooks/useWardrobe.ts`
-Fetches the user's wardrobe items:
-```ts
-supabase
-  .from('prendas_armario')
-  .select(`*, garment:prendas(*, brand:marcas(*))`)
-  .eq('user_id', userId)
-```
+Fetches the user's wardrobe items from `prendas_armario`.
+
+### `hooks/useLike.ts`
+Like toggle para outfits. Optimistic update — INSERT en `outfit_likes`, si error `23505` (duplicate) ignora. DELETE para unlike. Retorna `{ liked, count, toggle }`.
+
+### `hooks/useSave.ts`
+Save toggle para outfits. Mismo patrón que `useLike` sobre `outfits_guardados`. Retorna `{ saved, count, toggle }`.
+
+### `hooks/useFollow.ts`
+Follow toggle. INSERT en `follows`, DELETE para unfollow. Retorna `{ following, toggle }`.
+
+### `hooks/useSavedOutfits.ts`
+Outfits guardados en favoritos del usuario. Query con join completo a `outfits`, `perfiles`, `outfit_items`, `prendas`, `marcas`. Retorna `{ outfits, loading, refetch }`.
+
+### `hooks/useSavedGarments.ts`
+Prendas guardadas en favoritos del usuario desde `prendas_guardadas`. Retorna `{ garments, loading, refetch }`.
 
 ---
 
@@ -272,9 +281,9 @@ grant execute on function delete_user() to authenticated;
 
 ## Pending
 
-- [ ] `delete_user()` SQL function in Supabase (required for account deletion — see above)
 - [ ] Edge Functions for server-side logic (likes, saves)
 - [ ] Realtime subscriptions for live like counts
 - [ ] Search queries (full-text search on outfits/garments)
 - [ ] Cursor-based pagination in useOutfits
 - [ ] Audited RLS policies for all tables
+- [ ] UI + hook para guardar prendas (`prendas_guardadas` ya existe en DB)

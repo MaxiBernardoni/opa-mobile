@@ -222,6 +222,24 @@ Reemplaza el nombre original `outfit_saves`.
 
 ---
 
+### `prendas_guardadas`
+Prendas guardadas en favoritos para comprar más tarde.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → auth.users(id) ON DELETE CASCADE |
+| garment_id | uuid | FK → prendas(id) ON DELETE CASCADE |
+| created_at | timestamptz | default now() |
+
+**Constraints:** UNIQUE `(user_id, garment_id)`.
+
+**RLS:** habilitado — SELECT/INSERT/DELETE solo propio (`user_id = auth.uid()`).
+
+**Creada:** manualmente vía MCP Supabase (no tiene migration file aún).
+
+---
+
 ### `prendas_armario`
 Armario personal del usuario.
 
@@ -337,5 +355,6 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 - [ ] Auditar RLS policies en tablas nuevas (`productos_carrito`, `orders`, `productos_orden`, `reseñas`)
 - [ ] Agregar `position_x` / `position_y` a `outfit_items` si se implementan labels flotantes precisos
 - [ ] Restaurar `size`, `color`, `source` en `prendas_armario` cuando se implemente flujo de compra
+- [ ] Crear migration file para `prendas_guardadas` (actualmente solo existe en DB remota, sin archivo de migración)
 - [ ] Edge Functions para lógica de likes/saves (incrementar contadores atómicamente)
 - [ ] Completar info de marcas ficticias (Forma, Revés, Capas, Sole) con datos de contacto

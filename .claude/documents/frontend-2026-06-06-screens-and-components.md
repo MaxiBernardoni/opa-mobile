@@ -21,15 +21,17 @@ This document covers all implemented screens, components, design tokens, and rel
 app/
   _layout.tsx          # Root layout: fonts, auth init, Stack navigator
   (tabs)/
-    _layout.tsx        # Tab layout with custom BottomTabBar
+    _layout.tsx        # Tab layout with custom BottomNavBar
     index.tsx          # Home
     outfits.tsx        # Outfit Scroll (TikTok-style)
     search.tsx         # Search (placeholder)
     wardrobe.tsx       # Wardrobe (placeholder)
     profile.tsx        # Profile
   auth/
-    index.tsx          # Login/Signup modal
+    index.tsx          # Login/Signup con validación por campo
   settings.tsx         # Settings screen
+  user-outfits.tsx     # Scroll de outfits de un usuario específico
+  saved-outfits.tsx    # Scroll de outfits guardados en favoritos
 ```
 
 ---
@@ -62,25 +64,45 @@ app/
 Three states:
 
 1. **Initializing** (`!initialized`): centered `ActivityIndicator`
-2. **No session** (`!session`): Auth gate
-   - OPA logo, title, subtitle
-   - "Sign in" button (pink) + "Create account" button (pink border)
-   - Both navigate to `/auth`
+2. **No session** (`!session`): Auth gate con logo OPA + botones iniciar sesión / crear cuenta
 3. **With session**: full profile
-   - Circular avatar 110×110 (initial letter if no photo)
-   - Username, name, bio, style tags
-   - Stats: Followers · Following · Outfits · Saved
-   - Internal navbar: Grid · Favorites · Orders
-   - 3-column outfit grid (130×231px) with like counter
-   - Logout button (⚙ icon, top right)
+   - Header horizontal: avatar 80×80 (izquierda) + username / nombre / bio / ig handle / tags (derecha)
+   - Settings icon (arriba derecha) → `app/settings.tsx`
+   - Stats: Seguidores · Seguidos · Outfits · Guardados (valor real de `outfits_guardados`)
+   - **3 tabs con iconos PNG** del bucket `assets`:
+     - **Grid** (`Grid.png` / `Grid_rosa.png`): grilla 3 columnas de outfits propios → tap → `user-outfits.tsx`
+     - **Favoritos** (`estrella_gris.png` / `estrella_negra.png`): 2 sub-tabs:
+       - **Outfits** (`nav/outfit_v2.png`): grid de outfits guardados → tap → `saved-outfits.tsx`
+       - **Prendas** (`percha_negra.png`): grid 4 columnas de `prendas_guardadas`
+     - **Pedidos** (`caja_negra.png` / `caja_rosa.png`): empty state
+   - Al activar Favoritos se hace `refetch()` de outfits y prendas guardadas
+
+### User Outfits (`app/user-outfits.tsx`)
+- Scroll full-screen TikTok para los outfits de un perfil específico
+- Parámetros: `userId`, `startIndex`
+- Sin header flotante (no camión, no tabs, no botón +)
+- Botón back circular translúcido (arriba izquierda)
+- Navegar desde el grid del perfil propio
+
+### Saved Outfits (`app/saved-outfits.tsx`)
+- Scroll full-screen TikTok para los outfits guardados en favoritos
+- Parámetro: `startIndex` (usa `useAuthStore` para el userId)
+- Mismo layout que `user-outfits.tsx`
+- Navegar desde el sub-tab Favoritos > Outfits del perfil
 
 ### Auth (`app/auth/index.tsx`)
-- Modal with `presentation: 'modal'`, `animation: 'slide_from_bottom'`
-- Login / signup switcher
+- Modal con `presentation: 'modal'`, `animation: 'slide_from_bottom'`
+- Logo OPA (`logoOPA-transparente.png` desde Supabase Storage)
+- Login / signup switcher — `switchMode()` limpia todos los errores y campos
 - Login: email + password → `supabase.auth.signInWithPassword`
-- Signup: username + name + email + password → `supabase.auth.signUp`
-- Basic validation (empty fields, minimum 6-char password)
-- Redirects to `/(tabs)` on completion
+- Signup: username + email + password → `supabase.auth.signUp`
+- **Validación por campo en tiempo real:**
+  - Username: regex `/^[a-z0-9._]+$/` — error si tiene mayúsculas, espacios o caracteres especiales
+  - Email: regex básico de formato
+  - Password: mínimo 6 caracteres
+  - Login: banner de error sobre el botón si credenciales inválidas
+- Botón bloqueado si hay errores activos
+- Borde rojo (`inputError` style) en campos inválidos
 
 ### Settings (`app/settings.tsx`)
 Accessible from the ⚙ icon in Profile. Requires active session.
@@ -195,11 +217,11 @@ xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 
 ## Pending
 
-- [x] `delete_user()` RPC function in Supabase — ✅ created (migration `create_delete_user_function`)
 - [ ] Settings sub-screens: edit profile, security, notifications, measurements, etc.
 - [ ] Functional search screen
-- [ ] Wardrobe screen with real logic
+- [ ] Wardrobe screen (`wardrobe.tsx`) with real logic
 - [ ] Detail screens: `outfit/[id]` and `product/[id]`
 - [ ] Highlight wardrobe garments the user already owns in the outfit scroll
 - [ ] Like/save animations
 - [ ] Skeleton loading instead of ActivityIndicator
+- [ ] UI para guardar prendas en favoritos (botón en la prenda)
