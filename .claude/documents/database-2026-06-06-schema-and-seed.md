@@ -20,7 +20,10 @@ _Última actualización: 2026-06-09_
 | 20260601114335 | create_storage_bucket_assets |
 | 20260601114442 | fix_storage_anon_upload_policy |
 | 20260601114756 | perfiles_auth_rls_policies |
-| 20260609xxxxxx | likes_saves_follows_rls_and_triggers |
+| 20260609000001 | likes_saves_follows_rls_and_triggers |
+| 20260609000002 | unique_constraints_likes_and_saves |
+| 20260609000003 | size_guide_system |
+| 20260609000004 | size_guide_calzado_extras |
 
 ---
 
@@ -107,6 +110,7 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 | style | varchar | nullable |
 | available_sizes | text[] | nullable |
 | stock_por_talle | jsonb | nullable — `{"XS": 10, "S": 10, "M": 10, ...}` |
+| size_guide_id | uuid | FK → size_guides.id, nullable |
 | created_at | timestamp | default now() |
 
 **Columnas eliminadas:** `talle` (redundante con `available_sizes` y `stock_por_talle`).
@@ -347,6 +351,85 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 
 ---
 
+## Sistema de guías de talle
+
+### `size_guides`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| name | varchar | 'Oversize', 'Boxy', 'Relaxed', 'Baggy', 'Straight', 'Skinny', 'Calzado Regular', 'Calzado Ancho', 'Cinturón', 'Bolso' |
+| category | varchar | 'tops' \| 'bottoms' \| 'calzado' \| 'extras' |
+| fit_type | varchar | 'oversize' \| 'boxy' \| 'relaxed' \| 'baggy' \| 'straight' \| 'skinny' \| 'regular' \| 'wide' \| 'belt' \| 'bag' |
+| brand_id | uuid | FK → marcas.id, nullable — NULL = guía OPA por defecto |
+| created_at | timestamp | default now() |
+
+**RLS:** SELECT público. INSERT/UPDATE solo para brand owner (`marcas.owner_id = auth.uid()`). `service_role` bypasses.
+
+**Seed data:** 10 guías OPA por defecto (`brand_id = NULL`):
+- Tops: Oversize, Boxy, Relaxed
+- Bottoms: Baggy, Straight, Skinny
+- Calzado: Calzado Regular (EU 35–42), Calzado Ancho (EU 35–42)
+- Extras: Cinturón (XS–XL por cintura), Bolso (XS–XL descriptivo)
+
+---
+
+### `size_guide_entries`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| guide_id | uuid | FK → size_guides.id ON DELETE CASCADE |
+| size_label | varchar | 'XS' \| 'S' \| 'M' \| 'L' \| 'XL' \| 'XXL' |
+| chest_min/max | numeric | nullable — busto cm (tops) |
+| waist_min/max | numeric | nullable — cintura cm |
+| hip_min/max | numeric | nullable — cadera cm |
+| height_min/max | numeric | nullable — altura cm |
+| thigh_min/max | numeric | nullable — muslo cm (bottoms) |
+| rise_min/max | numeric | nullable — tiro cm (bottoms) |
+| foot_length_min/max | numeric | nullable — largo de pie cm (calzado) |
+| sort_order | int | 0=XS … 5=XXL (o número EU para calzado) |
+
+**RLS:** SELECT público. INSERT solo `service_role`.
+
+**Seed data:** 57 entries total:
+- 36 entries originales (6 por guía de tops/bottoms)
+- 8 entries × 2 guías de calzado (EU 35–42)
+- 5 entries × 2 guías de extras (Cinturón y Bolso)
+
+---
+
+### `user_measurements`
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | UNIQUE FK → perfiles.id ON DELETE CASCADE |
+| chest | numeric | nullable — busto cm |
+| waist | numeric | nullable — cintura cm |
+| hip | numeric | nullable — cadera cm |
+| height | numeric | nullable — altura cm |
+| thigh | numeric | nullable — muslo cm |
+| updated_at | timestamp | default now() |
+
+**RLS:** habilitado — SELECT/INSERT/UPDATE/DELETE solo propio (`user_id = auth.uid()`). Una fila por usuario (UNIQUE en `user_id`).
+
+---
+
+### Función `get_recommended_size(guide_id uuid, p_user_id uuid)`
+
+Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
+
+- Busca las medidas del usuario en `user_measurements`
+- Por categoría:
+  - `tops`: match por pecho (chest), fit_preference ajustado/holgado/justo
+  - `bottoms`: match por cintura (waist), fit_preference ajustado/holgado/justo
+  - `calzado`: match por altura como proxy de largo de pie (foot_length_min/max), siempre devuelve `'justo'`
+  - `extras`: match por cintura si tiene `waist_min` (Cinturón), sin match si no (Bolso devuelve vacío), siempre `'justo'`
+- Devuelve vacío si el usuario no tiene medidas cargadas
+- `SECURITY DEFINER` — `GRANT EXECUTE TO authenticated`
+
+> **Nota:** calzado usa `u.height` como proxy de largo de pie hasta que se agregue `foot_length` a `user_measurements`.
+
+---
+
 ## Pendientes
 
 - [ ] Completar perfil y outfits de `@chechuabb` (Celina Abelson)
@@ -356,5 +439,6 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 - [ ] Agregar `position_x` / `position_y` a `outfit_items` si se implementan labels flotantes precisos
 - [ ] Restaurar `size`, `color`, `source` en `prendas_armario` cuando se implemente flujo de compra
 - [ ] Crear migration file para `prendas_guardadas` (actualmente solo existe en DB remota, sin archivo de migración)
-- [ ] Edge Functions para lógica de likes/saves (incrementar contadores atómicamente)
+- [x] Edge Functions para likes/saves — reemplazadas por triggers atómicos
 - [ ] Completar info de marcas ficticias (Forma, Revés, Capas, Sole) con datos de contacto
+- [ ] Asignar `size_guide_id` a las 25 prendas seed existentes
