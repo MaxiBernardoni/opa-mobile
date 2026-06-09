@@ -11,7 +11,7 @@ import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { useOutfits } from '../../hooks/useOutfits'
 import { useSavedOutfits } from '../../hooks/useSavedOutfits'
-import { useWardrobe } from '../../hooks/useWardrobe'
+import { useSavedGarments } from '../../hooks/useSavedGarments'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 
@@ -23,15 +23,14 @@ const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/
 
 // Main tabs
 const MAIN_TABS = [
-  { key: 'grid', icon: BASE + 'nav/outfit.png', iconActive: BASE + 'nav/outfit_rosa.png' },
+  { key: 'grid', icon: BASE + 'grid.png', iconActive: BASE + 'grid_rosa.png' },
   { key: 'favoritos', icon: BASE + 'estrella_gris.png', iconActive: BASE + 'estrella_negra.png' },
-  { key: 'armario', icon: BASE + 'percha_negra.png', iconActive: BASE + 'percha_rosa.png' },
-  { key: 'pedidos', icon: BASE + 'caja.png', iconActive: BASE + 'caja_rosa.png' },
+  { key: 'pedidos', icon: BASE + 'caja_negra.png', iconActive: BASE + 'caja_rosa.png' },
 ]
 
 // Sub-tabs within Favoritos
 const FAV_SUBTABS = [
-  { key: 'outfits', icon: BASE + 'camiseta.png', iconActive: BASE + 'camiseta_rosa.png' },
+  { key: 'outfits', icon: BASE + 'outfit_v2.png', iconActive: BASE + 'outfit_rosa_v2.png' },
   { key: 'prendas', icon: BASE + 'percha_negra.png', iconActive: BASE + 'percha_rosa.png' },
 ]
 
@@ -40,14 +39,14 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<string>('grid')
 
   function handleTabChange(key: string) {
-    if (key === 'favoritos') refetchSaved()
+    if (key === 'favoritos') { refetchSaved(); refetchSavedGarments() }
     setActiveTab(key)
   }
   const [favSubTab, setFavSubTab] = useState<string>('outfits')
   const { session, profile, initialized, clear } = useAuthStore()
   const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
   const { outfits: savedOutfits, loading: savedLoading, refetch: refetchSaved } = useSavedOutfits(session?.user.id)
-  const { items: wardrobeItems, loading: wardrobeLoading } = useWardrobe(session?.user.id)
+  const { garments: savedGarments, loading: savedGarmentsLoading, refetch: refetchSavedGarments } = useSavedGarments(session?.user.id)
 
   async function handleLogout() {
     Alert.alert('Cerrar sesión', '¿Estás seguro/a?', [
@@ -281,19 +280,19 @@ export default function ProfileScreen() {
               )
             )}
 
-            {/* Prendas favoritas (armario) */}
+            {/* Prendas guardadas en favoritos */}
             {favSubTab === 'prendas' && (
-              wardrobeLoading ? (
+              savedGarmentsLoading ? (
                 <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 32 }} />
-              ) : wardrobeItems.length === 0 ? (
+              ) : savedGarments.length === 0 ? (
                 <View style={styles.emptyTab}>
                   <Text style={styles.emptyTabIcon}>👗</Text>
-                  <Text style={styles.emptyTabText}>Tu armario está vacío</Text>
+                  <Text style={styles.emptyTabText}>Todavía no guardaste prendas</Text>
                 </View>
               ) : (
                 <FlatList
-                  data={wardrobeItems}
-                  keyExtractor={(item) => item.id}
+                  data={savedGarments}
+                  keyExtractor={(item) => item.garment_id}
                   numColumns={4}
                   scrollEnabled={false}
                   contentContainerStyle={styles.garmentGrid}
@@ -310,14 +309,6 @@ export default function ProfileScreen() {
                 />
               )
             )}
-          </View>
-        )}
-
-        {/* ── Armario tab ── */}
-        {activeTab === 'armario' && (
-          <View style={styles.emptyTab}>
-            <Text style={styles.emptyTabIcon}>🧥</Text>
-            <Text style={styles.emptyTabText}>Tu armario</Text>
           </View>
         )}
 
