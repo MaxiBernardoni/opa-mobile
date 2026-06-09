@@ -262,8 +262,8 @@ export default function ProfileScreen() {
                       style={styles.gridCard}
                       activeOpacity={0.85}
                       onPress={() => router.push({
-                        pathname: '/user-outfits',
-                        params: { userId: session!.user.id, startIndex: String(index) },
+                        pathname: '/saved-outfits',
+                        params: { startIndex: String(index) },
                       })}
                     >
                       <Image
