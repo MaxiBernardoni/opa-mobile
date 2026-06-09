@@ -54,6 +54,7 @@ export interface Outfit {
   occasion: string | null
   style: string | null
   likes_count: number
+  saves_count: number
   created_at: string
   creator?: Profile
   garments?: OutfitItemWithData[]

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground,
 } from 'react-native'
@@ -8,6 +8,8 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { radius } from '../../constants/radius'
 import { spacing } from '../../constants/spacing'
+import { useLike } from '../../hooks/useLike'
+import { useSave } from '../../hooks/useSave'
 
 const { width: SW, height: SH } = Dimensions.get('window')
 
@@ -17,8 +19,8 @@ interface Props {
 }
 
 export function OutfitScrollItem({ outfit, isActive }: Props) {
-  const [liked, setLiked] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const { liked, count: likeCount, toggle: toggleLike } = useLike(outfit.id, outfit.likes_count)
+  const { saved, count: saveCount, toggle: toggleSave } = useSave(outfit.id, outfit.saves_count ?? 0)
 
   const totalPrice = outfit.garments?.reduce((sum, item) => sum + (item.garment?.price ?? 0), 0) ?? 0
   const creator = outfit.creator
@@ -53,17 +55,16 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
 
         {/* Action buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => setLiked(!liked)} style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>{liked ? '♥' : '♡'}</Text>
-            <Text style={styles.actionCount}>{outfit.likes_count + (liked ? 1 : 0)}</Text>
+          <TouchableOpacity onPress={toggleLike} style={styles.actionBtn}>
+            <Text style={[styles.actionIcon, liked && styles.actionIconLiked]}>{liked ? '♥' : '♡'}</Text>
+            <Text style={styles.actionCount}>{likeCount}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSaved(!saved)} style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>{saved ? '🔖' : '🏷'}</Text>
-            <Text style={styles.actionCount}>{saved ? 1 : 0}</Text>
+          <TouchableOpacity onPress={toggleSave} style={styles.actionBtn}>
+            <Text style={styles.actionIcon}>{saved ? '★' : '☆'}</Text>
+            <Text style={styles.actionCount}>{saveCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn}>
             <Text style={styles.actionIcon}>↗</Text>
-            <Text style={styles.actionCount}>Compartir</Text>
           </TouchableOpacity>
         </View>
 
@@ -130,6 +131,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: { alignItems: 'center' },
   actionIcon: { fontSize: 28, color: colors.blanco },
+  actionIconLiked: { color: colors.rosaOpa },
   actionCount: { fontSize: 11, color: colors.blanco, marginTop: 2 },
   brandInfo: { position: 'absolute', bottom: 110, left: 16, right: 80 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
