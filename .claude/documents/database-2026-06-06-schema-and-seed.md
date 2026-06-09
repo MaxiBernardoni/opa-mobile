@@ -182,6 +182,8 @@ Reemplaza el nombre original `outfit_saves`.
 | outfit_id | uuid | FK → outfits.id, nullable |
 | created_at | timestamp | default now() |
 
+**Constraints:** UNIQUE `(user_id, outfit_id)` — un usuario no puede guardar el mismo outfit dos veces.
+
 **RLS:** habilitado — SELECT público, INSERT/DELETE solo propio (`user_id = auth.uid()`).
 
 **Trigger:** `on_outfit_save` → llama `handle_outfit_save()` → actualiza `outfits.saves_count` ±1.
@@ -195,6 +197,8 @@ Reemplaza el nombre original `outfit_saves`.
 | user_id | uuid | FK → perfiles.id, nullable |
 | outfit_id | uuid | FK → outfits.id, nullable |
 | created_at | timestamp | default now() |
+
+**Constraints:** UNIQUE `(user_id, outfit_id)` — un usuario no puede likear el mismo outfit dos veces.
 
 **RLS:** habilitado — SELECT público, INSERT/DELETE solo propio (`user_id = auth.uid()`).
 
