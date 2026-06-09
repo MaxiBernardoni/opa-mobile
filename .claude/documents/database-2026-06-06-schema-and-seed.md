@@ -23,6 +23,7 @@ _Última actualización: 2026-06-09_
 | 20260609000001 | likes_saves_follows_rls_and_triggers |
 | 20260609000002 | unique_constraints_likes_and_saves |
 | 20260609000003 | size_guide_system |
+| 20260609000004 | size_guide_calzado_extras |
 
 ---
 
@@ -356,15 +357,19 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 | Columna | Tipo | Notas |
 |---|---|---|
 | id | uuid (PK) | default gen_random_uuid() |
-| name | varchar | 'Oversize', 'Boxy', 'Relaxed', 'Baggy', 'Straight', 'Skinny' |
-| category | varchar | 'tops' \| 'bottoms' |
-| fit_type | varchar | 'oversize' \| 'boxy' \| 'relaxed' \| 'baggy' \| 'straight' \| 'skinny' |
+| name | varchar | 'Oversize', 'Boxy', 'Relaxed', 'Baggy', 'Straight', 'Skinny', 'Calzado Regular', 'Calzado Ancho', 'Cinturón', 'Bolso' |
+| category | varchar | 'tops' \| 'bottoms' \| 'calzado' \| 'extras' |
+| fit_type | varchar | 'oversize' \| 'boxy' \| 'relaxed' \| 'baggy' \| 'straight' \| 'skinny' \| 'regular' \| 'wide' \| 'belt' \| 'bag' |
 | brand_id | uuid | FK → marcas.id, nullable — NULL = guía OPA por defecto |
 | created_at | timestamp | default now() |
 
 **RLS:** SELECT público. INSERT/UPDATE solo para brand owner (`marcas.owner_id = auth.uid()`). `service_role` bypasses.
 
-**Seed data:** 6 guías OPA por defecto (`brand_id = NULL`): Oversize, Boxy, Relaxed (tops) + Baggy, Straight, Skinny (bottoms).
+**Seed data:** 10 guías OPA por defecto (`brand_id = NULL`):
+- Tops: Oversize, Boxy, Relaxed
+- Bottoms: Baggy, Straight, Skinny
+- Calzado: Calzado Regular (EU 35–42), Calzado Ancho (EU 35–42)
+- Extras: Cinturón (XS–XL por cintura), Bolso (XS–XL descriptivo)
 
 ---
 
@@ -380,11 +385,15 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 | height_min/max | numeric | nullable — altura cm |
 | thigh_min/max | numeric | nullable — muslo cm (bottoms) |
 | rise_min/max | numeric | nullable — tiro cm (bottoms) |
-| sort_order | int | 0=XS … 5=XXL |
+| foot_length_min/max | numeric | nullable — largo de pie cm (calzado) |
+| sort_order | int | 0=XS … 5=XXL (o número EU para calzado) |
 
 **RLS:** SELECT público. INSERT solo `service_role`.
 
-**Seed data:** 36 entries (6 por guía).
+**Seed data:** 57 entries total:
+- 36 entries originales (6 por guía de tops/bottoms)
+- 8 entries × 2 guías de calzado (EU 35–42)
+- 5 entries × 2 guías de extras (Cinturón y Bolso)
 
 ---
 
@@ -409,10 +418,15 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
 
 - Busca las medidas del usuario en `user_measurements`
-- Encuentra la entry donde el pecho (tops) o cintura (bottoms) del usuario cae en el rango
-- Calcula `fit_preference`: `'ajustado'` si está cerca del máximo, `'holgado'` si está cerca del mínimo, `'justo'` en el medio
+- Por categoría:
+  - `tops`: match por pecho (chest), fit_preference ajustado/holgado/justo
+  - `bottoms`: match por cintura (waist), fit_preference ajustado/holgado/justo
+  - `calzado`: match por altura como proxy de largo de pie (foot_length_min/max), siempre devuelve `'justo'`
+  - `extras`: match por cintura si tiene `waist_min` (Cinturón), sin match si no (Bolso devuelve vacío), siempre `'justo'`
 - Devuelve vacío si el usuario no tiene medidas cargadas
 - `SECURITY DEFINER` — `GRANT EXECUTE TO authenticated`
+
+> **Nota:** calzado usa `u.height` como proxy de largo de pie hasta que se agregue `foot_length` a `user_measurements`.
 
 ---
 
