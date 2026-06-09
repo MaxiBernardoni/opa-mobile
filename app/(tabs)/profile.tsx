@@ -19,7 +19,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
 
 const PROFILE_TABS = ['Grid', 'Favoritos', 'Pedidos']
-const PROFILE_ICONS = ['⊞', '♡', '📦']
+const PROFILE_ICONS = ['⊞', '★', '📦']
 
 export default function ProfileScreen() {
   const router = useRouter()
@@ -209,7 +209,7 @@ export default function ProfileScreen() {
             <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 32 }} />
           ) : savedOutfits.length === 0 ? (
             <View style={styles.emptyTab}>
-              <Text style={styles.emptyTabIcon}>♡</Text>
+              <Text style={styles.emptyTabIcon}>★</Text>
               <Text style={styles.emptyTabText}>Todavía no guardaste outfits</Text>
             </View>
           ) : (
