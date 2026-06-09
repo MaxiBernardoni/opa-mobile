@@ -10,6 +10,8 @@ import { radius } from '../../constants/radius'
 import { spacing } from '../../constants/spacing'
 import { useLike } from '../../hooks/useLike'
 import { useSave } from '../../hooks/useSave'
+import { useFollow } from '../../hooks/useFollow'
+import { useAuthStore } from '../../store/useAuthStore'
 
 const { width: SW, height: SH } = Dimensions.get('window')
 
@@ -19,8 +21,12 @@ interface Props {
 }
 
 export function OutfitScrollItem({ outfit, isActive }: Props) {
+  const { session } = useAuthStore()
   const { liked, count: likeCount, toggle: toggleLike } = useLike(outfit.id, outfit.likes_count)
   const { saved, count: saveCount, toggle: toggleSave } = useSave(outfit.id, outfit.saves_count ?? 0)
+  const creatorId = outfit.creator_id ?? ''
+  const isOwnOutfit = session?.user.id === creatorId
+  const { following, toggle: toggleFollow } = useFollow(creatorId)
 
   const totalPrice = outfit.garments?.reduce((sum, item) => sum + (item.garment?.price ?? 0), 0) ?? 0
   const creator = outfit.creator
@@ -78,10 +84,20 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
                 <Text style={styles.brandAvatarText}>{(creator?.username ?? 'O')[0].toUpperCase()}</Text>
               </View>
             )}
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.brandName}>{creatorHandle}</Text>
               <Text style={styles.outfitTitle}>{outfit.title}</Text>
             </View>
+            {!isOwnOutfit && creatorId && (
+              <TouchableOpacity
+                onPress={toggleFollow}
+                style={[styles.followBtn, following && styles.followBtnActive]}
+              >
+                <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                  {following ? 'Siguiendo' : 'Seguir'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </ImageBackground>
@@ -143,6 +159,18 @@ const styles = StyleSheet.create({
   brandAvatarText: { color: colors.blanco, fontWeight: '700', fontSize: 16 },
   brandName: { color: colors.blanco, fontWeight: '700', fontSize: 14 },
   outfitTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
+  followBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.blanco,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  followBtnActive: {
+    backgroundColor: colors.blanco,
+  },
+  followBtnText: { color: colors.blanco, fontSize: 12, fontWeight: '600' },
+  followBtnTextActive: { color: colors.negro },
   bottomBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: colors.blanco,
