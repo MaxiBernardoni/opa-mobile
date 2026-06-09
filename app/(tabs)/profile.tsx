@@ -38,10 +38,15 @@ const FAV_SUBTABS = [
 export default function ProfileScreen() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<string>('grid')
+
+  function handleTabChange(key: string) {
+    if (key === 'favoritos') refetchSaved()
+    setActiveTab(key)
+  }
   const [favSubTab, setFavSubTab] = useState<string>('outfits')
   const { session, profile, initialized, clear } = useAuthStore()
   const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
-  const { outfits: savedOutfits, loading: savedLoading } = useSavedOutfits(session?.user.id)
+  const { outfits: savedOutfits, loading: savedLoading, refetch: refetchSaved } = useSavedOutfits(session?.user.id)
   const { items: wardrobeItems, loading: wardrobeLoading } = useWardrobe(session?.user.id)
 
   async function handleLogout() {
@@ -158,7 +163,7 @@ export default function ProfileScreen() {
             return (
               <TouchableOpacity
                 key={tab.key}
-                onPress={() => setActiveTab(tab.key)}
+                onPress={() => handleTabChange(tab.key)}
                 style={styles.profileNavItem}
               >
                 <Image
