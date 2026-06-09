@@ -24,5 +24,9 @@ export function useSavedOutfits(userId?: string) {
     }
   }
 
-  return { outfits, loading }
+  function refetch() {
+    if (userId) fetchSaved(userId)
+  }
+
+  return { outfits, loading, refetch }
 }
