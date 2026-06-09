@@ -41,6 +41,7 @@ export interface Garment {
   image_url: string | null
   color: string | null
   available_sizes: string[]
+  size_guide_id: string | null
   created_at: string
   brand?: Brand
 }
@@ -130,4 +131,45 @@ export interface Review {
   rating: number
   comment: string | null
   created_at: string
+}
+
+// ─── Size guide system ────────────────────────────────────────────────────────
+
+export interface SizeGuide {
+  id: string
+  name: string
+  category: 'tops' | 'bottoms'
+  fit_type: 'oversize' | 'boxy' | 'relaxed' | 'baggy' | 'straight' | 'skinny'
+  brand_id: string | null
+  created_at: string
+}
+
+export interface SizeGuideEntry {
+  id: string
+  guide_id: string
+  size_label: string
+  chest_min: number | null
+  chest_max: number | null
+  waist_min: number | null
+  waist_max: number | null
+  hip_min: number | null
+  hip_max: number | null
+  height_min: number | null
+  height_max: number | null
+  thigh_min: number | null
+  thigh_max: number | null
+  rise_min: number | null
+  rise_max: number | null
+  sort_order: number
+}
+
+export interface UserMeasurements {
+  id: string
+  user_id: string
+  chest: number | null
+  waist: number | null
+  hip: number | null
+  height: number | null
+  thigh: number | null
+  updated_at: string
 }

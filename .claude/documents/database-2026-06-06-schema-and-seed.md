@@ -20,9 +20,7 @@ _Última actualización: 2026-06-09_
 | 20260601114335 | create_storage_bucket_assets |
 | 20260601114442 | fix_storage_anon_upload_policy |
 | 20260601114756 | perfiles_auth_rls_policies |
-| 20260609000001 | likes_saves_follows_rls_and_triggers |
-| 20260609000002 | unique_constraints_likes_and_saves |
-| 20260609000003 | size_guide_system |
+| 20260609xxxxxx | likes_saves_follows_rls_and_triggers |
 
 ---
 
@@ -109,7 +107,6 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 | style | varchar | nullable |
 | available_sizes | text[] | nullable |
 | stock_por_talle | jsonb | nullable — `{"XS": 10, "S": 10, "M": 10, ...}` |
-| size_guide_id | uuid | FK → size_guides.id, nullable |
 | created_at | timestamp | default now() |
 
 **Columnas eliminadas:** `talle` (redundante con `available_sizes` y `stock_por_talle`).
@@ -350,72 +347,6 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 
 ---
 
-## Sistema de guías de talle
-
-### `size_guides`
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid (PK) | default gen_random_uuid() |
-| name | varchar | 'Oversize', 'Boxy', 'Relaxed', 'Baggy', 'Straight', 'Skinny' |
-| category | varchar | 'tops' \| 'bottoms' |
-| fit_type | varchar | 'oversize' \| 'boxy' \| 'relaxed' \| 'baggy' \| 'straight' \| 'skinny' |
-| brand_id | uuid | FK → marcas.id, nullable — NULL = guía OPA por defecto |
-| created_at | timestamp | default now() |
-
-**RLS:** SELECT público. INSERT/UPDATE solo para brand owner (`marcas.owner_id = auth.uid()`). `service_role` bypasses.
-
-**Seed data:** 6 guías OPA por defecto (`brand_id = NULL`): Oversize, Boxy, Relaxed (tops) + Baggy, Straight, Skinny (bottoms).
-
----
-
-### `size_guide_entries`
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid (PK) | default gen_random_uuid() |
-| guide_id | uuid | FK → size_guides.id ON DELETE CASCADE |
-| size_label | varchar | 'XS' \| 'S' \| 'M' \| 'L' \| 'XL' \| 'XXL' |
-| chest_min/max | numeric | nullable — busto cm (tops) |
-| waist_min/max | numeric | nullable — cintura cm |
-| hip_min/max | numeric | nullable — cadera cm |
-| height_min/max | numeric | nullable — altura cm |
-| thigh_min/max | numeric | nullable — muslo cm (bottoms) |
-| rise_min/max | numeric | nullable — tiro cm (bottoms) |
-| sort_order | int | 0=XS … 5=XXL |
-
-**RLS:** SELECT público. INSERT solo `service_role`.
-
-**Seed data:** 36 entries (6 por guía).
-
----
-
-### `user_measurements`
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid (PK) | default gen_random_uuid() |
-| user_id | uuid | UNIQUE FK → perfiles.id ON DELETE CASCADE |
-| chest | numeric | nullable — busto cm |
-| waist | numeric | nullable — cintura cm |
-| hip | numeric | nullable — cadera cm |
-| height | numeric | nullable — altura cm |
-| thigh | numeric | nullable — muslo cm |
-| updated_at | timestamp | default now() |
-
-**RLS:** habilitado — SELECT/INSERT/UPDATE/DELETE solo propio (`user_id = auth.uid()`). Una fila por usuario (UNIQUE en `user_id`).
-
----
-
-### Función `get_recommended_size(guide_id uuid, p_user_id uuid)`
-
-Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
-
-- Busca las medidas del usuario en `user_measurements`
-- Encuentra la entry donde el pecho (tops) o cintura (bottoms) del usuario cae en el rango
-- Calcula `fit_preference`: `'ajustado'` si está cerca del máximo, `'holgado'` si está cerca del mínimo, `'justo'` en el medio
-- Devuelve vacío si el usuario no tiene medidas cargadas
-- `SECURITY DEFINER` — `GRANT EXECUTE TO authenticated`
-
----
-
 ## Pendientes
 
 - [ ] Completar perfil y outfits de `@chechuabb` (Celina Abelson)
@@ -425,6 +356,5 @@ Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
 - [ ] Agregar `position_x` / `position_y` a `outfit_items` si se implementan labels flotantes precisos
 - [ ] Restaurar `size`, `color`, `source` en `prendas_armario` cuando se implemente flujo de compra
 - [ ] Crear migration file para `prendas_guardadas` (actualmente solo existe en DB remota, sin archivo de migración)
-- [x] Edge Functions para likes/saves — reemplazadas por triggers atómicos
+- [ ] Edge Functions para lógica de likes/saves (incrementar contadores atómicamente)
 - [ ] Completar info de marcas ficticias (Forma, Revés, Capas, Sole) con datos de contacto
-- [ ] Asignar `size_guide_id` a las 25 prendas seed existentes
