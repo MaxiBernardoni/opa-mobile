@@ -217,16 +217,4 @@ xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 
 ## Pending
 
-- [ ] Settings sub-screens: edit profile, security, notifications, measurements, etc.
-- [ ] Functional search screen
-- [ ] Wardrobe screen (`wardrobe.tsx`) with real logic
-- [ ] Detail screens: `outfit/[id]` and `product/[id]`
-- [ ] Highlight wardrobe garments the user already owns in the outfit scroll
-- [ ] Like/save animations
-- [ ] Skeleton loading instead of ActivityIndicator
-- [ ] UI para guardar prendas en favoritos (botón en la prenda)
-- [ ] `SizeGuideSheet` — bottom sheet que se abre al tocar ⓘ junto a "TALLE" en la vista de producto; muestra tabla con columnas size_label + medidas relevantes (busto/cintura/cadera para tops, cintura/cadera/muslo para bottoms, largo de pie para calzado); resalta automáticamente el talle recomendado si el usuario tiene medidas cargadas
-- [ ] Resaltar talle recomendado en el selector de talle de producto — borde `rosaOpa` en el chip del talle que devuelve `get_recommended_size`
-- [ ] Pantalla de ingreso de medidas corporales — inputs numéricos (altura, busto, cintura, cadera, muslo) en cm; accesible desde Settings o desde el primer uso de la guía de talles; persiste con `useUserMeasurements().saveMeasurements()`
-- [ ] En el outfit scroll, mostrar personas con medidas similares a las del usuario — filtro o indicador visual que prioriza outfits de creadores con `user_measurements` similares, para que el usuario vea cómo le quedaría la ropa en un cuerpo parecido al suyo
-- [ ] Opciones de fit preference en la recomendación de talle — permitir al usuario elegir si prefiere que le quede ajustado, bien o suelto, y ajustar la recomendación de `get_recommended_size` en base a eso
+> All pending frontend items are tracked in `meta-2026-06-10-pending-features.md`. Do not add new pending items here.

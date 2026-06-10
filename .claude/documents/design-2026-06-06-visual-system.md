@@ -251,9 +251,4 @@ avatars/
 
 ## Pending
 
-- [ ] Skeleton loaders for loading states
-- [ ] Like/save animations (spring, bounce)
-- [ ] Micro-interactions in bottom tab bar
-- [ ] Dark mode (not planned for Demo 1)
-- [ ] Outfit detail screen with interactive labels
-- [ ] Real outfit and garment images (Midway, Batuk, Doble V)
+> All pending design items are tracked in `meta-2026-06-10-pending-features.md`. Do not add new pending items here.

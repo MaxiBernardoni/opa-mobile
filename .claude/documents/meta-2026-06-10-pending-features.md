@@ -1,0 +1,98 @@
+# Meta — Pending Features & Ideas
+
+Single source of truth for everything that is not yet implemented in OPA. Items are grouped by layer (DB, Backend, Frontend, Design) and tagged with status. Product ideas discussed but not yet scoped for implementation are listed at the end.
+
+> **Rule:** when a pending item is implemented, remove it from this document and add it to the relevant layer document. Do not leave completed items here.
+
+---
+
+## Database
+
+- [ ] Create migration file for `prendas_guardadas` — the table exists in the remote DB but was created manually via MCP; there is no `.sql` migration file for it
+- [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
+- [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
+- [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — removed in current schema for simplicity; needed when the purchase flow is implemented
+- [ ] Add `position_x numeric` and `position_y numeric` to `outfit_items` — removed in favor of `slot` categorical; needed if precise floating label positioning is implemented
+- [ ] Audit RLS policies for `productos_carrito`, `orders`, `productos_orden`, `reseñas` — tables exist but policies have not been reviewed
+- [ ] Complete `@chechuabb` (Celina Abelson) seed profile and outfits — profile row exists, no outfits seeded
+- [ ] Upload real outfit and garment images to Storage buckets — current images are placeholders; real photos from Midway, Batuk, Doble V, and fictional brands pending
+- [ ] Complete metadata for fictional brands (Forma, Revés, Capas, Sole) — `instagram_handle`, `website`, `location` are all `NULL`
+- [ ] DB schema for brand loyalty points system — new table `brand_points` (user_id, brand_id, points, updated_at) and logic to award points when a user purchases a 100%-single-brand outfit; requires purchase flow to be implemented first
+
+---
+
+## Backend
+
+- [ ] `useSizeGuide` integration in `app/product/[id].tsx` — hook exists but the product detail screen is not built yet
+- [ ] `useRecommendedSize` integration in `app/product/[id].tsx` — same as above
+- [ ] `useUserMeasurements` integration in settings screen — hook exists (`saveMeasurements`, `measurements`), no UI to call it
+- [ ] `useOutfitsBySimilarMeasurements` hook (new) — query `useOutfits` or new hook that prioritizes outfits from creators whose `user_measurements` are similar to the authenticated user's; define "similar" threshold (e.g. ±5 cm on waist and chest)
+- [ ] Fit preference option for size recommendation — let user choose ajustado/bien/suelto; pass preference to `get_recommended_size` and adjust matching logic
+- [ ] "Ya lo tenés" data logic — cross-reference `outfit_items` with `prendas_armario` for the authenticated user to determine which garments in an outfit are already owned; expose as hook or computed field in `useOutfits`
+- [ ] "Este look en tu talle" suggestion logic — for a given outfit, find equivalent garments in the user's size using `size_guide_id` + `user_measurements`; requires `available_sizes` and `size_guide_id` on `prendas` to be populated
+- [ ] Brand collections in feed — when user is on "Tus marcas" tab, filter outfit feed to show outfits composed exclusively or primarily of garments from brands the user follows; requires `follows` on brands (currently only between users)
+- [ ] Edge Functions for server-side like/save logic — currently handled by client + DB trigger; Edge Functions would add rate limiting and abuse prevention
+- [ ] Realtime subscriptions for live like/save counts
+- [ ] Full-text search on outfits and garments
+- [ ] Cursor-based pagination in `useOutfits` — currently `LIMIT 20`; needs infinite scroll support
+
+---
+
+## Frontend
+
+### Screens to build
+- [ ] `app/product/[id].tsx` — product detail screen; must include: garment images, brand info, size selector (chips), `SizeGuideSheet` accessible via ⓘ button, add to cart / buy button
+- [ ] `app/outfit/[id].tsx` — outfit detail screen with full garment list, interactive floating labels, total price, "Ver outfit" CTA
+- [ ] `app/search.tsx` — functional search screen; supports text search and tag-based filtering (`#tags` as in the existing `occasion`/`style` fields and any tag on the outfit)
+- [ ] `app/(tabs)/wardrobe.tsx` — personal wardrobe screen with real data from `prendas_armario`; add/remove garments
+- [ ] Body measurements input screen — accessible from Settings and from first use of the size guide; numeric inputs for height, chest, waist, hip, thigh in cm; persists via `useUserMeasurements().saveMeasurements()`
+- [ ] Settings sub-screens: edit profile (display name, bio, avatar, tags), security (change password, 2FA), notifications preferences, style preferences
+
+### Features on existing screens
+- [ ] "Ya lo tenés / te falta $X" in outfit bottom bar — if the user owns some garments from the outfit (via `prendas_armario`), show "Tenés N de M prendas — te falta $X para completar este look" instead of full total price
+- [ ] "Este look en tu talle" — when an outfit's garments are not available in the user's measured size, surface equivalent garments in the correct size and show a swap suggestion
+- [ ] Highlight recommended size in the size selector — `rosaOpa` border on the size chip that matches `get_recommended_size` result
+- [ ] Save garment button on garment cards — button to toggle `prendas_guardadas`; optimistic update matching the pattern used by `useSave`
+- [ ] Outfit scroll filtered by similar measurements — visual indicator or feed mode that surfaces outfits from creators with `user_measurements` similar to the logged-in user ("see how it looks on someone like you")
+- [ ] Face blurring / AI face removal when uploading outfit photos — optional setting; preserves garment and body, removes or blurs the face; lowers barrier to UGC
+
+### Components to build
+- [ ] `SizeGuideSheet` — bottom sheet that opens when tapping ⓘ next to "TALLE" on product detail; shows a table with `size_label` + relevant measurements (bust/waist/hip for tops, waist/hip/thigh for bottoms, foot length for calzado); automatically highlights the recommended size if user has measurements loaded
+- [ ] Skeleton loaders — replace `ActivityIndicator` with skeleton placeholders in `OutfitCard`, `GarmentCard`, `ProfileHeader`
+- [ ] Like / save spring animations — outline → filled transition with `damping: 10, stiffness: 200` on toggle
+- [ ] `OutfitGrid` tap → scroll to index — currently the home carousel deep-links to the outfit scroll; the profile grid tap (`user-outfits.tsx`) and favorites grid tap (`saved-outfits.tsx`) should also scroll to the correct index
+- [ ] Brand collections in feed — "Tus marcas" tab in outfit scroll header filters to outfits from followed brands; requires follow system extended to brands
+
+---
+
+## Design
+
+- [ ] Real outfit and garment images — placeholder images from Midway, Batuk, Doble V in the Storage buckets; fictional brand imagery
+- [ ] Dark mode — not planned for Demo 1; track here for future
+- [ ] Micro-interactions in bottom tab bar — subtle bounce or scale on tab press
+- [ ] Outfit detail screen design — interactive floating labels, garment grid, CTA layout
+- [ ] Product detail screen design — image gallery, size selector UX, `SizeGuideSheet` bottom sheet visual
+- [ ] Measurements input screen design — numeric input layout, body diagram reference illustration
+
+---
+
+## Product Ideas (not yet scoped)
+
+Ideas discussed that need design + technical scoping before becoming implementation tasks.
+
+| Idea | Summary | Dependencies |
+|---|---|---|
+| Brand loyalty points | Purchasing a 100%-single-brand outfit earns points toward that brand's discounts; progressive unlock mechanic (like Burger King crowns); requires one-brand pilot agreement | Purchase flow, `brand_points` DB table |
+| Face blur on photo upload | AI or blur-based face removal when uploading outfit photos; optional; preserves body proportions and garment visibility | Image processing pipeline (Edge Function or client-side ML) |
+| "Ya lo tenés / te falta $X" | Show users the price delta to complete a look based on what they already own in their wardrobe | `prendas_armario` populated, purchase flow |
+| "Este look en tu talle" | Suggest equivalent garments in the user's measured size when the outfit's garments are not available in their size | `user_measurements`, `size_guide_id` on prendas |
+| Brand collections in feed | Brands publish complete outfits using their own garments; appear in general feed as content creators; filtered in "Tus marcas" tab | Brand follow system |
+| Outfit scroll by similar measurements | Feed mode that prioritizes outfits from creators with body measurements similar to the logged-in user | `user_measurements` populated, `useOutfitsBySimilarMeasurements` hook |
+| Fit preference in size recommendation | User selects ajustado / bien / suelto preference; `get_recommended_size` adjusts match range accordingly | `user_measurements` UI, updated SQL function |
+
+---
+
+## Pending
+
+- [ ] Migrate all pre-2026-06-07 documents from Spanish to English on next substantive edit
+- [ ] Remove pending items from `frontend-2026-06-06-screens-and-components.md` and `database-2026-06-06-schema-and-seed.md` that are now tracked here — avoid duplication
