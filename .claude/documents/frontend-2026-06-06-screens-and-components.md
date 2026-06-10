@@ -217,11 +217,4 @@ xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 
 ## Pending
 
-- [ ] Settings sub-screens: edit profile, security, notifications, measurements, etc.
-- [ ] Functional search screen
-- [ ] Wardrobe screen (`wardrobe.tsx`) with real logic
-- [ ] Detail screens: `outfit/[id]` and `product/[id]`
-- [ ] Highlight wardrobe garments the user already owns in the outfit scroll
-- [ ] Like/save animations
-- [ ] Skeleton loading instead of ActivityIndicator
-- [ ] UI para guardar prendas en favoritos (botón en la prenda)
+> All pending frontend items are tracked in `meta-2026-06-10-pending-features.md`. Do not add new pending items here.

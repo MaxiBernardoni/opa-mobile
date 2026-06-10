@@ -432,13 +432,4 @@ Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
 
 ## Pendientes
 
-- [ ] Completar perfil y outfits de `@chechuabb` (Celina Abelson)
-- [ ] Subir imágenes reales de outfits y prendas al bucket `assets`
-- [x] RLS policies en `outfit_likes`, `outfits_guardados`, `follows` — completas
-- [ ] Auditar RLS policies en tablas nuevas (`productos_carrito`, `orders`, `productos_orden`, `reseñas`)
-- [ ] Agregar `position_x` / `position_y` a `outfit_items` si se implementan labels flotantes precisos
-- [ ] Restaurar `size`, `color`, `source` en `prendas_armario` cuando se implemente flujo de compra
-- [ ] Crear migration file para `prendas_guardadas` (actualmente solo existe en DB remota, sin archivo de migración)
-- [x] Edge Functions para likes/saves — reemplazadas por triggers atómicos
-- [ ] Completar info de marcas ficticias (Forma, Revés, Capas, Sole) con datos de contacto
-- [ ] Asignar `size_guide_id` a las 25 prendas seed existentes
+> All pending database items are tracked in `meta-2026-06-10-pending-features.md`. Do not add new pending items here.

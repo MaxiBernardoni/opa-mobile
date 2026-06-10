@@ -281,9 +281,4 @@ grant execute on function delete_user() to authenticated;
 
 ## Pending
 
-- [ ] Edge Functions for server-side logic (likes, saves)
-- [ ] Realtime subscriptions for live like counts
-- [ ] Search queries (full-text search on outfits/garments)
-- [ ] Cursor-based pagination in useOutfits
-- [ ] Audited RLS policies for all tables
-- [ ] UI + hook para guardar prendas (`prendas_guardadas` ya existe en DB)
+> All pending backend items are tracked in `meta-2026-06-10-pending-features.md`. Do not add new pending items here.

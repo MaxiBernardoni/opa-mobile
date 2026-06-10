@@ -235,6 +235,7 @@ Options:
 | `design-2026-06-06-visual-system.md` | Color palette, typography, cards, Storage resources, principles |
 | `meta-2026-06-06-how-to-use-documents.md` | Older meta doc — superseded by this file for style guidance |
 | `meta-2026-06-07-documentation-style-guide.md` | This file — authoritative style guide |
+| `meta-2026-06-10-pending-features.md` | Single source of truth for all unimplemented features and product ideas |
 
 ---
 
