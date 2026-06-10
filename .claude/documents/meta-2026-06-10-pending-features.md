@@ -59,7 +59,6 @@ Single source of truth for everything that is not yet implemented in OPA. Items 
 - [ ] `SizeGuideSheet` — bottom sheet that opens when tapping ⓘ next to "TALLE" on product detail; shows a table with `size_label` + relevant measurements (bust/waist/hip for tops, waist/hip/thigh for bottoms, foot length for calzado); automatically highlights the recommended size if user has measurements loaded
 - [ ] Skeleton loaders — replace `ActivityIndicator` with skeleton placeholders in `OutfitCard`, `GarmentCard`, `ProfileHeader`
 - [ ] Like / save spring animations — outline → filled transition with `damping: 10, stiffness: 200` on toggle
-- [ ] `OutfitGrid` tap → scroll to index — currently the home carousel deep-links to the outfit scroll; the profile grid tap (`user-outfits.tsx`) and favorites grid tap (`saved-outfits.tsx`) should also scroll to the correct index
 - [ ] Brand collections in feed — "Tus marcas" tab in outfit scroll header filters to outfits from followed brands; requires follow system extended to brands
 
 ---
