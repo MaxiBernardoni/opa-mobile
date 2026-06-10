@@ -15,7 +15,6 @@ Single source of truth for everything that is not yet implemented in OPA. Items 
 - [ ] Add `position_x numeric` and `position_y numeric` to `outfit_items` — removed in favor of `slot` categorical; needed if precise floating label positioning is implemented
 - [ ] Audit RLS policies for `productos_carrito`, `orders`, `productos_orden`, `reseñas` — tables exist but policies have not been reviewed
 - [ ] Complete `@chechuabb` (Celina Abelson) seed profile and outfits — profile row exists, no outfits seeded
-- [ ] Upload real outfit and garment images to Storage buckets — current images are placeholders; real photos from Midway, Batuk, Doble V, and fictional brands pending
 - [ ] Complete metadata for fictional brands (Forma, Revés, Capas, Sole) — `instagram_handle`, `website`, `location` are all `NULL`
 - [ ] DB schema for brand loyalty points system — new table `brand_points` (user_id, brand_id, points, updated_at) and logic to award points when a user purchases a 100%-single-brand outfit; requires purchase flow to be implemented first
 
@@ -67,7 +66,6 @@ Single source of truth for everything that is not yet implemented in OPA. Items 
 
 ## Design
 
-- [ ] Real outfit and garment images — placeholder images from Midway, Batuk, Doble V in the Storage buckets; fictional brand imagery
 - [ ] Dark mode — not planned for Demo 1; track here for future
 - [ ] Micro-interactions in bottom tab bar — subtle bounce or scale on tab press
 - [ ] Outfit detail screen design — interactive floating labels, garment grid, CTA layout
