@@ -23,7 +23,7 @@ const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/
 
 // Main tabs
 const MAIN_TABS = [
-  { key: 'grid', icon: BASE + 'Grid2.png', iconActive: BASE + 'Grid_rosa2.png' },
+  { key: 'grid', icon: BASE + 'GridFinal.png', iconActive: BASE + 'GridFinal_rosa.png' },
   { key: 'favoritos', icon: BASE + 'estrella_gris.png', iconActive: BASE + 'estrella_negra.png' },
   { key: 'pedidos', icon: BASE + 'caja_negra.png', iconActive: BASE + 'caja_rosa.png' },
 ]
