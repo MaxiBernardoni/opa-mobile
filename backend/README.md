@@ -2,6 +2,18 @@
 
 This directory contains all backend infrastructure for OPA. It will be extracted into its own repository (`opa-backend`) once the mobile app is stable.
 
+## Repository Architecture
+
+OPA is split into three repositories:
+
+| Repo | Stack | Audience |
+|---|---|---|
+| `opa-mobile` | React Native + Expo | End users and brands on mobile |
+| `opa-backend` | Supabase + Edge Functions + API | Shared infrastructure for all clients |
+| `opa-web` | Next.js (planned) | Brands on desktop — management panel, analytics, automation |
+
+`opa-backend` is the shared core: both `opa-mobile` and `opa-web` consume the same Supabase DB and API layer. The `api/` folder is reserved for the Node.js API that `opa-web` will require for server-side operations beyond what Supabase exposes directly.
+
 ## Structure
 
 ```
