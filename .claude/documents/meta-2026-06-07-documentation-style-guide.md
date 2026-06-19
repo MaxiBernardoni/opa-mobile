@@ -71,6 +71,7 @@ The date reflects when the document was **created**, not last edited. Do not ren
 | `frontend` | Screens, components, routes, animations, technical config |
 | `design` | Visual system: colors, typography, spacing, UI components, principles |
 | `meta` | Documentation about the documentation system itself |
+| `product` | Cross-cutting product decisions: feature specs, business model, user roles, flows that span multiple layers |
 
 If a new category is needed, it must be a single lowercase word. Prefer English.
 
@@ -236,6 +237,7 @@ Options:
 | `meta-2026-06-06-how-to-use-documents.md` | Older meta doc — superseded by this file for style guidance |
 | `meta-2026-06-07-documentation-style-guide.md` | This file — authoritative style guide |
 | `meta-2026-06-10-pending-features.md` | Single source of truth for all unimplemented features and product ideas |
+| `product-2026-06-10-brand-system.md` | Brand model: onboarding, profile, panel, sales model, stock, verification, monetization |
 
 ---
 
