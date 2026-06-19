@@ -26,7 +26,6 @@ OPA will live in three separate repositories:
 
 ## Database
 
-- [ ] Create migration file for `prendas_guardadas` — the table exists in the remote DB but was created manually via MCP; there is no `.sql` migration file for it
 - [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
 - [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
 - [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — removed in current schema for simplicity; needed when the purchase flow is implemented
