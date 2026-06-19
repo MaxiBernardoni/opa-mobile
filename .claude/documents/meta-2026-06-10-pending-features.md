@@ -6,9 +6,26 @@ Single source of truth for everything that is not yet implemented in OPA. Items 
 
 ---
 
+## Repository Structure
+
+OPA will live in three separate repositories:
+
+| Repo | Stack | Status |
+|---|---|---|
+| `opa-mobile` | React Native + Expo | Active — current repo |
+| `opa-backend` | Supabase + Edge Functions + Node.js API | Structured in `backend/` folder, to be extracted |
+| `opa-web` | Next.js (planned) | Not started — brand management panel for desktop |
+
+`opa-backend` is the shared infrastructure for both mobile and web clients.
+
+- [ ] Extract `backend/` folder to standalone `opa-backend` repo when mobile is stable
+- [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation)
+- [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
+
+---
+
 ## Database
 
-- [ ] Create migration file for `prendas_guardadas` — the table exists in the remote DB but was created manually via MCP; there is no `.sql` migration file for it
 - [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
 - [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
 - [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — removed in current schema for simplicity; needed when the purchase flow is implemented

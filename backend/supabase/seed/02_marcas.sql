@@ -1,0 +1,32 @@
+-- Seed: marcas
+INSERT INTO marcas (id, name, description, logo_url, owner_id, instagram_handle, website, location, tags)
+VALUES
+  ('11111111-0000-0000-0000-000000000002', 'Doble V', 'Diseño independiente',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/doblev_avatar.png',
+   null, 'doblev.oficial', 'https://ladoblev.mitiendanube.com/', 'Bogotá 3156',
+   ARRAY['indie','minimalista']),
+  ('11111111-0000-0000-0000-000000000001', 'Midway', 'Moda urbana argentina',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/midway_avatar.png',
+   null, 'midway.ar', 'https://www.midway.com.ar/', 'Argerich 448',
+   ARRAY['urbano','streetwear']),
+  ('11111111-0000-0000-0000-000000000003', 'Batuk', 'Moda alternativa',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/batuk_avatar.jfif',
+   null, 'batukba', 'https://www.batuk.com.ar/', 'Av Santa Fe 2074 / Av. Cabildo 1939 / Av. Avellaneda 2980',
+   ARRAY['alternativo','rock']),
+  ('20df8513-4d03-4e6f-99fd-64870e54aa98', 'Forma', 'Ropa con estructura y paleta neutra para el día a día.',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/forma_avatar.png',
+   null, null, 'https://forma.com.ar', 'Buenos Aires, Argentina',
+   ARRAY['minimal','estructurado','neutro']),
+  ('220cc733-dd7c-4f4f-912d-72d465e1196e', 'Revés', 'Prendas oversized y washed con actitud street.',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/reves_avatar.png',
+   null, null, 'https://revesstore.com.ar', 'Buenos Aires, Argentina',
+   ARRAY['street','oversized','vintage']),
+  ('56ed0b64-64cd-4192-ba2a-8bcafa5801a5', 'Capas', 'Layering y outerwear con texturas cuidadas.',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/capas_avatar.png',
+   null, null, 'https://capas.com.ar', 'Buenos Aires, Argentina',
+   ARRAY['layering','outerwear','texturas']),
+  ('8acb63ba-1115-460d-b7a7-e6a0b36be4d2', 'Sole', 'Calzado como punto de partida, ropa como extensión.',
+   'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/sole_avatar.png',
+   null, null, 'https://sole.com.ar', 'Buenos Aires, Argentina',
+   ARRAY['calzado','street','minimal'])
+ON CONFLICT (id) DO NOTHING;
