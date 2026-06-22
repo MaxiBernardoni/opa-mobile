@@ -238,6 +238,7 @@ Options:
 | `meta-2026-06-07-documentation-style-guide.md` | This file — authoritative style guide |
 | `meta-2026-06-10-pending-features.md` | Single source of truth for all unimplemented features and product ideas |
 | `product-2026-06-10-brand-system.md` | Brand model: onboarding, profile, panel, sales model, stock, verification, monetization |
+| `backend-2026-06-15-api-layer.md` | Hono API on Supabase Edge Functions: stack, endpoints, auth middleware, pending routes |
 
 ---
 

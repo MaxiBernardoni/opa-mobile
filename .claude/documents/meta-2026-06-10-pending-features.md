@@ -52,6 +52,15 @@ OPA will live in three separate repositories:
 - [ ] Full-text search on outfits and garments
 - [ ] Cursor-based pagination in `useOutfits` — currently `LIMIT 20`; needs infinite scroll support
 
+### API (Hono — `backend/functions/api/`)
+- [ ] Deploy to Supabase Edge Functions — `supabase functions deploy api` from `backend/`
+- [ ] `GET /api/brands/me/metrics` — aggregate likes, saves, profile visits, product clicks, conversion rate
+- [ ] `POST /api/orders` — full checkout: stock validation, total calculation, `stock_por_talle` decrement, create order + `productos_orden`
+- [ ] `PATCH /api/orders/:id/status` — brand owner only; validate ownership before allowing status update
+- [ ] Brand garment management routes: `GET/POST /api/brands/me/prendas`, `PATCH /api/brands/me/prendas/:id`
+- [ ] Rate limiting middleware on order creation and auth endpoints
+- [ ] Update CORS origin with confirmed opa-web production domain
+
 ---
 
 ## Frontend
