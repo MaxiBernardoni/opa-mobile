@@ -28,13 +28,6 @@ OPA lives across four repositories:
 
 ## Database
 
-### Bloqueantes para extracción de opa-backend (prioridad alta)
-- [ ] Migration: `ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false` — required by opa-admin auth gate
-- [ ] Migration: `ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS status text DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'banned'))` — required by opa-admin user management
-- [ ] Migration: `ALTER TABLE prendas ADD COLUMN IF NOT EXISTS sale_mode text DEFAULT 'direct' CHECK (sale_mode IN ('direct', 'redirect'))` — required by hybrid sales model
-- [ ] Migration: `ALTER TABLE prendas ADD COLUMN IF NOT EXISTS external_url text` — redirect URL for external-sale garments
-- [ ] Create `brand_applications` table — fields: `id`, `owner_id` (FK auth.users), `brand_name`, `instagram_handle`, `submitted_at`, `status` (pending/approved/rejected), `rejection_reason text`, `reviewed_by` (FK auth.users, nullable); add RLS
-
 ### General
 - [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
 - [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
