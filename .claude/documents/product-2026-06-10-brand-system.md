@@ -10,17 +10,30 @@ A brand is a fashion label (real or emerging) that publishes garments and outfit
 
 **Key principle:** brands are content creators first. They publish outfits (looks built from their own garments) that appear in the general feed. The catalog and purchase flow come second.
 
-A brand is NOT a separate account type — it is a regular user (`perfiles`) who has been approved as a brand owner and linked to a `marcas` row via `marcas.owner_id`.
+A brand IS a separate Supabase Auth account — it has its own email and password, independent from any personal user account. It is identified by `perfiles.is_brand = true`. Multiple employees can access the brand account by sharing its credentials, the same way a business Instagram account works.
+
+A brand account cannot like, save, or follow — it only has access to brand management features (garment upload, outfit publishing, metrics, order management).
+
+The `marcas` table links to the brand's own `perfiles` row via `profile_id` (renamed from `owner_id`).
 
 ---
 
 ## Brand Onboarding
 
-1. A person registers a normal OPA account
-2. They submit a brand application (form with brand name, category, IG handle, etc.)
-3. OPA reviews and approves or rejects the application
-4. On approval: OPA creates the `marcas` row and sets `marcas.owner_id = user.id`
-5. The user's `perfiles.is_brand` is set to `true`
+The application is submitted from a personal user account. On approval, a separate brand account is created with the credentials the brand provided in the form.
+
+### Step-by-step flow
+
+1. A person logs into their personal OPA account
+2. From **Settings → Registrar Marca**, they fill out a registration form that includes:
+   - Brand name, category, Instagram handle
+   - Email and password for the future brand account (chosen by the brand, not assigned by OPA)
+3. Submitting the form creates a row in `brand_applications` with `status = 'pending'` — **no Supabase Auth account is created yet**
+4. OPA reviews the application from the `opa-admin` panel
+5. On **approval**: OPA calls `supabase.auth.admin.createUser()` with the email/password from the application, creates the `perfiles` row with `is_brand = true`, creates the `marcas` row, and sets `marcas.profile_id` to the new profile's id
+6. On **rejection**: `brand_applications.status` is set to `rejected` with an optional `rejection_reason`; the applicant is notified
+
+The brand then logs into OPA using the email and password they chose in the form. From that point, the brand account is completely independent from the personal account that submitted the application.
 
 **The brand application flow (screen + backend) is not yet implemented.**
 
@@ -143,12 +156,12 @@ Exact commission percentage and subscription tiers are not yet defined.
 Current DB supports brands partially. Gaps to fill:
 
 - `marcas.verified` — field exists ✅
-- `marcas.owner_id` — field exists ✅
 - `perfiles.is_brand` — field exists ✅
 - `stock_por_talle jsonb` on `prendas` — field exists ✅
-- `size_guides.brand_id` — field exists, RLS allows brand owner to insert ✅
-- Brand application table — does not exist ❌
-- Sale mode per garment (`sale_mode varchar`, `external_url text` on `prendas`) — does not exist ❌
+- `size_guides.brand_id` — field exists, RLS allows brand profile to insert ✅
+- `brand_applications` table — exists ✅ (fields: `applicant_id`, `brand_name`, `instagram_handle`, `category`, `status`, `rejection_reason`, `reviewed_by`, `reviewed_at`)
+- `sale_mode text` and `external_url text` on `prendas` — exist ✅
+- `marcas.owner_id` → must be renamed to `profile_id` ❌ (migration pending)
 - Brand subscription / plan table — does not exist ❌
 - Brand metrics aggregation — does not exist ❌
 - `brand_points` for loyalty system — does not exist ❌ (see pending-features.md)
@@ -157,15 +170,30 @@ Current DB supports brands partially. Gaps to fill:
 
 ## Pending
 
-- [ ] Brand application screen and flow — form + OPA approval step; creates `marcas` row and sets `is_brand = true`
+### DB
+- [ ] Rename `marcas.owner_id` to `marcas.profile_id` — migration + update all RLS policies and API routes that reference `owner_id`
+- [ ] Update RLS on `marcas` and `prendas` to use `profile_id` instead of `owner_id`
+- [ ] Brand subscription / plan table — fields: `brand_id`, `plan_type`, `billing_cycle`, `status`, `started_at`
+
+### Backend / API
+- [ ] Brand application submission endpoint — `POST /api/brand-applications`; saves form data (brand name, IG handle, category, email, password hash or encrypted credential) to `brand_applications`; does NOT create Supabase Auth user yet
+- [ ] Brand account creation on approval — called from `opa-admin` approve action; uses `supabase.auth.admin.createUser()` with stored credentials; creates `perfiles` row with `is_brand = true`; creates `marcas` row with `profile_id` = new profile id
+- [ ] Gate brand management API routes by `perfiles.is_brand = true` in addition to auth check
+
+### Frontend (opa-mobile)
+- [ ] Settings → "Registrar Marca" button — visible only on personal accounts (`is_brand = false`)
+- [ ] Brand registration form — fields: brand name, category, IG handle, email, password (for the future brand account); submits to `POST /api/brand-applications`
+- [ ] Multi-account switcher — UI to alternate between logged-in accounts (personal + brand), similar to Instagram/TikTok account switching
 - [ ] Brand profile screen — layout distinct from user profile: banner, contextual "ya lo tenés" strip, stats row, catalog tab
 - [ ] Catalog tab on brand profile — grid of `prendas` filtered by `brand_id`; tapping goes to `product/[id]`
-- [ ] "Ya lo tenés" banner logic — cross `prendas_armario` with `outfit_items` / `prendas.brand_id` for the viewed brand
+- [ ] "Ya lo tenés" banner logic — cross `prendas_armario` with `prendas.brand_id` for the viewed brand
 - [ ] Brand management panel screens — garment upload/edit, outfit publishing, metrics dashboard, order management
-- [ ] Add `sale_mode varchar` and `external_url text` to `prendas` — needed for hybrid sales model
-- [ ] Brand application DB table — fields: applicant user_id, brand name, IG handle, category, status (pending/approved/rejected), reviewed_at
-- [ ] Brand subscription / plan table — fields: brand_id, plan_type, billing_cycle, status, started_at
 - [ ] Size selector shows unavailable sizes greyed out based on `stock_por_talle`
-- [ ] Two-level verification flow — OPA admin sets `marcas.verified = true` after additional review
-- [ ] Brand follow system — decide if `follows` table is reused (following_id = owner_id) or a new `brand_follows` table is created
+
+### opa-admin
+- [ ] Brand application review screen — shows pending applications with all submitted fields including email; approve creates the account, reject sends reason
+
+### Product / Business
+- [ ] Two-level verification flow — OPA admin sets `marcas.verified = true` after additional review (CUIT, social media, track record)
+- [ ] Brand follow system — decide if `follows` table is reused (`following_id = profile_id`) or a new `brand_follows` table is created
 - [ ] Monetization: define commission % and subscription plan tiers

@@ -28,6 +28,14 @@ OPA lives across four repositories:
 
 ## Database
 
+### Bloqueantes para extracción de opa-backend (prioridad alta)
+- [x] Migration: `ALTER TABLE perfiles ADD COLUMN is_admin boolean DEFAULT false` — ✅ aplicado
+- [x] Migration: `ALTER TABLE perfiles ADD COLUMN status varchar DEFAULT 'active'` — ✅ aplicado
+- [x] Migration: `ALTER TABLE prendas ADD COLUMN sale_mode text DEFAULT 'direct'` — ✅ aplicado
+- [x] Migration: `ALTER TABLE prendas ADD COLUMN external_url text` — ✅ aplicado
+- [x] Create `brand_applications` table — ✅ aplicado
+- [ ] Migration: renombrar `marcas.owner_id` a `marcas.profile_id` — decisión de modelo: marca es cuenta independiente, no extensión de usuario; actualizar RLS y todas las referencias en la API
+
 ### General
 - [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
 - [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
