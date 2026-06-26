@@ -80,15 +80,18 @@ Downstream handlers access the authenticated user via `c.get('user')`.
 |---|---|---|---|
 | GET | `/api/brands/me` | ✅ | Returns the brand owned by the authenticated user (`marcas.owner_id = auth.uid()`) |
 | PATCH | `/api/brands/me` | ✅ | Updates brand info; whitelisted fields: `name`, `description`, `instagram_handle`, `website`, `location`, `tags` |
-| GET | `/api/brands/me/metrics` | 🔲 501 | Placeholder — brand analytics (likes, saves, visits, clicks, conversions) |
+| GET | `/api/brands/me/metrics` | ✅ | Aggregates likes + saves across outfits containing brand garments. Returns `note` explaining that visit/click tracking is not yet in DB. |
+| GET | `/api/brands/me/prendas` | ✅ | Lists all garments for the authenticated brand, ordered by `created_at DESC` |
+| POST | `/api/brands/me/prendas` | ✅ | Creates a garment for the brand; validates `external_url` required when `sale_mode = 'redirect'` |
+| PATCH | `/api/brands/me/prendas/:id` | ✅ | Updates a garment; verifies ownership via `brand_id`; same `sale_mode` / `external_url` validation |
 
 ### Orders / Purchase Flow (requires auth)
 
 | Method | Path | Status | Description |
 |---|---|---|---|
 | GET | `/api/orders` | ✅ | Returns all orders for the authenticated user, including `productos_orden` items |
-| POST | `/api/orders` | 🔲 501 | Placeholder — full checkout: validate stock, calculate total, decrement `stock_por_talle`, create order |
-| PATCH | `/api/orders/:id/status` | 🔲 501 | Placeholder — brand owner updates order status (pending → shipped → delivered) |
+| POST | `/api/orders` | ✅ | Full checkout: reads cart, validates `stock_por_talle`, calculates total, creates `orders` + `productos_orden`, decrements stock, clears cart |
+| PATCH | `/api/orders/:id/status` | ✅ | Brand owner only — verifies ownership via garments in the order; valid values: `pending`, `shipped`, `delivered` |
 
 ---
 
@@ -108,9 +111,6 @@ These are still handled by direct Supabase calls from opa-mobile:
 ## Pending
 
 - [ ] Deploy to Supabase Edge Functions — run `supabase functions deploy api` from `backend/`
-- [ ] `GET /api/brands/me/metrics` — aggregate likes, saves, profile visits, product clicks, conversion rate per brand
-- [ ] `POST /api/orders` — full checkout: stock validation, total calculation, `stock_por_talle` decrement, order + `productos_orden` creation
-- [ ] `PATCH /api/orders/:id/status` — brand owner only; validate that `marcas.owner_id = auth.uid()` for the order's garments
-- [ ] Rate limiting middleware — prevent abuse on order creation and auth-adjacent endpoints
-- [ ] Add brand garment management routes: `GET/POST /api/brands/me/prendas`, `PATCH /api/brands/me/prendas/:id`
-- [ ] Add CORS origin for confirmed opa-web production domain (currently placeholder)
+- [ ] Add CORS origin for confirmed opa-web production domain (currently `https://opa-web.vercel.app` placeholder)
+- [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; open question for Database chat
+- [ ] Move rate limiter Map to Deno KV for persistence across Edge Function instances (current in-memory Map resets on cold start)

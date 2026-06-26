@@ -8,6 +8,23 @@ import { orderRoutes } from './routes/orders.ts'
 
 const app = new Hono().basePath('/api')
 
+// In-memory rate limiter — key: userId+path, window: 60s, max: 20 requests
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+app.use('/orders/POST', async (c, next) => {
+  const user = c.get('user')
+  if (!user) return next()
+  const key = `${user.id}:POST:/orders`
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= 20) return c.json({ error: 'Rate limit exceeded. Try again in a minute.' }, 429)
+    entry.count++
+  } else {
+    rateLimitMap.set(key, { count: 1, resetAt: now + 60_000 })
+  }
+  return next()
+})
+
 // Global middleware
 app.use('*', logger())
 app.use('*', cors({
