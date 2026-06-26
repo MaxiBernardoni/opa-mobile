@@ -6,9 +6,37 @@ Single source of truth for everything that is not yet implemented in OPA. Items 
 
 ---
 
+## Repository Structure
+
+OPA lives across four repositories:
+
+| Repo | Stack | Status |
+|---|---|---|
+| `opa-mobile` | React Native + Expo | Active — current repo |
+| `opa-backend` | Supabase + Edge Functions + Hono API | Structured in `backend/` folder, to be extracted |
+| `opa-web` | Next.js (planned) | Not started — brand management panel for desktop |
+| `opa-admin` | Next.js 14 + shadcn/ui (planned) | Not started — internal OPA team panel |
+
+`opa-backend` is the shared infrastructure for both mobile and web clients. Extraction is **blocked** until: all pending DB migrations are applied, all API endpoints are implemented (no 501s), and the API is deployed to Supabase Edge Functions.
+
+- [ ] Extract `backend/` folder to standalone `opa-backend` repo — blocked by API completion and deploy
+- [ ] Initialize `opa-admin` repo (`maxibernardoni/opa-admin`) with Next.js 14 + shadcn/ui + Tailwind + Supabase client
+- [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation)
+- [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
+
+---
+
 ## Database
 
-- [ ] Create migration file for `prendas_guardadas` — the table exists in the remote DB but was created manually via MCP; there is no `.sql` migration file for it
+### Bloqueantes para extracción de opa-backend (prioridad alta)
+- [x] Migration: `ALTER TABLE perfiles ADD COLUMN is_admin boolean DEFAULT false` — ✅ aplicado
+- [x] Migration: `ALTER TABLE perfiles ADD COLUMN status varchar DEFAULT 'active'` — ✅ aplicado
+- [x] Migration: `ALTER TABLE prendas ADD COLUMN sale_mode text DEFAULT 'direct'` — ✅ aplicado
+- [x] Migration: `ALTER TABLE prendas ADD COLUMN external_url text` — ✅ aplicado
+- [x] Create `brand_applications` table — ✅ aplicado
+- [ ] Migration: renombrar `marcas.owner_id` a `marcas.profile_id` — decisión de modelo: marca es cuenta independiente, no extensión de usuario; actualizar RLS y todas las referencias en la API
+
+### General
 - [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
 - [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
 - [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — removed in current schema for simplicity; needed when the purchase flow is implemented
@@ -34,6 +62,15 @@ Single source of truth for everything that is not yet implemented in OPA. Items 
 - [ ] Realtime subscriptions for live like/save counts
 - [ ] Full-text search on outfits and garments
 - [ ] Cursor-based pagination in `useOutfits` — currently `LIMIT 20`; needs infinite scroll support
+
+### API (Hono — `backend/functions/api/`)
+- [ ] Deploy to Supabase Edge Functions — `supabase functions deploy api` from `backend/` — **required before repo extraction**
+- [ ] `GET /api/brands/me/metrics` — aggregate likes, saves, profile visits, product clicks, conversion rate per brand
+- [ ] `POST /api/orders` — full checkout: stock validation, total calculation, `stock_por_talle` decrement, create order + `productos_orden`; decide whether to auto-clear `productos_carrito` on success
+- [ ] `PATCH /api/orders/:id/status` — brand owner only; validate `marcas.owner_id = auth.uid()` before allowing status update
+- [ ] Brand garment management routes: `GET/POST /api/brands/me/prendas`, `PATCH /api/brands/me/prendas/:id` — blocked by `sale_mode`/`external_url` DB migration
+- [ ] Rate limiting middleware — decide between in-memory (Deno, simpler) or Supabase table (persistent across instances)
+- [ ] Update CORS origin with confirmed opa-web production domain (currently placeholder `https://opa-web.vercel.app`)
 
 ---
 
@@ -86,6 +123,22 @@ Ideas discussed that need design + technical scoping before becoming implementat
 | Brand collections in feed | Brands publish complete outfits using their own garments; appear in general feed as content creators; filtered in "Tus marcas" tab | Brand follow system |
 | Outfit scroll by similar measurements | Feed mode that prioritizes outfits from creators with body measurements similar to the logged-in user | `user_measurements` populated, `useOutfitsBySimilarMeasurements` hook |
 | Fit preference in size recommendation | User selects ajustado / bien / suelto preference; `get_recommended_size` adjusts match range accordingly | `user_measurements` UI, updated SQL function |
+
+---
+
+## opa-admin
+
+All items below are for the `maxibernardoni/opa-admin` repo (separate session). See `product-2026-06-15-admin-panel.md` for full screen specs.
+
+- [ ] Initialize repo with Next.js 14 (App Router) + TypeScript + shadcn/ui + Tailwind
+- [ ] Configure Supabase client — anon key for auth, service_role for DB operations (server-side only)
+- [ ] Implement Next.js middleware auth gate — check `perfiles.is_admin = true` before allowing access to any route except `/login`
+- [ ] Dashboard screen — aggregate queries for global KPIs (users, outfits, prendas, orders, revenue, top content)
+- [ ] Brand Management: solicitudes pendientes screen + approve/reject flow (requires `brand_applications` table)
+- [ ] Brand Management: lista de marcas + detalle/edición + toggle verified
+- [ ] User Management: lista de usuarios + perfil + acciones (suspend/ban/delete — requires `perfiles.status` column)
+- [ ] Content Moderation: delete outfits, prendas, reseñas (no pre-approval)
+- [ ] Statistics: general, per-brand, sales, content trends
 
 ---
 

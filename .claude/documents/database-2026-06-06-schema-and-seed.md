@@ -24,6 +24,9 @@ _Última actualización: 2026-06-09_
 | 20260609000002 | unique_constraints_likes_and_saves |
 | 20260609000003 | size_guide_system |
 | 20260609000004 | size_guide_calzado_extras |
+| 20260626000001 | admin_and_status_columns_on_perfiles |
+| 20260626000002 | sale_mode_and_external_url_on_prendas |
+| 20260626000003 | create_brand_applications |
 
 ---
 
@@ -45,6 +48,8 @@ Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 | following_count | int | default 0 |
 | outfits_count | int | default 0 |
 | is_brand | bool | default false |
+| is_admin | bool | default false — gate para opa-admin |
+| status | text | default 'active' — CHECK: 'active' \| 'suspended' \| 'banned' |
 | created_at | timestamp | default now() |
 
 **Trigger:** `handle_new_user()` — al insertar en `auth.users`, extrae `username` y `display_name` de `raw_user_meta_data` y crea el perfil automáticamente.
@@ -111,6 +116,8 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 | available_sizes | text[] | nullable |
 | stock_por_talle | jsonb | nullable — `{"XS": 10, "S": 10, "M": 10, ...}` |
 | size_guide_id | uuid | FK → size_guides.id, nullable |
+| sale_mode | text | default 'direct' — CHECK: 'direct' \| 'redirect' |
+| external_url | text | nullable — URL externa si sale_mode = 'redirect' |
 | created_at | timestamp | default now() |
 
 **Columnas eliminadas:** `talle` (redundante con `available_sizes` y `stock_por_talle`).
@@ -240,7 +247,7 @@ Prendas guardadas en favoritos para comprar más tarde.
 
 **RLS:** habilitado — SELECT/INSERT/DELETE solo propio (`user_id = auth.uid()`).
 
-**Creada:** manualmente vía MCP Supabase (no tiene migration file aún).
+**Creada:** manualmente vía MCP Supabase. Migration file: `backend/supabase/migrations/20260609160000_create_prendas_guardadas.sql` (documentación — no re-ejecutar en producción).
 
 ---
 
@@ -318,6 +325,29 @@ Armario personal del usuario.
 | created_at | timestamp | default now() |
 
 **RLS:** habilitado.
+
+---
+
+### `brand_applications`
+Solicitudes de usuarios para convertirse en dueños de marca en OPA. Revisadas y aprobadas/rechazadas por admins.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| applicant_id | uuid | FK → perfiles.id ON DELETE CASCADE |
+| brand_name | varchar | |
+| instagram_handle | varchar | nullable |
+| category | varchar | nullable |
+| status | text | default 'pending' — CHECK: 'pending' \| 'approved' \| 'rejected' |
+| rejection_reason | text | nullable |
+| reviewed_by | uuid | FK → perfiles.id ON DELETE SET NULL, nullable |
+| reviewed_at | timestamptz | nullable |
+| created_at | timestamptz | default now() |
+
+**RLS:** habilitado.
+- SELECT: solicitante ve su propia fila; admins (`is_admin = true`) ven todas.
+- INSERT: solicitante crea su propia fila.
+- UPDATE: solo admins (para aprobar/rechazar).
 
 ---
 
