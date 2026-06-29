@@ -65,12 +65,13 @@ OPA lives across four repositories:
 
 ### API (Hono — `backend/functions/api/`)
 - [ ] Deploy to Supabase Edge Functions — `supabase functions deploy api` from `backend/` — **required before repo extraction**
-- [ ] `GET /api/brands/me/metrics` — aggregate likes, saves, profile visits, product clicks, conversion rate per brand
-- [ ] `POST /api/orders` — full checkout: stock validation, total calculation, `stock_por_talle` decrement, create order + `productos_orden`; decide whether to auto-clear `productos_carrito` on success
-- [ ] `PATCH /api/orders/:id/status` — brand owner only; validate `marcas.owner_id = auth.uid()` before allowing status update
-- [ ] Brand garment management routes: `GET/POST /api/brands/me/prendas`, `PATCH /api/brands/me/prendas/:id` — blocked by `sale_mode`/`external_url` DB migration
-- [ ] Rate limiting middleware — decide between in-memory (Deno, simpler) or Supabase table (persistent across instances)
+- [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; currently returns likes + saves only (with note)
+- [x] `POST /api/orders` — ✅ implemented: stock validation, total calculation, `stock_por_talle` decrement, order + `productos_orden` creation, cart cleared
+- [x] `PATCH /api/orders/:id/status` — ✅ implemented: verifies brand ownership via garments in the order; valid values: pending/shipped/delivered
+- [x] Brand garment management routes — ✅ implemented: `GET/POST /api/brands/me/prendas`, `PATCH /api/brands/me/prendas/:id`
+- [x] Rate limiting middleware — ✅ implemented: in-memory Map on `POST /orders`, window 60s, max 20 req; note: resets on cold start (Deno KV upgrade tracked separately)
 - [ ] Update CORS origin with confirmed opa-web production domain (currently placeholder `https://opa-web.vercel.app`)
+- [ ] Move rate limiter to Deno KV for persistence across Edge Function instances
 
 ---
 
