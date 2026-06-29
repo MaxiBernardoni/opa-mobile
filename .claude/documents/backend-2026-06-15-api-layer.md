@@ -78,7 +78,7 @@ Downstream handlers access the authenticated user via `c.get('user')`.
 
 | Method | Path | Status | Description |
 |---|---|---|---|
-| GET | `/api/brands/me` | ✅ | Returns the brand owned by the authenticated user (`marcas.owner_id = auth.uid()`) |
+| GET | `/api/brands/me` | ✅ | Returns the brand owned by the authenticated user (`marcas.profile_id = auth.uid()`) |
 | PATCH | `/api/brands/me` | ✅ | Updates brand info; whitelisted fields: `name`, `description`, `instagram_handle`, `website`, `location`, `tags` |
 | GET | `/api/brands/me/metrics` | ✅ | Aggregates likes + saves across outfits containing brand garments. Returns `note` explaining that visit/click tracking is not yet in DB. |
 | GET | `/api/brands/me/prendas` | ✅ | Lists all garments for the authenticated brand, ordered by `created_at DESC` |
@@ -108,9 +108,16 @@ These are still handled by direct Supabase calls from opa-mobile:
 
 ---
 
+## Deploy
+
+**Deployed** to Supabase Edge Functions with `verify_jwt: false` (JWT validation handled internally by `middleware/auth.ts`).
+
+**Production URL:** `https://vecnktrbjolahcalkbml.supabase.co/functions/v1/api`
+
+Health check: `GET https://vecnktrbjolahcalkbml.supabase.co/functions/v1/api/health` → `{ status: 'ok', service: 'opa-api', timestamp }`
+
 ## Pending
 
-- [ ] Deploy to Supabase Edge Functions — run `supabase functions deploy api` from `backend/`
 - [ ] Add CORS origin for confirmed opa-web production domain (currently `https://opa-web.vercel.app` placeholder)
 - [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; open question for Database chat
 - [ ] Move rate limiter Map to Deno KV for persistence across Edge Function instances (current in-memory Map resets on cold start)

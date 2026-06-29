@@ -348,7 +348,7 @@ Read `.claude/documents/product-2026-06-15-admin-panel.md` in the `opa-mobile` r
 Read `.claude/documents/database-2026-06-06-schema-and-seed.md` in `opa-mobile` for the full schema. Key tables:
 
 - `perfiles` — user profiles (`is_admin`, `status` columns needed)
-- `marcas` — brands (`owner_id` FK to auth.users, `verified` boolean)
+- `marcas` — brands (`profile_id` FK to perfiles, `verified` boolean)
 - `prendas` — garments
 - `outfits` — outfit posts
 - `outfit_likes`, `outfits_guardados` — engagement

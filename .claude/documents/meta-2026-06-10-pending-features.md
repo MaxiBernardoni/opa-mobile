@@ -34,7 +34,7 @@ OPA lives across four repositories:
 - [x] Migration: `ALTER TABLE prendas ADD COLUMN sale_mode text DEFAULT 'direct'` — ✅ aplicado
 - [x] Migration: `ALTER TABLE prendas ADD COLUMN external_url text` — ✅ aplicado
 - [x] Create `brand_applications` table — ✅ aplicado
-- [ ] Migration: renombrar `marcas.owner_id` a `marcas.profile_id` — decisión de modelo: marca es cuenta independiente, no extensión de usuario; actualizar RLS y todas las referencias en la API
+- [x] Migration: renombrar `marcas.owner_id` a `marcas.profile_id` — ✅ aplicado (`20260629000001_rename_marcas_owner_id_to_profile_id.sql`); RLS y referencias en API actualizadas
 
 ### General
 - [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`

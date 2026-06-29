@@ -84,7 +84,7 @@ Brands do not follow other accounts — no "Seguidos" stat.
 
 ### Follow Button
 - Full-width pink button, same pattern as following a user
-- Writes to `follows` table with `following_id = marca.owner_id` (current implementation) or a future `brand_follows` table
+- Writes to `follows` table with `following_id = marca.profile_id` (current implementation) or a future `brand_follows` table
 
 ### Tabs
 Two tabs, icon-only (no text labels):
@@ -161,7 +161,7 @@ Current DB supports brands partially. Gaps to fill:
 - `size_guides.brand_id` — field exists, RLS allows brand profile to insert ✅
 - `brand_applications` table — exists ✅ (fields: `applicant_id`, `brand_name`, `instagram_handle`, `category`, `status`, `rejection_reason`, `reviewed_by`, `reviewed_at`)
 - `sale_mode text` and `external_url text` on `prendas` — exist ✅
-- `marcas.owner_id` → must be renamed to `profile_id` ❌ (migration pending)
+- `marcas.profile_id` — ✅ renamed from `owner_id` (migration `20260629000001_rename_marcas_owner_id_to_profile_id.sql` applied)
 - Brand subscription / plan table — does not exist ❌
 - Brand metrics aggregation — does not exist ❌
 - `brand_points` for loyalty system — does not exist ❌ (see pending-features.md)
@@ -171,8 +171,8 @@ Current DB supports brands partially. Gaps to fill:
 ## Pending
 
 ### DB
-- [ ] Rename `marcas.owner_id` to `marcas.profile_id` — migration + update all RLS policies and API routes that reference `owner_id`
-- [ ] Update RLS on `marcas` and `prendas` to use `profile_id` instead of `owner_id`
+- [x] Rename `marcas.owner_id` to `marcas.profile_id` — ✅ applied; RLS and API routes updated
+- [x] Update RLS on `marcas` and `prendas` to use `profile_id` — ✅ applied
 - [ ] Brand subscription / plan table — fields: `brand_id`, `plan_type`, `billing_cycle`, `status`, `started_at`
 
 ### Backend / API
