@@ -22,7 +22,7 @@ export interface Brand {
   name: string
   description: string | null
   logo_url: string | null
-  owner_id: string | null
+  profile_id: string | null
   instagram_handle: string | null
   website: string | null
   location: string | null

@@ -123,7 +123,7 @@ orderRoutes.patch('/:id/status', async (c) => {
   const { data: brand } = await supabase
     .from('marcas')
     .select('id')
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .single()
 
   if (!brand) return c.json({ error: 'No brand found for this user' }, 403)

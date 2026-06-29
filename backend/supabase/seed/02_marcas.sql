@@ -1,5 +1,5 @@
 -- Seed: marcas
-INSERT INTO marcas (id, name, description, logo_url, owner_id, instagram_handle, website, location, tags)
+INSERT INTO marcas (id, name, description, logo_url, profile_id, instagram_handle, website, location, tags)
 VALUES
   ('11111111-0000-0000-0000-000000000002', 'Doble V', 'Diseño independiente',
    'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/brands/doblev_avatar.png',
