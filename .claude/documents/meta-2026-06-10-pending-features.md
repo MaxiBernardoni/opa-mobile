@@ -78,10 +78,10 @@ OPA lives across four repositories:
 ## Frontend
 
 ### Screens to build
-- [ ] `app/product/[id].tsx` — product detail screen; must include: garment images, brand info, size selector (chips), `SizeGuideSheet` accessible via ⓘ button, add to cart / buy button
-- [ ] `app/outfit/[id].tsx` — outfit detail screen with full garment list, interactive floating labels, total price, "Ver outfit" CTA
-- [ ] `app/search.tsx` — functional search screen; supports text search and tag-based filtering (`#tags` as in the existing `occasion`/`style` fields and any tag on the outfit)
-- [ ] `app/(tabs)/wardrobe.tsx` — personal wardrobe screen with real data from `prendas_armario`; add/remove garments
+- [x] `app/product/[id].tsx` — ✅ implemented: garment image, brand info, size selector chips, SizeGuideSheet bottom sheet with per-category measurement table, recommended size highlighted in rosaOpa, add to cart / redirect CTA
+- [x] `app/outfit/[id].tsx` — ✅ implemented: cover image, creator row, garment list by slot, slot thumbnail grid, total price + "Ver outfit" CTA
+- [x] `app/(tabs)/search.tsx` — ✅ implemented: debounced text query (350ms), outfits/prendas tabs, tag filter chips (#style/#occasion), 2-col grid results
+- [x] `app/(tabs)/wardrobe.tsx` — ✅ implemented: real data from useWardrobe, slot filter chips, 3-col grid, tap navigates to product detail
 - [ ] Body measurements input screen — accessible from Settings and from first use of the size guide; numeric inputs for height, chest, waist, hip, thigh in cm; persists via `useUserMeasurements().saveMeasurements()`
 - [ ] Settings sub-screens: edit profile (display name, bio, avatar, tags), security (change password, 2FA), notifications preferences, style preferences
 
@@ -94,7 +94,7 @@ OPA lives across four repositories:
 - [ ] Face blurring / AI face removal when uploading outfit photos — optional setting; preserves garment and body, removes or blurs the face; lowers barrier to UGC
 
 ### Components to build
-- [ ] `SizeGuideSheet` — bottom sheet that opens when tapping ⓘ next to "TALLE" on product detail; shows a table with `size_label` + relevant measurements (bust/waist/hip for tops, waist/hip/thigh for bottoms, foot length for calzado); automatically highlights the recommended size if user has measurements loaded
+- [x] `SizeGuideSheet` — ✅ implemented inline in `app/product/[id].tsx`: opens from ⓘ button, table with size_label + per-category measurements (tops: bust/waist/hip, bottoms: waist/hip/thigh, calzado: foot length), highlights recommended size with rosaOpa
 - [ ] Skeleton loaders — replace `ActivityIndicator` with skeleton placeholders in `OutfitCard`, `GarmentCard`, `ProfileHeader`
 - [ ] Like / save spring animations — outline → filled transition with `damping: 10, stiffness: 200` on toggle
 - [ ] Brand collections in feed — "Tus marcas" tab in outfit scroll header filters to outfits from followed brands; requires follow system extended to brands
