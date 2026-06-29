@@ -205,7 +205,6 @@ Los documentos de referencia viven en `.claude/documents/`:
 
 ## Pendientes principales
 
-- [ ] Deploy API: `supabase functions deploy api` desde `backend/`
 - [ ] Pantalla de "Mis medidas" en Settings
 - [ ] Settings → botón "Registrar Marca" + form de solicitud
 - [ ] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf`
