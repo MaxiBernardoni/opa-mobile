@@ -154,6 +154,15 @@ Outfits guardados en favoritos del usuario. Query con join completo a `outfits`,
 ### `hooks/useSavedGarments.ts`
 Prendas guardadas en favoritos del usuario desde `prendas_guardadas`. Retorna `{ garments, loading, refetch }`.
 
+### `hooks/useSizeGuide.ts`
+Fetches a size guide and its entries by `guideId`. Entries are ordered by `sort_order`. Retorna `{ guide, entries, loading }`. Si `guideId` es `undefined`, no hace fetch.
+
+### `hooks/useUserMeasurements.ts`
+Fetches the authenticated user's body measurements from `user_measurements`. Exposes `save(measurements)` que hace UPSERT. RLS estricto — solo puede leer y escribir la fila propia. Retorna `{ measurements, loading, save }`.
+
+### `hooks/useRecommendedSize.ts`
+Calls `supabase.rpc('get_recommended_size', { guide_id })` with the authenticated user's measurements. Returns the recommended `size_label` string or `null` if measurements are incomplete. Retorna `{ recommendedSize, loading }`.
+
 ---
 
 ## TypeScript Types (`types/index.ts`)
