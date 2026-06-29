@@ -64,7 +64,7 @@ OPA lives across four repositories:
 - [ ] Cursor-based pagination in `useOutfits` — currently `LIMIT 20`; needs infinite scroll support
 
 ### API (Hono — `backend/functions/api/`)
-- [ ] Deploy to Supabase Edge Functions — `supabase functions deploy api` from `backend/` — **required before repo extraction**
+- [x] Deploy to Supabase Edge Functions — ✅ deployed; `GET /api/health` responding in production (`vecnktrbjolahcalkbml.supabase.co/functions/v1/api/health`)
 - [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; currently returns likes + saves only (with note)
 - [x] `POST /api/orders` — ✅ implemented: stock validation, total calculation, `stock_por_talle` decrement, order + `productos_orden` creation, cart cleared
 - [x] `PATCH /api/orders/:id/status` — ✅ implemented: verifies brand ownership via garments in the order; valid values: pending/shipped/delivered
