@@ -50,8 +50,8 @@ OPA lives across four repositories:
 
 ## Backend
 
-- [ ] `useSizeGuide` integration in `app/product/[id].tsx` — hook exists but the product detail screen is not built yet
-- [ ] `useRecommendedSize` integration in `app/product/[id].tsx` — same as above
+- [x] `useSizeGuide` integration in `app/product/[id].tsx` — ✅ implemented: drives SizeGuideSheet table and `entries` display
+- [x] `useRecommendedSize` integration in `app/product/[id].tsx` — ✅ implemented: highlights recommended size chip and shows hint text
 - [ ] `useUserMeasurements` integration in settings screen — hook exists (`saveMeasurements`, `measurements`), no UI to call it
 - [ ] `useOutfitsBySimilarMeasurements` hook (new) — query `useOutfits` or new hook that prioritizes outfits from creators whose `user_measurements` are similar to the authenticated user's; define "similar" threshold (e.g. ±5 cm on waist and chest)
 - [ ] Fit preference option for size recommendation — let user choose ajustado/bien/suelto; pass preference to `get_recommended_size` and adjust matching logic
@@ -88,7 +88,7 @@ OPA lives across four repositories:
 ### Features on existing screens
 - [ ] "Ya lo tenés / te falta $X" in outfit bottom bar — if the user owns some garments from the outfit (via `prendas_armario`), show "Tenés N de M prendas — te falta $X para completar este look" instead of full total price
 - [ ] "Este look en tu talle" — when an outfit's garments are not available in the user's measured size, surface equivalent garments in the correct size and show a swap suggestion
-- [ ] Highlight recommended size in the size selector — `rosaOpa` border on the size chip that matches `get_recommended_size` result
+- [x] Highlight recommended size in the size selector — ✅ implemented in `app/product/[id].tsx`: chip with `rosaOpa` 2px border + hint text below selector
 - [ ] Save garment button on garment cards — button to toggle `prendas_guardadas`; optimistic update matching the pattern used by `useSave`
 - [ ] Outfit scroll filtered by similar measurements — visual indicator or feed mode that surfaces outfits from creators with `user_measurements` similar to the logged-in user ("see how it looks on someone like you")
 - [ ] Face blurring / AI face removal when uploading outfit photos — optional setting; preserves garment and body, removes or blurs the face; lowers barrier to UGC
