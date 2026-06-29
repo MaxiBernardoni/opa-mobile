@@ -198,13 +198,14 @@ Los documentos de referencia viven en `.claude/documents/`:
 - [x] Sistema de guías de talle (tablas + hooks useSizeGuide, useUserMeasurements, useRecommendedSize)
 - [x] API Hono: todos los endpoints implementados (sin 501s pendientes)
 - [x] `prendas_guardadas` en DB con RLS
+- [x] `app/product/[id].tsx` — detalle de prenda con imagen, selector de talle, SizeGuideSheet, CTA
+- [x] `app/outfit/[id].tsx` — detalle de outfit con prendas por slot, precio total, CTA
+- [x] `app/(tabs)/search.tsx` — búsqueda funcional: texto + tabs + tag filters
+- [x] `app/(tabs)/wardrobe.tsx` — armario con datos reales, filtro por slot
 
 ## Pendientes principales
 
 - [ ] Deploy API: `supabase functions deploy api` desde `backend/`
-- [ ] `app/product/[id].tsx` — detalle de prenda con selector de talle y SizeGuideSheet
-- [ ] `app/outfit/[id].tsx` — detalle de outfit
-- [ ] `app/search.tsx` — búsqueda funcional
-- [ ] `app/(tabs)/wardrobe.tsx` — armario con datos reales
 - [ ] Pantalla de "Mis medidas" en Settings
+- [ ] Settings → botón "Registrar Marca" + form de solicitud
 - [ ] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf`
