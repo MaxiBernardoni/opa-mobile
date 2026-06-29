@@ -73,7 +73,7 @@ Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 | name | varchar | |
 | description | text | nullable |
 | logo_url | text | nullable |
-| owner_id | uuid | FK → perfiles.id, nullable |
+| profile_id | uuid | FK → perfiles.id, nullable |
 | instagram_handle | varchar | nullable |
 | website | varchar | nullable |
 | location | varchar | nullable (múltiples locales separados por /) |
@@ -393,7 +393,7 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 | brand_id | uuid | FK → marcas.id, nullable — NULL = guía OPA por defecto |
 | created_at | timestamp | default now() |
 
-**RLS:** SELECT público. INSERT/UPDATE solo para brand owner (`marcas.owner_id = auth.uid()`). `service_role` bypasses.
+**RLS:** SELECT público. INSERT/UPDATE solo para brand owner (`marcas.profile_id = auth.uid()`). `service_role` bypasses.
 
 **Seed data:** 10 guías OPA por defecto (`brand_id = NULL`):
 - Tops: Oversize, Boxy, Relaxed

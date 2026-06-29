@@ -71,7 +71,7 @@ Tablas y columnas en **español**:
 
 ```
 perfiles        — extiende auth.users; trigger handle_new_user() crea fila al registrarse
-marcas          — brands; owner_id FK → perfiles
+marcas          — brands; profile_id FK → perfiles
 prendas         — garments; brand_id FK → marcas; sale_mode ('direct'|'redirect'), external_url, size_guide_id
 outfits         — creator_id FK → perfiles; likes_count/saves_count mantenidos por triggers
 outfit_items    — outfit_id + garment_id + slot ('torso'|'piernas'|'calzado'|'extras')
@@ -102,14 +102,14 @@ app/
     index.tsx         — Home: carousels de outfits, prendas, marcas
     outfits.tsx       — Outfit Scroll TikTok-style; acepta ?outfitId para deep-link
     profile.tsx       — Perfil: header horizontal, 3 tabs (grid/favoritos/pedidos), sub-tabs
-    search.tsx        — placeholder
-    wardrobe.tsx      — placeholder
+    search.tsx        — búsqueda funcional: texto + tabs + tag filters
+    wardrobe.tsx      — armario personal con datos reales
   auth/index.tsx      — Login/Signup con validación por campo en tiempo real
   settings.tsx        — Logout + eliminar cuenta (supabase.rpc('delete_user'))
   user-outfits.tsx    — Scroll de outfits de un usuario; params: userId, startIndex
   saved-outfits.tsx   — Scroll de outfits guardados; param: startIndex
-  outfit/             — placeholder (detalle de outfit)
-  product/            — placeholder (detalle de prenda)
+  outfit/[id].tsx     — detalle de outfit con prendas por slot, precio total, CTA
+  product/[id].tsx    — detalle de prenda con SizeGuideSheet, selector de talle, CTA
 ```
 
 **Flujo de auth:** `_layout.tsx` llama `supabase.auth.getSession()` + `onAuthStateChange()` → popula `useAuthStore` (session + profile). `initialized` previene flashes de UI.

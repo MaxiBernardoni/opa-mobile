@@ -256,7 +256,7 @@ declare
 begin
   if uid is null then raise exception 'Not authenticated'; end if;
 
-  update marcas set owner_id = null where owner_id = uid;
+  update marcas set profile_id = null where profile_id = uid;
 
   delete from productos_orden
     where order_id in (select id from orders where user_id = uid);
@@ -278,7 +278,7 @@ grant execute on function delete_user() to authenticated;
 
 | Paso | Tabla | Motivo |
 |---|---|---|
-| 1 | `marcas.owner_id` → NULL | FK NO ACTION; no se borra la marca |
+| 1 | `marcas.profile_id` → NULL | FK NO ACTION; no se borra la marca |
 | 2 | `productos_orden` | FK NO ACTION → `orders` |
 | 3 | `reseñas` | FK NO ACTION → `perfiles` |
 | 4 | `orders` | FK NO ACTION → `perfiles` |
