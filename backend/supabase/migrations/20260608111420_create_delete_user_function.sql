@@ -5,7 +5,7 @@
 --   1. reseñas           (NO CASCADE → user_id → perfiles)
 --   2. productos_orden   (NO CASCADE → order_id → orders; orders NO CASCADE → user_id → perfiles)
 --   3. orders            (NO CASCADE → user_id → perfiles)
---   4. marcas.owner_id   (NO CASCADE → owner_id → perfiles — nullify, no borrar la marca)
+--   4. marcas.profile_id   (NO CASCADE → profile_id → perfiles — nullify, no borrar la marca)
 --   5. outfits           (NO CASCADE → creator_id → perfiles; sus outfit_items/likes/guardados
 --                         tienen CASCADE desde outfits, así que se limpian solos)
 --   6. perfiles          (CASCADE → auth.users, por eso va antes de auth.users)
@@ -30,7 +30,7 @@ begin
   end if;
 
   -- Nullify brand ownership (don't delete the brand itself)
-  update marcas set owner_id = null where owner_id = uid;
+  update marcas set profile_id = null where profile_id = uid;
 
   -- Clean up orders and their line items
   delete from productos_orden

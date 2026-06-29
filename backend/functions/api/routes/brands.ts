@@ -12,7 +12,7 @@ brandRoutes.get('/me', async (c) => {
   const { data, error } = await supabase
     .from('marcas')
     .select('*')
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .single()
 
   if (error) return c.json({ error: error.message }, 400)
@@ -35,7 +35,7 @@ brandRoutes.patch('/me', async (c) => {
   const { data, error } = await supabase
     .from('marcas')
     .update(updates)
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .select()
     .single()
 
@@ -53,7 +53,7 @@ brandRoutes.get('/me/metrics', async (c) => {
   const { data: brand, error: brandError } = await supabase
     .from('marcas')
     .select('id')
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .single()
 
   if (brandError || !brand) return c.json({ error: 'No brand found for this user' }, 404)
@@ -104,7 +104,7 @@ brandRoutes.get('/me/prendas', async (c) => {
   const { data: brand, error: brandError } = await supabase
     .from('marcas')
     .select('id')
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .single()
 
   if (brandError || !brand) return c.json({ error: 'No brand found for this user' }, 404)
@@ -129,7 +129,7 @@ brandRoutes.post('/me/prendas', async (c) => {
   const { data: brand, error: brandError } = await supabase
     .from('marcas')
     .select('id')
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .single()
 
   if (brandError || !brand) return c.json({ error: 'No brand found for this user' }, 404)
@@ -165,7 +165,7 @@ brandRoutes.patch('/me/prendas/:id', async (c) => {
   const { data: brand, error: brandError } = await supabase
     .from('marcas')
     .select('id')
-    .eq('owner_id', user.id)
+    .eq('profile_id', user.id)
     .single()
 
   if (brandError || !brand) return c.json({ error: 'No brand found for this user' }, 404)

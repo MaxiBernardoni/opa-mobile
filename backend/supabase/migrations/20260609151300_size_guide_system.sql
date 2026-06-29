@@ -21,13 +21,13 @@ CREATE POLICY "brand_owner_insert_size_guides" ON size_guides
   FOR INSERT TO authenticated
   WITH CHECK (
     brand_id IS NULL OR
-    EXISTS (SELECT 1 FROM marcas WHERE id = brand_id AND owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM marcas WHERE id = brand_id AND profile_id = auth.uid())
   );
 
 CREATE POLICY "brand_owner_update_size_guides" ON size_guides
   FOR UPDATE TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM marcas WHERE id = brand_id AND owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM marcas WHERE id = brand_id AND profile_id = auth.uid())
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
