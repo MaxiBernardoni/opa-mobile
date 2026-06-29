@@ -24,14 +24,18 @@ app/
     _layout.tsx        # Tab layout with custom BottomNavBar
     index.tsx          # Home
     outfits.tsx        # Outfit Scroll (TikTok-style)
-    search.tsx         # Search (placeholder)
-    wardrobe.tsx       # Wardrobe (placeholder)
+    search.tsx         # Search funcional
+    wardrobe.tsx       # Armario personal con datos reales
     profile.tsx        # Profile
   auth/
     index.tsx          # Login/Signup con validación por campo
   settings.tsx         # Settings screen
   user-outfits.tsx     # Scroll de outfits de un usuario específico
   saved-outfits.tsx    # Scroll de outfits guardados en favoritos
+  product/
+    [id].tsx           # Detalle de prenda con SizeGuideSheet
+  outfit/
+    [id].tsx           # Detalle de outfit con prendas por slot
 ```
 
 ---
@@ -76,6 +80,51 @@ Three states:
        - **Prendas** (`percha_negra.png`): grid 4 columnas de `prendas_guardadas`
      - **Pedidos** (`caja_negra.png` / `caja_rosa.png`): empty state
    - Al activar Favoritos se hace `refetch()` de outfits y prendas guardadas
+
+### Product Detail (`app/product/[id].tsx`)
+- Parámetro: `id` (garment ID)
+- Fetch directo a `prendas` con join `brand:marcas(*)` vía `supabase.maybeSingle()`
+- Usa `useSizeGuide(garment.size_guide_id)` y `useRecommendedSize(garment.size_guide_id)`
+- **Header:** botón back + nombre de prenda centrado
+- **Imagen:** full-width, aspect ratio 1:1.1, `expo-image` con `contentFit: 'cover'`
+- **Brand row:** logo circular 28px (o inicial si sin logo) + nombre de marca
+- **Precio:** `rosaOpa`, formato `toLocaleString('es-AR')`
+- **Selector de talle:** chips horizontales con wrap; estado: default / selected (negro) / recomendado (borde `rosaOpa` 2px). Botón "ⓘ Guía de talles" → abre `SizeGuideSheet`. Hint de talle recomendado debajo.
+- **Tags:** categoría + estilo como chips con borde `bordeTag`
+- **CTA sticky:** `sale_mode === 'redirect'` → "Ver en tienda →"; `direct` → "Agregar al carrito" (deshabilitado si no hay talle seleccionado y hay talles disponibles)
+- **`SizeGuideSheet` (inline):** `Modal` con `animationType: 'slide'`, `transparent`, overlay semitransparente. Tabla horizontal scrolleable con columnas adaptadas por categoría: `calzado` → pie; `piernas`/`bottoms` → cintura/cadera/muslo; default → busto/cintura/cadera. Fila del talle recomendado destacada en `rosaOpaLight` con texto `rosaOpa`. Banner inferior con el talle recomendado.
+
+### Outfit Detail (`app/outfit/[id].tsx`)
+- Parámetro: `id` (outfit ID)
+- Fetch a `outfits` con join `creator:perfiles(id, username, avatar_url)` + `garments:outfit_items(*, garment:prendas(*, brand:marcas(*)))`
+- **Header:** botón back + título del outfit centrado
+- **Cover image:** full-width, aspect ratio 1:1.25
+- **Creator row:** avatar 32px + `@username` → tap navega a `user-outfits?userId=...&startIndex=0`
+- **Tags:** `occasion` + `style` como chips
+- **Stats:** likes_count + saves_count
+- **Lista de prendas (PRENDAS):** `GarmentRow` por prenda — thumbnail 60×60 + nombre + marca + slot label + precio `rosaOpa` → tap navega a `product/[id]`
+- **Slot grid:** thumbnails 72×90 agrupados por slot (Torso / Piernas / Calzado / Extras); slots vacíos no se renderizan
+- **CTA sticky:** total price izquierda + botón "Ver outfit completo" derecha
+
+### Search (`app/(tabs)/search.tsx`)
+- Búsqueda con debounce de 350ms sobre `query` + `activeTag` + `tab`
+- **Search bar:** input con `backgroundColor: grisBorde`, icono 🔍, botón ✕ para limpiar
+- **Tabs:** Outfits / Prendas — cambia el target de búsqueda; borde inferior `rosaOpa` en activo
+- **Tag filters:** horizontal `FlatList` con 13 tags fijos (`STYLE_TAGS` + `OCCASION_TAGS`); un tag activo a la vez; tap en activo lo deselecciona
+- **Query outfits:** `.ilike('title', ...)` + `.or('style.ilike...,occasion.ilike...')` — `LIMIT 30`, ordenado por `likes_count DESC`
+- **Query prendas:** `.ilike('name', ...)` + `.ilike('style', ...)` — `LIMIT 30`, ordenado por `created_at DESC`
+- **Grid resultados:** 2 columnas, cards con imagen + título/nombre + creator/brand; tap navega a `outfit/[id]` o `product/[id]`
+- Estado vacío inicial: ícono 👗 + texto descriptivo. Sin resultados: mensaje con el query.
+- Nota: búsqueda client-side con `.ilike()` — no usa `to_tsvector`; full-text search queda como mejora futura
+
+### Wardrobe (`app/(tabs)/wardrobe.tsx`)
+- Usa `useWardrobe(session.user.id)` — datos de `prendas_armario`
+- Auth gate: si no hay sesión, empty state con mensaje "Iniciá sesión para ver tu armario"
+- **Header:** "Mi Armario" + contador de prendas
+- **Filtro por slot:** horizontal `FlatList` con chips (Todo / Torso / Piernas / Calzado / Extras); filtra client-side sobre `item.slot`
+- **Grid:** 3 columnas, `WardrobeCard` — imagen + nombre + marca; tap navega a `product/[id]`
+- Empty state por slot: mensaje contextual diferenciado (armario vacío vs. slot sin prendas)
+- Nota: el filtro depende de que `prendas_armario` tenga columna `slot`; si no existe, siempre muestra "Todo" sin romper
 
 ### User Outfits (`app/user-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits de un perfil específico
