@@ -109,7 +109,9 @@ When a chat makes a change that affects another domain:
 2. Tell the user what changed and which other chat is affected
 3. Suggest running `/sync` to generate a briefing prompt for the affected chat
 
-The `/sync` skill is a global Claude Code skill defined in `~/.claude/skills/sync/SKILL.md`. It is not part of the repo.
+The `/sync` skill is a global Claude Code skill defined in `~/.claude/skills/opa-sync/SKILL.md`. It is not part of the repo.
+
+Available sync targets: **Frontend + Backend**, **Design & UI/UX**, **Database**, **Documentation** (this chat). Use the Documentation target when another chat implements something that needs to be reflected in `.claude/documents/` or `CLAUDE.md`.
 
 ---
 
