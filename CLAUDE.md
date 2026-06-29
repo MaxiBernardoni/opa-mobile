@@ -1,15 +1,30 @@
-# OPA — Contexto para Claude Code
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## ¿Qué es OPA?
 
-App mobile de descubrimiento de moda centrada en **outfits** como unidad principal de contenido. La experiencia debe sentirse como TikTok o Instagram Reels aplicado a la moda: visual, inmersiva, fluida y aspiracional.
+App mobile de descubrimiento de moda centrada en **outfits** como unidad principal de contenido (TikTok/Pinterest para moda). Tres pilares: descubrimiento de outfits, armario personal, compra contextual.
 
-**Tres pilares del producto:**
-1. Descubrimiento de outfits
-2. Armario personal inteligente
-3. Compra contextual (comprar lo que falta para completar un look)
+El repo también contiene `backend/` — infraestructura Supabase + Edge Functions + Hono API compartida entre opa-mobile y opa-web. Está planificada su extracción a repo propio (`opa-backend`) una vez que el deploy esté completo.
 
-**OPA NO es:** una tienda online tradicional, un catálogo frío de productos, ni una app corporativa sobrecargada.
+---
+
+## Comandos de desarrollo
+
+```bash
+# Mobile / Web
+npx expo start --web --clear   # Web en browser — funciona en cualquier red
+npx expo start --clear          # Expo Go en celular — misma WiFi, SDK 54
+
+# IMPORTANTE: siempre usar --legacy-peer-deps en npm install
+npm install --legacy-peer-deps
+
+# API (Deno / Supabase Edge Functions)
+cd backend/
+supabase functions serve api    # Dev local
+supabase functions deploy api   # Deploy a producción
+```
 
 ---
 
@@ -19,12 +34,11 @@ App mobile de descubrimiento de moda centrada en **outfits** como unidad princip
 |---|---|
 | Framework | React Native + Expo SDK 54 (managed workflow) |
 | Navegación | Expo Router v6 (file-based routing) |
-| Estado global | Zustand |
-| Estilos | NativeWind (Tailwind para React Native) |
+| Estado global | Zustand (`store/useAuthStore.ts`) |
 | Imágenes | Expo Image |
-| Animaciones | React Native Reanimated |
 | Backend | Supabase (Project ID: `vecnktrbjolahcalkbml`) |
-| Lenguaje | TypeScript |
+| API server | Hono v4 en Deno (Supabase Edge Functions) — `backend/functions/api/` |
+| Lenguaje | TypeScript (mobile) / TypeScript en Deno (API) |
 
 ---
 
@@ -32,176 +46,165 @@ App mobile de descubrimiento de moda centrada en **outfits** como unidad princip
 
 ```ts
 // colors.ts
-export const colors = {
-  rosaOpa: '#EB006B',               // Color primario, acciones, acentos
-  rosaOpaLight: 'rgba(235, 0, 107, 0.2)', // Highlight nav activo
-  negro: '#000000',
-  blanco: '#FFFFFF',
-  grisClaro: '#838383',             // Texto secundario
-  grisBorde: '#F2F2F2',             // Bordes, fondos secundarios
-  grisMedio: '#D9D9D9',             // Placeholders, skeletons
-  grisOscuro: '#4E4E4E',            // Texto terciario
-  bordeTag: '#A6A6AC',              // Bordes de tags de estilo
-}
+rosaOpa: '#EB006B'         // primario, acciones
+negro: '#000000'
+blanco: '#FFFFFF'
+grisClaro: '#838383'       // texto secundario
+grisBorde: '#F2F2F2'       // bordes
+grisMedio: '#D9D9D9'       // placeholders
+grisOscuro: '#4E4E4E'      // texto terciario
+bordeTag: '#A6A6AC'
 
-// fonts.ts — Merge One (títulos) y Palanquin Dark (botones, usernames)
+// fonts.ts — mergeOne (títulos), palanquinDark (botones, usernames)
 // radius.ts — card:15, chip:10, button:8, tag:8, avatar:9999
 // spacing.ts — xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 ```
 
-**Fuente Merge One:** no está en npm como `@expo-google-fonts`. Hay que descargar `MergeOne-Regular.ttf` de Google Fonts, colocarla en `assets/fonts/` y descomentar la línea en `app/_layout.tsx`.
+Assets en Supabase Storage: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/`
+Los nombres de archivo son **case-sensitive**: `Grid.png` (G mayúscula), iconos de nav en subcarpeta `nav/`.
 
 ---
 
-## Esquema de base de datos (Supabase)
+## Esquema de base de datos
 
-```sql
--- perfiles: id, username, display_name, bio, avatar_url, instagram_handle, tags[], followers_count, following_count, outfits_count
--- marcas: id, name, logo_url, verified
--- prendas: id, brand_id, name, price, slot (torso/piernas/calzado/extras), image_url, colors[], sizes[], style_tags[]
--- outfits: id, creator_id, title, description, cover_image_url, likes_count, saves_count, occasion[], style_tags[]
--- outfit_items: outfit_id, garment_id, position_x, position_y  ← coordenadas de los labels flotantes
--- outfit_likes: user_id, outfit_id
--- outfits_guardados: user_id, outfit_id, created_at  ← outfits guardados en favoritos
--- prendas_guardadas: id, user_id, garment_id, created_at  ← prendas guardadas en favoritos (para comprar)
--- follows: follower_id, following_id
--- wardrobe: id, user_id, garment_id, size, color, source (purchase/manual)
+Tablas y columnas en **español**:
+
+```
+perfiles        — extiende auth.users; trigger handle_new_user() crea fila al registrarse
+marcas          — brands; owner_id FK → perfiles
+prendas         — garments; brand_id FK → marcas; sale_mode ('direct'|'redirect'), external_url, size_guide_id
+outfits         — creator_id FK → perfiles; likes_count/saves_count mantenidos por triggers
+outfit_items    — outfit_id + garment_id + slot ('torso'|'piernas'|'calzado'|'extras')
+outfit_likes    — UNIQUE(user_id, outfit_id); trigger actualiza outfits.likes_count
+outfits_guardados — UNIQUE(user_id, outfit_id); trigger actualiza outfits.saves_count
+prendas_guardadas — UNIQUE(user_id, garment_id); prendas en favoritos para comprar
+follows         — UNIQUE(follower_id, following_id); trigger actualiza followers/following_count
+prendas_armario — armario personal del usuario
+productos_carrito — fuente para el checkout (POST /api/orders lo consume y vacía)
+orders          — status: pending/shipped/delivered
+productos_orden — items de una orden
+size_guides     — guías de talle; brand_id nullable (NULL = OPA default)
+size_guide_entries — entradas por talle con rangos de medidas
+user_measurements — medidas del usuario; RLS estricto (solo fila propia)
+brand_applications — solicitudes para ser marca
 ```
 
-**Nota:** nombres de tablas y columnas en español (perfiles, prendas, marcas, etc.).
-
 ---
 
-## Pantallas de la Demo 1
+## Arquitectura del código
 
-### Home (`app/(tabs)/index.tsx`)
-- Header: logo OPA (rosa, izquierda) + ícono camión (derecha)
-- Sección "OUTFITS >" → carousel horizontal de OutfitCards (200×356px, radius 15)
-- Sección "ÚLTIMAS PRENDAS >" → scroll horizontal (115×144px)
-- Sección "LAS MARCAS QUE LA GENTE ELIGE >" → logos de marcas (115×115px, borde negro)
-- Sección "LO ÚLTIMO QUE VISTE" → placeholders grises si vacío
+### Mobile (`app/`)
 
-### Outfit Scroll (`app/(tabs)/outfits.tsx`)
-- FlatList full-screen con `pagingEnabled` — scroll vertical tipo TikTok
-- Header flotante: camión (izq) + tabs "tus marcas / Descubrir" (centro) + botón + (der)
-- Labels flotantes de prendas: chip blanco con thumbnail circular + nombre + precio
-- Botones de acción derecha: Like · Guardar · Compartir (con estado local)
-- Info marca abajo izquierda: avatar + nombre + tick verificado + título outfit
-- Bottom bar blanco (radius 15): precio total + descuento + botón "Ver outfit" rosa
-
-### Perfil (`app/(tabs)/profile.tsx`)
-- Header horizontal: avatar 80×80 (izquierda) + username / nombre / bio / ig handle / tags (derecha)
-- Stats: Seguidores · Seguidos · Outfits · Guardados (valor real de `outfits_guardados`)
-- 3 tabs con iconos PNG del storage: Grid (`Grid.png`) · Favoritos (estrella) · Pedidos (caja)
-- **Tab Grid:** grilla 3 columnas de outfits propios → tap navega a `app/user-outfits.tsx`
-- **Tab Favoritos:** 2 sub-tabs:
-  - Outfits (`nav/outfit_v2.png`): grid de outfits guardados → tap navega a `app/saved-outfits.tsx`
-  - Prendas (`percha_negra.png`): grid 4 columnas de prendas guardadas en `prendas_guardadas`
-- **Tab Pedidos:** empty state
-- Tocar el tab Favoritos hace refetch automático de outfits y prendas guardadas
-- Icono de settings (arriba derecha) → navega a `app/settings.tsx`
-- Gate screen si no hay sesión: logo OPA + botones iniciar sesión / crear cuenta
-
-### Outfits del usuario (`app/user-outfits.tsx`)
-- Scroll full-screen TikTok para los outfits de un perfil específico
-- Parámetros: `userId`, `startIndex`
-- Sin header flotante (no camión, no tabs, no botón +)
-- Botón back circular translúcido (arriba izquierda)
-
-### Outfits guardados (`app/saved-outfits.tsx`)
-- Scroll full-screen TikTok para los outfits guardados en favoritos del usuario de sesión
-- Parámetro: `startIndex`
-- Mismo layout que `user-outfits.tsx`
-
-### Configuración (`app/settings.tsx`)
-- Card de perfil (avatar + username + email)
-- Secciones: CUENTA · PREFERENCIAS · APLICACIÓN
-- Logout con confirmación (`supabase.auth.signOut({ scope: 'local' })`)
-- Modal de eliminar cuenta (pide contraseña, llama `supabase.rpc('delete_user')`)
-
----
-
-## Decisiones técnicas tomadas
-
-- **`--legacy-peer-deps` obligatorio** en todos los `npm install`. Hay conflictos de peer deps entre múltiples dependencias de Expo SDK 54. No correr `npm install` sin este flag.
-- **`newArchEnabled: false` en app.json** — la nueva arquitectura de React Native es incompatible con `react-native-screens@4.16.0` en RN 0.81.5. No cambiar a `true` hasta actualizar a RN ≥ 0.82.
-- **`"updates": { "enabled": false }` en app.json** — el proyecto tiene EAS configurado (`eas.json`) pero no usa EAS Update. Sin esto, Expo Go intenta descargar el bundle desde los servidores de Expo en lugar del servidor local.
-- **`package.json` main = `"expo-router/entry"`** — ya configurado, no cambiar.
-- **`babel.config.js` y `metro.config.js` son obligatorios** — sin ellos Metro no puede compilar el proyecto. Usan `babel-preset-expo` y `expo/metro-config` respectivamente.
-- **Mock data en `constants/mockData.ts`** — la app funciona sin Supabase para la Demo 1. Contiene 5 outfits, 5 marcas, 5 prendas con imágenes de picsum.photos.
-- **`@react-native-async-storage/async-storage` está en v3** (se esperaba v2.2.0) — genera warning pero funciona. No downgradearlo sin probar.
-- **Fuente Merge One** no se pudo descargar automáticamente (red corporativa bloquea fonts.gstatic.com). La línea está comentada en `app/_layout.tsx`.
-- **`pointerEvents` como style prop** — en `app/(tabs)/outfits.tsx` el SafeAreaView flotante usa `style={{ pointerEvents: 'box-none' }}`. En RN 0.71+ `pointerEvents` como prop directo está deprecado y rompe en algunos entornos.
-- **Dependencias peer de expo-router no estaban en package.json** — `react-native-gesture-handler`, `react-native-safe-area-context`, `react-native-screens`, `expo-linking`, `expo-constants`, `expo-updates`, `react-native-worklets` y `react-native-is-edge-to-edge` son requeridas por expo-router v6 o reanimated v4 y deben estar declaradas explícitamente.
-- **Supabase Auth con storage multiplataforma** — `expo-secure-store` en nativo, `localStorage` en web. Configurado en `lib/supabase.ts`.
-- **`useAuthStore` (Zustand)** — mantiene `session` y `profile` globalmente. `profile` viene de la tabla `perfiles` y se carga al iniciar sesión.
-- **Username validation** — regex `/^[a-z0-9._]+$/` aplicado en signup. Errores por campo (username, email, contraseña) mostrados en tiempo real en `app/auth/index.tsx`.
-- **Assets en Supabase Storage** — bucket `assets` en `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/`. Los nombres de archivo son case-sensitive: `Grid.png` (G mayúscula), iconos de navegación en subcarpeta `nav/`.
-- **Deep-link al outfit scroll** — Home pasa `outfitId` como param a `/(tabs)/outfits`. El scroll usa `getItemLayout` + `scrollToIndex`/`scrollToOffset` para posicionarse. Índice 0 usa `scrollToOffset({ offset: 0 })` (no `scrollToIndex`).
-- **Toggle like/save con deduplicación** — INSERT optimista; si devuelve error `23505` (unique constraint) se trata como ya existente. DELETE para deshacer. Tablas: `outfit_likes`, `outfits_guardados`, `prendas_guardadas`.
-- **`prendas_guardadas` creada manualmente** — no estaba en el schema original. Se creó con RLS + GRANT vía MCP Supabase. Permite guardar prendas para comprar más tarde.
-
-## Modo de desarrollo recomendado
-
-```bash
-npx expo start --web --clear   # Web en el browser de la PC — funciona en cualquier red
-npx expo start --clear          # Celular con Expo Go — requiere misma red WiFi y Expo Go SDK 54
+```
+app/
+  _layout.tsx         — fonts, auth init, Stack navigator
+  (tabs)/
+    index.tsx         — Home: carousels de outfits, prendas, marcas
+    outfits.tsx       — Outfit Scroll TikTok-style; acepta ?outfitId para deep-link
+    profile.tsx       — Perfil: header horizontal, 3 tabs (grid/favoritos/pedidos), sub-tabs
+    search.tsx        — placeholder
+    wardrobe.tsx      — placeholder
+  auth/index.tsx      — Login/Signup con validación por campo en tiempo real
+  settings.tsx        — Logout + eliminar cuenta (supabase.rpc('delete_user'))
+  user-outfits.tsx    — Scroll de outfits de un usuario; params: userId, startIndex
+  saved-outfits.tsx   — Scroll de outfits guardados; param: startIndex
+  outfit/             — placeholder (detalle de outfit)
+  product/            — placeholder (detalle de prenda)
 ```
 
-En redes corporativas con restricciones de acceso a internet, usar siempre el modo web.
+**Flujo de auth:** `_layout.tsx` llama `supabase.auth.getSession()` + `onAuthStateChange()` → popula `useAuthStore` (session + profile). `initialized` previene flashes de UI.
 
----
+**Deep-link Home → Outfit Scroll:** Home pasa `outfitId` como param a `/(tabs)/outfits`. El scroll usa `getItemLayout` + `scrollToIndex` / `scrollToOffset`. Índice 0: `scrollToOffset({ offset: 0 })`.
 
-## Notas de producto
+**Toggle like/save:** INSERT optimista en `outfit_likes` / `outfits_guardados`. Si error `23505` (unique constraint) → ya existía, tratar como éxito. DELETE para deshacer.
 
-- **Content first:** la imagen siempre es lo más importante, la UI es secundaria
-- **No sobrecargar:** evitar texto excesivo, información progresiva
-- **Tap para revelar:** en el outfit scroll, la info aparece al interactuar
-- **Compra contextual:** cuando el usuario tiene prendas en su armario que coinciden con un outfit, marcarlas como "ya tenés esto"
-- **Sin fricción:** el flujo inspiración → compra debe ser lo más corto posible
-- La app debe sentirse más cercana a **TikTok/Pinterest** que a cualquier tienda online
+### Hooks (`hooks/`)
 
----
-
-## Hooks disponibles
-
-| Hook | Descripción |
+| Hook | Retorna |
 |---|---|
-| `useOutfits(creatorId?)` | Outfits del feed o de un usuario específico |
-| `useProfile(userId)` | Perfil de un usuario |
-| `useSavedOutfits(userId)` | Outfits guardados en favoritos — expone `refetch()` |
-| `useSavedGarments(userId)` | Prendas guardadas en favoritos — expone `refetch()` |
-| `useWardrobe(userId)` | Items del armario personal |
-| `useLike(outfitId, initialCount)` | Estado like + toggle con optimistic update |
-| `useSave(outfitId, initialCount)` | Estado guardado + toggle con optimistic update |
-| `useFollow(targetUserId)` | Estado seguir + toggle |
+| `useOutfits(creatorId?)` | outfits del feed o de un usuario |
+| `useProfile(userId)` | perfil de un usuario |
+| `useSavedOutfits(userId)` | outfits guardados — expone `refetch()` |
+| `useSavedGarments(userId)` | prendas guardadas — expone `refetch()` |
+| `useWardrobe(userId)` | armario personal |
+| `useLike(outfitId, initialCount)` | like toggle con optimistic update |
+| `useSave(outfitId, initialCount)` | save toggle con optimistic update |
+| `useFollow(targetUserId)` | follow toggle |
+| `useSizeGuide(guideId?)` | guide + entries ordenadas por sort_order |
+| `useUserMeasurements()` | measurements + `save()` con UPSERT |
+| `useRecommendedSize(guideId?)` | llama `supabase.rpc('get_recommended_size')` |
+
+### API (`backend/functions/api/`)
+
+Hono v4 en Deno. Base path: `/api`. Auth middleware en todas las rutas protegidas — lee `Authorization: Bearer <token>`, valida con `supabase.auth.getUser()`, expone `c.get('user')` y `c.get('supabase')`.
+
+```
+GET  /api/health                       — liveness check
+GET  /api/brands/me                    — brand del usuario autenticado
+PATCH /api/brands/me                   — actualiza brand info
+GET  /api/brands/me/metrics            — likes + saves (visit/click pendiente de tablas DB)
+GET  /api/brands/me/prendas            — lista prendas de la marca
+POST /api/brands/me/prendas            — crea prenda; external_url requerido si sale_mode='redirect'
+PATCH /api/brands/me/prendas/:id       — actualiza prenda con verificación de ownership
+GET  /api/orders                       — órdenes del usuario
+POST /api/orders                       — checkout: valida stock, crea order, decrementa stock, vacía carrito
+PATCH /api/orders/:id/status           — brand owner cambia status (pending/shipped/delivered)
+```
+
+Rate limiter in-memory en `POST /orders`: ventana 60s, max 20 req/user.
+
+---
+
+## Decisiones técnicas críticas
+
+- **`--legacy-peer-deps` obligatorio** en todos los `npm install` — conflictos de peer deps de Expo SDK 54.
+- **`newArchEnabled: false`** — incompatible con react-native-screens@4.16.0 en RN 0.81.5.
+- **`"updates": { "enabled": false }`** en app.json — sin esto Expo Go descarga el bundle remoto en vez del servidor local.
+- **`pointerEvents` como style prop** — en `app/(tabs)/outfits.tsx` el SafeAreaView flotante usa `style={{ pointerEvents: 'box-none' }}`. En RN 0.71+ como prop directo está deprecado.
+- **Supabase Auth storage:** `expo-secure-store` en nativo, `localStorage` en web. Configurado en `lib/supabase.ts`.
+- **Fuente Merge One:** `assets/fonts/MergeOne-Regular.ttf` cargada con `expo-font`. No está en `@expo-google-fonts`.
+
+---
+
+## Documentación interna
+
+Los documentos de referencia viven en `.claude/documents/`:
+
+| Archivo | Contenido |
+|---|---|
+| `frontend-2026-06-06-screens-and-components.md` | Pantallas, componentes, design tokens |
+| `backend-2026-06-06-supabase-integration.md` | Auth flow, hooks, tipos TypeScript |
+| `backend-2026-06-15-api-layer.md` | Endpoints de la API Hono, estado de implementación |
+| `database-2026-06-06-schema-and-seed.md` | Schema completo, migraciones, seed data |
+| `design-2026-06-06-visual-system.md` | Sistema visual |
+| `meta-2026-06-10-pending-features.md` | **Fuente de verdad de pendientes** — actualizar cuando se implementa algo |
+
+**Regla:** cuando se completa un pendiente, eliminarlo de `pending-features.md` y marcarlo como hecho en el documento de la capa correspondiente.
 
 ---
 
 ## Estado actual
 
-- [x] Setup del proyecto y configuración base
-- [x] Design tokens (colores, tipografías, spacing, radius)
-- [x] BottomTabBar custom con tab OPA destacado
+- [x] Setup + design tokens + BottomNavBar custom
 - [x] Home screen con carousels horizontales
-- [x] Outfit Scroll screen (full-screen, paginado vertical, like/save/follow funcionales)
-- [x] Profile screen rediseñado (header horizontal, 3 tabs con iconos, sub-tabs en Favoritos)
-- [x] Outfits del usuario (`user-outfits.tsx`) — scroll sin header, desde perfil
-- [x] Outfits guardados (`saved-outfits.tsx`) — scroll desde tab Favoritos
-- [x] Configuración (`settings.tsx`) — logout, eliminar cuenta
-- [x] Auth screen con validación por campo en tiempo real y logo OPA
-- [x] Deep-link Home → Outfit Scroll con scroll al outfit seleccionado
+- [x] Outfit Scroll TikTok-style (like/save/follow funcionales)
+- [x] Profile screen (header horizontal, 3 tabs, sub-tabs favoritos)
+- [x] user-outfits.tsx y saved-outfits.tsx
+- [x] Auth screen con validación por campo en tiempo real
+- [x] Settings screen (logout, eliminar cuenta)
+- [x] Deep-link Home → Outfit Scroll con scroll al índice correcto
 - [x] Supabase Auth funcional (signup, login, logout)
-- [x] Likes, guardados y seguimiento conectados a Supabase
-- [x] Tabla `prendas_guardadas` creada en Supabase con RLS
-- [x] Soporte web (`npx expo start --web`)
-- [x] `babel.config.js` y `metro.config.js` configurados
+- [x] Hooks: useLike, useSave, useFollow, useSavedOutfits, useSavedGarments
+- [x] Sistema de guías de talle (tablas + hooks useSizeGuide, useUserMeasurements, useRecommendedSize)
+- [x] API Hono: todos los endpoints implementados (sin 501s pendientes)
+- [x] `prendas_guardadas` en DB con RLS
 
-## Pendientes
+## Pendientes principales
 
+- [ ] Deploy API: `supabase functions deploy api` desde `backend/`
+- [ ] `app/product/[id].tsx` — detalle de prenda con selector de talle y SizeGuideSheet
+- [ ] `app/outfit/[id].tsx` — detalle de outfit
+- [ ] `app/search.tsx` — búsqueda funcional
+- [ ] `app/(tabs)/wardrobe.tsx` — armario con datos reales
+- [ ] Pantalla de "Mis medidas" en Settings
 - [ ] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf`
-- [ ] Pantallas de detalle: `outfit/[id]` y `product/[id]`
-- [ ] Pantalla de búsqueda funcional
-- [ ] Tab Pedidos con lógica real
-- [ ] Crear RPC `delete_user` en Supabase (requerida por settings.tsx)
-- [ ] Lógica para guardar prendas en favoritos (UI del botón en la prenda)
