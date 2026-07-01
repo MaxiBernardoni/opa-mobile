@@ -32,6 +32,7 @@ app/
   settings.tsx         # Settings screen
   user-outfits.tsx     # Scroll de outfits de un usuario específico
   saved-outfits.tsx    # Scroll de outfits guardados en favoritos
+  measurements.tsx     # Mis medidas — inputs numéricos de medidas corporales
   product/
     [id].tsx           # Detalle de prenda con SizeGuideSheet
   outfit/
@@ -126,6 +127,16 @@ Three states:
 - Empty state por slot: mensaje contextual diferenciado (armario vacío vs. slot sin prendas)
 - Nota: el filtro depende de que `prendas_armario` tenga columna `slot`; si no existe, siempre muestra "Todo" sin romper
 
+### Measurements (`app/measurements.tsx`)
+Accessible from Settings → "Mis medidas" row.
+
+- **5 numeric fields:** Altura (cm) · Pecho (cm) · Cintura (cm) · Cadera (cm) · Muslo (cm)
+- Each field: `TextInput` with `keyboardType="decimal-pad"`, `maxLength=5`, strips non-numeric/non-dot chars on change
+- Data loaded from `useUserMeasurements()` on mount; converts numbers to strings for display, empty string if null
+- Save: converts string values back to `Number` (or `null` if empty) → calls `save(payload)` with UPSERT
+- Success indicator: "Medidas guardadas ✓" text in `rosaOpa` shown after successful save
+- Layout: `KeyboardAvoidingView` wrapper (`padding` on iOS), `ScrollView` content; fields inside a white card with `borderBottomWidth` separators
+
 ### User Outfits (`app/user-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits de un perfil específico
 - Parámetros: `userId`, `startIndex`
@@ -168,12 +179,15 @@ Accessible from the ⚙ icon in Profile. Requires active session.
   - Calls `supabase.rpc('delete_user')` on success → signOut → redirect
   - Spinner during verification and deletion
 
+**Also implemented ✅**
+- **Mis medidas** row in PREFERENCIAS section → navigates to `app/measurements.tsx`
+- **Registrar Marca** row — shown only when `perfiles.is_brand = false`. Opens a modal with fields: Nombre de marca (free text), Instagram (free text), Categoría (free text varchar, no constraint). On submit: inserts into `brand_applications` table with `profile_id`, `brand_name`, `instagram_handle`, `category`. Modal state vars: `showBrandModal`, `brandName`, `brandInstagram`, `brandCategory`, `brandError`, `brandLoading`.
+
 **Not implemented yet ❌**
 - Editar perfil (edit name, bio, avatar, tags)
 - Seguridad (change password, 2FA)
 - Email y notificaciones
 - Preferencias de estilo
-- Mis medidas
 - Talles preferidos
 - Notificaciones (push)
 - Privacidad

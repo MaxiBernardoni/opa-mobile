@@ -20,7 +20,7 @@ Supabase is still called directly from opa-mobile for read-heavy operations (fee
 | **Framework** | Hono v4 |
 | **Auth** | Supabase JWT validation via `supabase.auth.getUser(token)` |
 | **Deploy** | Supabase Edge Functions — no separate infra needed |
-| **Location in repo** | `backend/functions/api/` |
+| **Location in repo** | `backend/functions/api/` (in `opa-mobile`; extracted to standalone repo `maxibernardoni/opa-backend`) |
 
 ---
 
@@ -116,8 +116,13 @@ These are still handled by direct Supabase calls from opa-mobile:
 
 Health check: `GET https://vecnktrbjolahcalkbml.supabase.co/functions/v1/api/health` → `{ status: 'ok', service: 'opa-api', timestamp }`
 
+## Standalone Repo
+
+The API source has been extracted to `maxibernardoni/opa-backend`. The `backend/` folder still exists in `opa-mobile` pending confirmation that the standalone repo deploys independently. Once confirmed, `backend/` should be removed from `opa-mobile`.
+
 ## Pending
 
+- [ ] Confirm `opa-backend` independent deploy and delete `backend/` from `opa-mobile`
 - [ ] Add CORS origin for confirmed opa-web production domain (currently `https://opa-web.vercel.app` placeholder)
 - [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; open question for Database chat
 - [ ] Move rate limiter Map to Deno KV for persistence across Edge Function instances (current in-memory Map resets on cold start)
