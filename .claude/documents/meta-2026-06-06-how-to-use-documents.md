@@ -157,4 +157,4 @@ If two documents contain contradictory information about the same topic:
 | `design-2026-06-06-visual-system.md` | Color palette, typography, cards, Storage resources, principles |
 | `meta-2026-06-06-how-to-use-documents.md` | This file |
 | `meta-2026-06-07-documentation-style-guide.md` | Authoritative style guide for creating and editing documents |
-| `meta-2026-06-07-chat-structure.md` | Chat roles, domain boundaries, and initialization prompts |
+| `_archive/meta-2026-06-07-chat-structure.md` | ⚠️ Archived — described the old multi-chat model (Frontend+Backend / Design / Database / Documentation roles across cloud chats). Superseded by the single-session-per-repo model described in the root `CLAUDE.md` (as of 2026-07-01). Kept for historical reference only. |
