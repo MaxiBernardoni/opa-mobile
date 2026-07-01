@@ -13,13 +13,13 @@ OPA lives across four repositories:
 | Repo | Stack | Status |
 |---|---|---|
 | `opa-mobile` | React Native + Expo | Active — current repo |
-| `opa-backend` | Supabase + Edge Functions + Hono API | Structured in `backend/` folder, to be extracted |
+| `opa-backend` | Supabase + Edge Functions + Hono API | ✅ extracted — `maxibernardoni/opa-backend` |
 | `opa-web` | Next.js (planned) | Not started — brand management panel for desktop |
 | `opa-admin` | Next.js 14 + shadcn/ui (planned) | Not started — internal OPA team panel |
 
-`opa-backend` is the shared infrastructure for both mobile and web clients. Extraction is **blocked** until: all pending DB migrations are applied, all API endpoints are implemented (no 501s), and the API is deployed to Supabase Edge Functions.
+`opa-backend` is the shared infrastructure for both mobile and web clients.
 
-- [ ] Extract `backend/` folder to standalone `opa-backend` repo — blocked by API completion and deploy
+- [x] Extract `backend/` folder to standalone `opa-backend` repo — ✅ done: `functions/`, `supabase/migrations/`, `supabase/seed/`, `README.md` copied to `maxibernardoni/opa-backend` (branch `claude/opa-sync-frontend-backend-kpe2s5`, currently the repo's default branch). `backend/` still exists in `opa-mobile` — do not delete until the new repo's deploy is confirmed independently.
 - [ ] Initialize `opa-admin` repo (`maxibernardoni/opa-admin`) with Next.js 14 + shadcn/ui + Tailwind + Supabase client
 - [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation)
 - [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
@@ -52,7 +52,7 @@ OPA lives across four repositories:
 
 - [x] `useSizeGuide` integration in `app/product/[id].tsx` — ✅ implemented: drives SizeGuideSheet table and `entries` display
 - [x] `useRecommendedSize` integration in `app/product/[id].tsx` — ✅ implemented: highlights recommended size chip and shows hint text
-- [ ] `useUserMeasurements` integration in settings screen — hook exists (`saveMeasurements`, `measurements`), no UI to call it
+- [x] `useUserMeasurements` integration in settings screen — ✅ implemented: `app/measurements.tsx`, reachable from Settings → "Mis medidas"
 - [ ] `useOutfitsBySimilarMeasurements` hook (new) — query `useOutfits` or new hook that prioritizes outfits from creators whose `user_measurements` are similar to the authenticated user's; define "similar" threshold (e.g. ±5 cm on waist and chest)
 - [ ] Fit preference option for size recommendation — let user choose ajustado/bien/suelto; pass preference to `get_recommended_size` and adjust matching logic
 - [ ] "Ya lo tenés" data logic — cross-reference `outfit_items` with `prendas_armario` for the authenticated user to determine which garments in an outfit are already owned; expose as hook or computed field in `useOutfits`
@@ -82,7 +82,8 @@ OPA lives across four repositories:
 - [x] `app/outfit/[id].tsx` — ✅ implemented: cover image, creator row, garment list by slot, slot thumbnail grid, total price + "Ver outfit" CTA
 - [x] `app/(tabs)/search.tsx` — ✅ implemented: debounced text query (350ms), outfits/prendas tabs, tag filter chips (#style/#occasion), 2-col grid results
 - [x] `app/(tabs)/wardrobe.tsx` — ✅ implemented: real data from useWardrobe, slot filter chips, 3-col grid, tap navigates to product detail
-- [ ] Body measurements input screen — accessible from Settings and from first use of the size guide; numeric inputs for height, chest, waist, hip, thigh in cm; persists via `useUserMeasurements().saveMeasurements()`
+- [x] Body measurements input screen — ✅ implemented: `app/measurements.tsx`, numeric inputs for height, chest, waist, hip, thigh in cm; persists via `useUserMeasurements().save()`. Not yet linked from first use of the size guide.
+- [x] Settings → "Registrar Marca" — ✅ implemented: row shown in `app/settings.tsx` when `perfiles.is_brand = false`, opens a modal form (brand name, Instagram, category) that inserts into `brand_applications`
 - [ ] Settings sub-screens: edit profile (display name, bio, avatar, tags), security (change password, 2FA), notifications preferences, style preferences
 
 ### Features on existing screens

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 App mobile de descubrimiento de moda centrada en **outfits** como unidad principal de contenido (TikTok/Pinterest para moda). Tres pilares: descubrimiento de outfits, armario personal, compra contextual.
 
-El repo también contiene `backend/` — infraestructura Supabase + Edge Functions + Hono API compartida entre opa-mobile y opa-web. Está planificada su extracción a repo propio (`opa-backend`) una vez que el deploy esté completo.
+El repo también contiene `backend/` — infraestructura Supabase + Edge Functions + Hono API compartida entre opa-mobile y opa-web. Ya fue extraída a `maxibernardoni/opa-backend`; `backend/` se mantiene acá hasta confirmar que el repo nuevo funciona de forma independiente.
 
 ---
 
@@ -105,7 +105,8 @@ app/
     search.tsx        — búsqueda funcional: texto + tabs + tag filters
     wardrobe.tsx      — armario personal con datos reales
   auth/index.tsx      — Login/Signup con validación por campo en tiempo real
-  settings.tsx        — Logout + eliminar cuenta (supabase.rpc('delete_user'))
+  settings.tsx        — Logout, eliminar cuenta, "Mis medidas", "Registrar Marca" (si !is_brand)
+  measurements.tsx    — inputs numéricos (altura/pecho/cintura/cadera/muslo cm), persiste via useUserMeasurements().save()
   user-outfits.tsx    — Scroll de outfits de un usuario; params: userId, startIndex
   saved-outfits.tsx   — Scroll de outfits guardados; param: startIndex
   outfit/[id].tsx     — detalle de outfit con prendas por slot, precio total, CTA
@@ -202,9 +203,12 @@ Los documentos de referencia viven en `.claude/documents/`:
 - [x] `app/outfit/[id].tsx` — detalle de outfit con prendas por slot, precio total, CTA
 - [x] `app/(tabs)/search.tsx` — búsqueda funcional: texto + tabs + tag filters
 - [x] `app/(tabs)/wardrobe.tsx` — armario con datos reales, filtro por slot
+- [x] `app/measurements.tsx` — pantalla "Mis medidas", accesible desde Settings
+- [x] Settings → botón "Registrar Marca" + form de solicitud (inserta en `brand_applications`)
+- [x] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf` — cargada en `_layout.tsx`
+- [x] Extracción de `backend/` a `maxibernardoni/opa-backend`
 
 ## Pendientes principales
 
-- [ ] Pantalla de "Mis medidas" en Settings
-- [ ] Settings → botón "Registrar Marca" + form de solicitud
-- [ ] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf`
+- [ ] Confirmar deploy independiente de `opa-backend` y luego eliminar `backend/` de este repo
+- [ ] Settings sub-screens: editar perfil, seguridad, notificaciones, preferencias de estilo
