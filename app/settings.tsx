@@ -14,7 +14,9 @@ import { supabase } from '../lib/supabase'
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 
-const SECTIONS = [
+type SettingsItem = { label: string; desc: string; icon: string; route?: string }
+
+const SECTIONS: { title: string; items: SettingsItem[] }[] = [
   {
     title: 'CUENTA',
     items: [
@@ -27,7 +29,7 @@ const SECTIONS = [
     title: 'PREFERENCIAS',
     items: [
       { label: 'Preferencias de estilo', desc: 'Colores, estilos, temporadas, todo lo que te guste', icon: 'percha_rosa.png' },
-      { label: 'Mis medidas', desc: 'Editá tus medidas para mejores recomendaciones', icon: 'cinta-metrica.png' },
+      { label: 'Mis medidas', desc: 'Editá tus medidas para mejores recomendaciones', icon: 'cinta-metrica.png', route: '/measurements' },
       { label: 'Talles preferidos', desc: 'Gestioná tus talles ideales por categoría', icon: 'zapatos_rosa.png' },
     ],
   },
@@ -50,6 +52,14 @@ export default function SettingsScreen() {
   const [passwordError, setPasswordError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [showBrandModal, setShowBrandModal] = useState(false)
+  const [brandName, setBrandName] = useState('')
+  const [brandInstagram, setBrandInstagram] = useState('')
+  const [brandCategory, setBrandCategory] = useState('')
+  const [brandError, setBrandError] = useState('')
+  const [brandLoading, setBrandLoading] = useState(false)
+  const [brandSubmitted, setBrandSubmitted] = useState(false)
+
   const displayUsername = profile?.username ?? session?.user.email?.split('@')[0] ?? 'usuario'
   const displayName = profile?.display_name ?? ''
   const avatarUrl = profile?.avatar_url
@@ -70,6 +80,43 @@ export default function SettingsScreen() {
     setShowDeleteModal(false)
     setPassword('')
     setPasswordError('')
+  }
+
+  function openBrandModal() {
+    setBrandName('')
+    setBrandInstagram('')
+    setBrandCategory('')
+    setBrandError('')
+    setBrandSubmitted(false)
+    setShowBrandModal(true)
+  }
+
+  function closeBrandModal() {
+    setShowBrandModal(false)
+  }
+
+  async function handleSubmitBrandApplication() {
+    if (!session?.user?.id) return
+    if (!brandName.trim()) {
+      setBrandError('Ingresá el nombre de tu marca.')
+      return
+    }
+    setBrandLoading(true)
+    setBrandError('')
+
+    const { error } = await supabase.from('brand_applications').insert({
+      applicant_id: session.user.id,
+      brand_name: brandName.trim(),
+      instagram_handle: brandInstagram.trim() || null,
+      category: brandCategory.trim() || null,
+    })
+
+    setBrandLoading(false)
+    if (error) {
+      setBrandError('Ocurrió un error al enviar la solicitud. Intentá más tarde.')
+      return
+    }
+    setBrandSubmitted(true)
   }
 
   async function handleDeleteAccount() {
@@ -143,7 +190,11 @@ export default function SettingsScreen() {
             <View style={styles.sectionCard}>
               {section.items.map((item, i) => (
                 <View key={item.label}>
-                  <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    style={styles.row}
+                    activeOpacity={0.7}
+                    onPress={item.route ? () => router.push(item.route as any) : undefined}
+                  >
                     <View style={styles.rowIconWrap}>
                       <Image
                         source={{ uri: BASE + item.icon }}
@@ -163,6 +214,29 @@ export default function SettingsScreen() {
             </View>
           </View>
         ))}
+
+        {/* Registrar marca */}
+        {!profile?.is_brand && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>MARCA</Text>
+            <View style={styles.sectionCard}>
+              <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={openBrandModal}>
+                <View style={styles.rowIconWrap}>
+                  <Image
+                    source={{ uri: BASE + 'caja_rosa.png' }}
+                    style={styles.rowIcon}
+                    contentFit="contain"
+                  />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowLabel}>Registrar Marca</Text>
+                  <Text style={styles.rowDesc}>Sumá tu marca a OPA y vendé tus prendas</Text>
+                </View>
+                <Text style={styles.rowArrow}>{'>'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <Text style={styles.version}>OPA Versión 1.0</Text>
 
@@ -262,6 +336,81 @@ export default function SettingsScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Brand application modal */}
+      <Modal
+        visible={showBrandModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeBrandModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {brandSubmitted ? (
+              <>
+                <Text style={styles.modalTitle}>¡Solicitud enviada!</Text>
+                <Text style={styles.modalSubtitle}>
+                  Vamos a revisar tu solicitud y te avisamos por email cuando esté aprobada.
+                </Text>
+                <TouchableOpacity style={[styles.deleteBtn, styles.brandCloseBtn]} onPress={closeBrandModal}>
+                  <Text style={styles.deleteBtnText}>Listo</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalTitle}>Registrar Marca</Text>
+                <Text style={styles.modalSubtitle}>
+                  Contanos sobre tu marca. Un admin va a revisar tu solicitud.
+                </Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nombre de la marca"
+                  placeholderTextColor={colors.grisMedio}
+                  value={brandName}
+                  onChangeText={setBrandName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Instagram (opcional)"
+                  placeholderTextColor={colors.grisMedio}
+                  value={brandInstagram}
+                  onChangeText={setBrandInstagram}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Categoría (ej: Ropa, Calzado, Accesorios)"
+                  placeholderTextColor={colors.grisMedio}
+                  value={brandCategory}
+                  onChangeText={setBrandCategory}
+                />
+
+                {brandError ? <Text style={styles.errorText}>{brandError}</Text> : null}
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={closeBrandModal} disabled={brandLoading}>
+                    <Text style={styles.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.saveBrandBtn, (!brandName.trim() || brandLoading) && styles.deleteBtnDisabled]}
+                    onPress={handleSubmitBrandApplication}
+                    disabled={!brandName.trim() || brandLoading}
+                  >
+                    {brandLoading ? (
+                      <ActivityIndicator color={colors.blanco} size="small" />
+                    ) : (
+                      <Text style={styles.deleteBtnText}>Enviar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -433,4 +582,13 @@ const styles = StyleSheet.create({
     color: colors.blanco,
     fontFamily: fonts.palanquinDark,
   },
+
+  saveBrandBtn: {
+    flex: 1,
+    backgroundColor: colors.rosaOpa,
+    borderRadius: radius.button,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  brandCloseBtn: { backgroundColor: colors.rosaOpa, marginTop: spacing.sm },
 })
