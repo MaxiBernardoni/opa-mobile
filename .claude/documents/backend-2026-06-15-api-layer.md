@@ -20,14 +20,14 @@ Supabase is still called directly from opa-mobile for read-heavy operations (fee
 | **Framework** | Hono v4 |
 | **Auth** | Supabase JWT validation via `supabase.auth.getUser(token)` |
 | **Deploy** | Supabase Edge Functions — no separate infra needed |
-| **Location in repo** | `backend/functions/api/` (in `opa-mobile`; extracted to standalone repo `maxibernardoni/opa-backend`) |
+| **Location** | `functions/api/` in the separate repo `maxibernardoni/opa-backend` (no longer in `opa-mobile`) |
 
 ---
 
 ## File Structure
 
 ```
-backend/functions/api/
+functions/api/
 ├── deno.json              # Deno import map (Hono + Supabase JS)
 ├── index.ts               # Entry point: app setup, global middleware, route registration
 ├── middleware/
@@ -118,11 +118,11 @@ Health check: `GET https://vecnktrbjolahcalkbml.supabase.co/functions/v1/api/hea
 
 ## Standalone Repo
 
-The API source has been extracted to `maxibernardoni/opa-backend`. The `backend/` folder still exists in `opa-mobile` pending confirmation that the standalone repo deploys independently. Once confirmed, `backend/` should be removed from `opa-mobile`.
+The API source lives exclusively in `maxibernardoni/opa-backend`. Confirmed independent on 2026-07-03: redeployed the `api` Edge Function using only `opa-backend`'s code (version 2), verified via health check, and tested `opa-mobile` end-to-end with no local `backend/` folder. `backend/` was removed from `opa-mobile`.
 
 ## Pending
 
-- [ ] Confirm `opa-backend` independent deploy and delete `backend/` from `opa-mobile`
+- [ ] **Rate limiter is a no-op** — registered as `app.use('*', ...)` in `index.ts`, but runs *before* `authMiddleware`, so `c.get('user')` is always `undefined` there and the limit never triggers. Found 2026-07-03 while verifying opa-backend's independence. Fix: move the middleware registration after auth, or key it off something available pre-auth.
 - [ ] Add CORS origin for confirmed opa-web production domain (currently `https://opa-web.vercel.app` placeholder)
 - [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; open question for Database chat
 - [ ] Move rate limiter Map to Deno KV for persistence across Edge Function instances (current in-memory Map resets on cold start)

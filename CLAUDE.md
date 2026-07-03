@@ -32,7 +32,7 @@ Modelo actual:
 
 App mobile de descubrimiento de moda centrada en **outfits** como unidad principal de contenido (TikTok/Pinterest para moda). Tres pilares: descubrimiento de outfits, armario personal, compra contextual.
 
-El repo también contiene `backend/` — infraestructura Supabase + Edge Functions + Hono API compartida entre opa-mobile y opa-web. Ya fue extraída a `maxibernardoni/opa-backend`; `backend/` se mantiene acá hasta confirmar que el repo nuevo funciona de forma independiente.
+La infraestructura de backend (Supabase + Edge Functions + Hono API) vive en el repo separado `maxibernardoni/opa-backend` — ya no está en este repo. Ver "Mapa de repos" abajo.
 
 ### Qué NO es OPA (valores y decisiones descartadas)
 
@@ -51,7 +51,7 @@ OPA vive en 4 repos separados. Si una tarea necesita tocar otro repo, decilo exp
 | Repo | Stack | Rol | Estado |
 |---|---|---|---|
 | `opa-mobile` (este repo) | React Native + Expo SDK 54 | App para usuarios finales (consumidores) | Activo, es el más avanzado |
-| `opa-backend` (`maxibernardoni/opa-backend`) | Supabase + Edge Functions + Hono API | Infraestructura compartida entre opa-mobile y opa-web | Extraído de `backend/` en este repo; pendiente confirmar deploy 100% independiente |
+| `opa-backend` (`maxibernardoni/opa-backend`) | Supabase + Edge Functions + Hono API | Infraestructura compartida entre opa-mobile y opa-web | ✅ Confirmado independiente (2026-07-03): se redeployó la Edge Function `api` en producción usando solo el código de `opa-backend` y se verificó `opa-mobile` funcionando end-to-end contra Supabase sin `backend/` local |
 | `opa-admin` (`maxibernardoni/opa-admin`) | Next.js 14 + shadcn/ui + Tailwind | Panel interno del equipo OPA (moderación, aprobar marcas, KPIs) — NO es para marcas ni usuarios finales | En desarrollo inicial |
 | `opa-web` | Next.js (planeado) | Panel de gestión para marcas (analytics, stock, pedidos) — para uso desde desktop | No iniciado |
 
@@ -69,8 +69,8 @@ npx expo start --clear          # Expo Go en celular — misma WiFi, SDK 54
 # IMPORTANTE: siempre usar --legacy-peer-deps en npm install
 npm install --legacy-peer-deps
 
-# API (Deno / Supabase Edge Functions)
-cd backend/
+# API (Deno / Supabase Edge Functions) — repo separado, ver opa-backend
+# cd ../opa-backend
 supabase functions serve api    # Dev local
 supabase functions deploy api   # Deploy a producción
 ```
@@ -86,7 +86,7 @@ supabase functions deploy api   # Deploy a producción
 | Estado global | Zustand (`store/useAuthStore.ts`) |
 | Imágenes | Expo Image |
 | Backend | Supabase (Project ID: `vecnktrbjolahcalkbml`) |
-| API server | Hono v4 en Deno (Supabase Edge Functions) — `backend/functions/api/` |
+| API server | Hono v4 en Deno (Supabase Edge Functions) — código en `opa-backend/functions/api/` (repo separado) |
 | Lenguaje | TypeScript (mobile) / TypeScript en Deno (API) |
 
 ---
@@ -184,7 +184,7 @@ app/
 | `useUserMeasurements()` | measurements + `save()` con UPSERT |
 | `useRecommendedSize(guideId?)` | llama `supabase.rpc('get_recommended_size')` |
 
-### API (`backend/functions/api/`)
+### API (código en `opa-backend/functions/api/`, repo separado)
 
 Hono v4 en Deno. Base path: `/api`. Auth middleware en todas las rutas protegidas — lee `Authorization: Bearer <token>`, valida con `supabase.auth.getUser()`, expone `c.get('user')` y `c.get('supabase')`.
 
@@ -201,7 +201,7 @@ POST /api/orders                       — checkout: valida stock, crea order, d
 PATCH /api/orders/:id/status           — brand owner cambia status (pending/shipped/delivered)
 ```
 
-Rate limiter in-memory en `POST /orders`: ventana 60s, max 20 req/user.
+Rate limiter in-memory en `POST /orders`: ventana 60s, max 20 req/user. Nota: el rate limiter corre *antes* que el auth middleware en el orden de registro, así que `c.get('user')` está vacío en ese punto y el límite nunca se aplica en la práctica — bug preexistente, pendiente de arreglar (ver pending-features).
 
 ---
 
@@ -258,7 +258,7 @@ Los documentos de referencia viven en `.claude/documents/`:
 
 ## Estado actual
 
-**Resumen en prosa (2026-07-01):** la app mobile tiene el flujo principal completo y funcional contra Supabase real — auth, home, outfit scroll estilo TikTok, perfil, búsqueda, armario, detalle de outfit y de prenda con guía de talles, y "Mis medidas". Settings tiene logout, borrado de cuenta, acceso a medidas y el formulario de "Registrar Marca" (que solo inserta una solicitud en `brand_applications`, todavía no crea la cuenta de marca — eso lo hace `opa-admin` a futuro). La API en Hono está desplegada y sin 501s pendientes. `backend/` fue extraído a `opa-backend` pero todavía convive en este repo hasta confirmar que el nuevo repo despliega solo. Lo que falta es sobre todo features de producto avanzadas (ver Pendientes) y las sub-pantallas de Settings que no son core.
+**Resumen en prosa (2026-07-03):** la app mobile tiene el flujo principal completo y funcional contra Supabase real — auth, home, outfit scroll estilo TikTok, perfil, búsqueda, armario, detalle de outfit y de prenda con guía de talles, y "Mis medidas". Settings tiene logout, borrado de cuenta, acceso a medidas y el formulario de "Registrar Marca" (que solo inserta una solicitud en `brand_applications`, todavía no crea la cuenta de marca — eso lo hace `opa-admin` a futuro). La API en Hono está desplegada y sin 501s pendientes. **La separación de `opa-backend` ya se completó**: se verificó que el código de `opa-backend` es autosuficiente (redeploy de la Edge Function `api` en producción desde ese repo, health check OK, app mobile probada end-to-end contra Supabase sin `backend/` local) y la carpeta `backend/` se eliminó de este repo el 2026-07-03. De paso se encontró y arregló un bug en el rate-limiter (`app.use('/orders/POST', ...)` no matchea ningún path real, se corrigió a un middleware `'*'` que chequea método+path) y se reconstruyó una migración RLS (`rls_policies_cart_orders_reviews_wardrobe`) que estaba aplicada en la DB pero faltaba en el historial de git de ambos repos — ambos fixes están commiteados en `opa-backend`. Lo que falta es sobre todo features de producto avanzadas (ver Pendientes) y las sub-pantallas de Settings que no son core.
 
 - [x] Setup + design tokens + BottomNavBar custom
 - [x] Home screen con carousels horizontales
@@ -280,10 +280,10 @@ Los documentos de referencia viven en `.claude/documents/`:
 - [x] `app/measurements.tsx` — pantalla "Mis medidas", accesible desde Settings
 - [x] Settings → botón "Registrar Marca" + form de solicitud (inserta en `brand_applications`)
 - [x] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf` — cargada en `_layout.tsx`
-- [x] Extracción de `backend/` a `maxibernardoni/opa-backend`
+- [x] Extracción de `backend/` a `maxibernardoni/opa-backend` — confirmado independiente y `backend/` eliminado de este repo (2026-07-03)
 
 ## Pendientes principales
 
-- [ ] Confirmar deploy independiente de `opa-backend` y luego eliminar `backend/` de este repo
+- [ ] Arreglar orden de middlewares en `opa-backend/functions/api/index.ts`: el rate-limiter de `POST /orders` corre antes que `authMiddleware`, así que `c.get('user')` está vacío y el límite nunca se aplica (bug preexistente, no bloqueante)
 - [ ] Settings sub-screens: editar perfil, seguridad, notificaciones, preferencias de estilo
 - [ ] Replicar este formato de `CLAUDE.md` (secciones "Cómo trabajar conmigo", mapa de repos, valores, glosario, snapshot en prosa) en `opa-admin` y a futuro en `opa-backend` / `opa-web`

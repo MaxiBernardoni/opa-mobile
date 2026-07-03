@@ -19,7 +19,7 @@ OPA lives across four repositories:
 
 `opa-backend` is the shared infrastructure for both mobile and web clients.
 
-- [x] Extract `backend/` folder to standalone `opa-backend` repo — ✅ done: `functions/`, `supabase/migrations/`, `supabase/seed/`, `README.md` copied to `maxibernardoni/opa-backend` (branch `claude/opa-sync-frontend-backend-kpe2s5`, currently the repo's default branch). `backend/` still exists in `opa-mobile` — do not delete until the new repo's deploy is confirmed independently.
+- [x] Extract `backend/` folder to standalone `opa-backend` repo — ✅ done and confirmed independent (2026-07-03): redeployed the `api` Edge Function in production using only `opa-backend`'s code (version 2, verified via `GET /api/health`), tested `opa-mobile` end-to-end against Supabase (home carousels, outfit deep-link, like/follow) with no local `backend/` folder. `backend/` deleted from `opa-mobile`. Found and fixed two issues during verification, both committed to `opa-backend`: (1) `functions/api/index.ts` rate-limiter was registered on the invalid path `/orders/POST` and never matched any request — fixed to a `'*'` middleware checking method+path; (2) migration `20260701150747_rls_policies_cart_orders_reviews_wardrobe` was applied directly to the live DB but missing from git history in both repos — reconstructed from live RLS policies and added to `opa-backend/supabase/migrations/`.
 - [ ] Initialize `opa-admin` repo (`maxibernardoni/opa-admin`) with Next.js 14 + shadcn/ui + Tailwind + Supabase client
 - [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation)
 - [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
@@ -41,7 +41,7 @@ OPA lives across four repositories:
 - [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
 - [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — removed in current schema for simplicity; needed when the purchase flow is implemented
 - [ ] Add `position_x numeric` and `position_y numeric` to `outfit_items` — removed in favor of `slot` categorical; needed if precise floating label positioning is implemented
-- [ ] Audit RLS policies for `productos_carrito`, `orders`, `productos_orden`, `reseñas` — tables exist but policies have not been reviewed
+- [x] Audit RLS policies for `productos_carrito`, `orders`, `productos_orden`, `reseñas`, `prendas_armario` — ✅ done: found already applied live but missing from git history, reconstructed as `opa-backend/supabase/migrations/20260701150747_rls_policies_cart_orders_reviews_wardrobe.sql` (2026-07-03)
 - [ ] Complete `@chechuabb` (Celina Abelson) seed profile and outfits — profile row exists, no outfits seeded
 - [ ] Complete metadata for fictional brands (Forma, Revés, Capas, Sole) — `instagram_handle`, `website`, `location` are all `NULL`
 - [ ] DB schema for brand loyalty points system — new table `brand_points` (user_id, brand_id, points, updated_at) and logic to award points when a user purchases a 100%-single-brand outfit; requires purchase flow to be implemented first
@@ -63,13 +63,13 @@ OPA lives across four repositories:
 - [ ] Full-text search on outfits and garments
 - [ ] Cursor-based pagination in `useOutfits` — currently `LIMIT 20`; needs infinite scroll support
 
-### API (Hono — `backend/functions/api/`)
+### API (Hono — code now in `opa-backend/functions/api/`, separate repo)
 - [x] Deploy to Supabase Edge Functions — ✅ deployed; `GET /api/health` responding in production (`vecnktrbjolahcalkbml.supabase.co/functions/v1/api/health`)
 - [ ] `GET /api/brands/me/metrics` — visit/click/conversion tracking requires new DB tables; currently returns likes + saves only (with note)
 - [x] `POST /api/orders` — ✅ implemented: stock validation, total calculation, `stock_por_talle` decrement, order + `productos_orden` creation, cart cleared
 - [x] `PATCH /api/orders/:id/status` — ✅ implemented: verifies brand ownership via garments in the order; valid values: pending/shipped/delivered
 - [x] Brand garment management routes — ✅ implemented: `GET/POST /api/brands/me/prendas`, `PATCH /api/brands/me/prendas/:id`
-- [x] Rate limiting middleware — ✅ implemented: in-memory Map on `POST /orders`, window 60s, max 20 req; note: resets on cold start (Deno KV upgrade tracked separately)
+- [x] Rate limiting middleware — implemented but currently a no-op: it's registered as `app.use('*', ...)` before `authMiddleware` runs, so `c.get('user')` is always empty at that point and the limit never triggers. Found during opa-backend independence verification (2026-07-03). Needs the middleware moved to run after auth, or to key off something available pre-auth (e.g. IP).
 - [ ] Update CORS origin with confirmed opa-web production domain (currently placeholder `https://opa-web.vercel.app`)
 - [ ] Move rate limiter to Deno KV for persistence across Edge Function instances
 

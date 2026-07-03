@@ -247,7 +247,7 @@ Prendas guardadas en favoritos para comprar más tarde.
 
 **RLS:** habilitado — SELECT/INSERT/DELETE solo propio (`user_id = auth.uid()`).
 
-**Creada:** manualmente vía MCP Supabase. Migration file: `backend/supabase/migrations/20260609160000_create_prendas_guardadas.sql` (documentación — no re-ejecutar en producción).
+**Creada:** manualmente vía MCP Supabase. Migration file: `opa-backend/supabase/migrations/20260609160000_create_prendas_guardadas.sql` (documentación — no re-ejecutar en producción).
 
 ---
 
