@@ -12,16 +12,17 @@ OPA lives across four repositories:
 
 | Repo | Stack | Status |
 |---|---|---|
-| `opa-mobile` | React Native + Expo | Active — current repo |
-| `opa-backend` | Supabase + Edge Functions + Hono API | ✅ extracted — `maxibernardoni/opa-backend` |
-| `opa-web` | Next.js (planned) | Not started — brand management panel for desktop |
-| `opa-admin` | Next.js 14 + shadcn/ui (planned) | Not started — internal OPA team panel |
+| `opa-mobile` | React Native + Expo | Active — current repo, under `opa-organization` |
+| `opa-backend` | Supabase + Edge Functions + Hono API | ✅ extracted — `opa-organization/opa-backend` |
+| `opa-web` | Next.js (planned) | Not started — create directly under `opa-organization` |
+| `opa-admin` | Next.js 14 + shadcn/ui (planned) | In initial dev under `maxibernardoni/opa-admin` — not verified whether it's been moved to `opa-organization` yet |
 
 `opa-backend` is the shared infrastructure for both mobile and web clients.
 
 - [x] Extract `backend/` folder to standalone `opa-backend` repo — ✅ done and confirmed independent (2026-07-03): redeployed the `api` Edge Function in production using only `opa-backend`'s code (version 2, verified via `GET /api/health`), tested `opa-mobile` end-to-end against Supabase (home carousels, outfit deep-link, like/follow) with no local `backend/` folder. `backend/` deleted from `opa-mobile`. Found and fixed two issues during verification, both committed to `opa-backend`: (1) `functions/api/index.ts` rate-limiter was registered on the invalid path `/orders/POST` and never matched any request — fixed to a `'*'` middleware checking method+path; (2) migration `20260701150747_rls_policies_cart_orders_reviews_wardrobe` was applied directly to the live DB but missing from git history in both repos — reconstructed from live RLS policies and added to `opa-backend/supabase/migrations/`.
-- [ ] **Migrate the 4 repos into the `opa-organization` GitHub org (started 2026-07-03, NOT finished)** — org already created. `opa-mobile` and `opa-backend` still live under the personal account `MaxiBernardoni` (verified via `git remote -v` on both, still pointing to `github.com/MaxiBernardoni/...`). First transfer attempt failed because the user used GitHub's "Import a repository" tool (clones via HTTPS, needs credentials) instead of "Transfer ownership" (Settings → Danger Zone → Transfer, native, no cloning). Next session: check `git remote -v` in both repos to see current state before assuming anything; if not yet transferred, guide through Transfer ownership for both, then `git remote set-url origin` locally, then update `maxibernardoni/opa-backend` and `maxibernardoni/opa-mobile` references in `CLAUDE.md` + this file to `opa-organization/...`. See full detail in `CLAUDE.md` → "Mapa de repos" → "Migración en curso a organización de GitHub".
-- [ ] Initialize `opa-admin` repo with Next.js 14 + shadcn/ui + Tailwind + Supabase client — create it directly under `opa-organization`, not the personal account
+- [x] Migrate `opa-mobile` and `opa-backend` into the `opa-organization` GitHub org — ✅ done and confirmed (2026-07-03): `git remote -v` on both local repos now points to `github.com/opa-organization/...`; push/fetch tested working. First attempt failed using GitHub's "Import a repository" tool (clone-based, needs credentials); the fix was using "Transfer ownership" (Settings → Danger Zone → Transfer) instead, which is native and doesn't clone.
+- [ ] Confirm whether `opa-admin` has been transferred into `opa-organization` — not checked in this session (repo isn't cloned in this environment). Run `git remote -v` in that repo, or `git ls-remote https://github.com/opa-organization/opa-admin.git`, to check.
+- [ ] Initialize `opa-admin` repo with Next.js 14 + shadcn/ui + Tailwind + Supabase client — create it directly under `opa-organization`, not the personal account (only relevant if it turns out `opa-admin` hasn't been created/moved yet)
 - [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation); create under `opa-organization`
 - [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
 
