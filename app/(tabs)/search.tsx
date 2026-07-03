@@ -167,7 +167,9 @@ export default function SearchScreen() {
                 <View style={styles.outfitMeta}>
                   <Text style={styles.outfitTitle} numberOfLines={1}>{item.title ?? 'Outfit'}</Text>
                   {(item as any).creator && (
-                    <Text style={styles.outfitCreator}>@{(item as any).creator.username}</Text>
+                    <TouchableOpacity onPress={() => router.push(`/user/${(item as any).creator.id}`)} hitSlop={4}>
+                      <Text style={styles.outfitCreator}>@{(item as any).creator.username}</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               </TouchableOpacity>

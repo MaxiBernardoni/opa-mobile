@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground,
 } from 'react-native'
 import { Image } from 'expo-image'
+import { useRouter } from 'expo-router'
 import { Outfit } from '../../types'
 import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function OutfitScrollItem({ outfit, isActive }: Props) {
+  const router = useRouter()
   const { session } = useAuthStore()
   const { liked, count: likeCount, toggle: toggleLike } = useLike(outfit.id, outfit.likes_count)
   const { saved, count: saveCount, toggle: toggleSave } = useSave(outfit.id, outfit.saves_count ?? 0)
@@ -77,17 +79,24 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
         {/* Creator info */}
         <View style={styles.brandInfo}>
           <View style={styles.brandRow}>
-            {creator?.avatar_url ? (
-              <Image source={{ uri: creator.avatar_url }} style={styles.creatorAvatar} contentFit="cover" />
-            ) : (
-              <View style={styles.brandAvatar}>
-                <Text style={styles.brandAvatarText}>{(creator?.username ?? 'O')[0].toUpperCase()}</Text>
+            <TouchableOpacity
+              style={styles.brandTapArea}
+              activeOpacity={0.85}
+              disabled={!creatorId}
+              onPress={() => router.push(`/user/${creatorId}`)}
+            >
+              {creator?.avatar_url ? (
+                <Image source={{ uri: creator.avatar_url }} style={styles.creatorAvatar} contentFit="cover" />
+              ) : (
+                <View style={styles.brandAvatar}>
+                  <Text style={styles.brandAvatarText}>{(creator?.username ?? 'O')[0].toUpperCase()}</Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.brandName}>{creatorHandle}</Text>
+                <Text style={styles.outfitTitle}>{outfit.title}</Text>
               </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.brandName}>{creatorHandle}</Text>
-              <Text style={styles.outfitTitle}>{outfit.title}</Text>
-            </View>
+            </TouchableOpacity>
             {!isOwnOutfit && creatorId && (
               <TouchableOpacity
                 onPress={toggleFollow}
@@ -151,6 +160,7 @@ const styles = StyleSheet.create({
   actionCount: { fontSize: 11, color: colors.blanco, marginTop: 2 },
   brandInfo: { position: 'absolute', bottom: 110, left: 16, right: 80 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brandTapArea: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandAvatar: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: colors.negro, alignItems: 'center', justifyContent: 'center',

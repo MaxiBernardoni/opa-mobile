@@ -37,6 +37,8 @@ app/
     [id].tsx           # Detalle de prenda con SizeGuideSheet
   outfit/
     [id].tsx           # Detalle de outfit con prendas por slot
+  user/
+    [id].tsx           # Perfil de otro usuario (no el propio) — solo lectura + follow
 ```
 
 ---
@@ -137,12 +139,23 @@ Accessible from Settings → "Mis medidas" row.
 - Success indicator: "Medidas guardadas ✓" text in `rosaOpa` shown after successful save
 - Layout: `KeyboardAvoidingView` wrapper (`padding` on iOS), `ScrollView` content; fields inside a white card with `borderBottomWidth` separators
 
+### User Profile (`app/user/[id].tsx`)
+- Perfil de lectura de **otro usuario** (no marca separada — reusa el mismo layout para cualquier `perfiles` no propio). Antes de este screen, la app no tenía forma de ver el perfil de nadie más que uno mismo: tocar un creador saltaba directo al scroll de sus outfits.
+- Param: `id` (userId). Si `id` === el usuario logueado, redirige a `/(tabs)/profile` (este screen es exclusivamente para perfiles ajenos).
+- Top bar: flecha de volver (`flecha.png`) y compartir (`compartir.png`), ambos assets reales de Supabase Storage — **no** texto/emoji. El ícono de menú (`···`) sí quedó como texto porque no hay ningún asset de menú/opciones en el bucket `assets/` (se buscó explícitamente).
+- Header: avatar + stats (Seguidores/Seguidos/Outfits — sin "Guardados", que es privado), nombre, handle, bio, ig, tags.
+- Botón **Seguir/Siguiendo** con `useFollow` (mismo hook que el scroll de outfits, sin campanita de notificaciones — ver pendientes).
+- Un solo tab (grid, sin favoritos/pedidos — esos son privados del dueño), **centrado** en la tab bar (no pegado a la izquierda), sección "Outfits creados", grid 3 columnas con like count, tap → `user-outfits.tsx` con `userId` + `startIndex`.
+- Iconos de compartir y menú arriba a la derecha son solo visuales por ahora, sin acción — ver pendientes.
+- **Bottom navbar standalone**: esta pantalla vive fuera del `Tabs` navigator (es un stack screen bajo `app/`), así que no puede reusar `components/navigation/BottomNavBar.tsx` directamente (ese componente depende de `state`/`navigation` de `@react-navigation/bottom-tabs`). Se armó una versión propia dentro del mismo archivo, calcada visualmente (mismos ícono paths en `assets/nav/`, mismo `iconWrap` con fondo rosa cuando activo), con "perfil" siempre marcado como activo y cada ícono navegando con `router.push` a la ruta del tab real (`/(tabs)`, `/(tabs)/outfits`, etc.). Si se agrega otra pantalla standalone que necesite esta navbar, vale la pena extraer esto a un componente compartido en vez de copiar el bloque de nuevo.
+- Puntos de entrada actualizados para navegar acá en vez de saltar directo al scroll: fila de creador en `outfit/[id].tsx`, avatar/nombre del creador en `OutfitScrollItem` (scroll principal), y `@username` en resultados de `search.tsx`.
+
 ### User Outfits (`app/user-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits de un perfil específico
 - Parámetros: `userId`, `startIndex`
 - Sin header flotante (no camión, no tabs, no botón +)
 - Botón back circular translúcido (arriba izquierda)
-- Navegar desde el grid del perfil propio
+- Navegar desde el grid del perfil propio o desde `app/user/[id].tsx`
 
 ### Saved Outfits (`app/saved-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits guardados en favoritos

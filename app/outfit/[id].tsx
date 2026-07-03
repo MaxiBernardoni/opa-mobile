@@ -98,7 +98,7 @@ export default function OutfitDetail() {
         <View style={styles.body}>
           {/* Creator */}
           {outfit.creator && (
-            <TouchableOpacity style={styles.creatorRow} onPress={() => router.push(`/user-outfits?userId=${outfit.creator!.id}&startIndex=0`)}>
+            <TouchableOpacity style={styles.creatorRow} onPress={() => router.push(`/user/${outfit.creator!.id}`)}>
               {outfit.creator.avatar_url ? (
                 <Image source={{ uri: outfit.creator.avatar_url }} style={styles.avatar} contentFit="cover" />
               ) : (

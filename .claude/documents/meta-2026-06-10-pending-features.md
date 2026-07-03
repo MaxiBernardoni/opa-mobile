@@ -80,6 +80,7 @@ OPA lives across four repositories:
 ## Frontend
 
 ### Screens to build
+- [x] `app/user/[id].tsx` — ✅ implemented: read-only profile view for any other user (was a real gap — before this, tapping a creator always skipped straight to `user-outfits.tsx`, there was no way to view anyone's profile but your own). Avatar + stats (no "Guardados", that's private), name/bio/tags, Seguir/Siguiendo button (`useFollow`), single grid tab of their outfits → `user-outfits.tsx`. Redirects to `/(tabs)/profile` if viewing your own id. Entry points updated: `outfit/[id].tsx` creator row, `OutfitScrollItem` creator avatar/name, `search.tsx` creator handle.
 - [x] `app/product/[id].tsx` — ✅ implemented: garment image, brand info, size selector chips, SizeGuideSheet bottom sheet with per-category measurement table, recommended size highlighted in rosaOpa, add to cart / redirect CTA
 - [x] `app/outfit/[id].tsx` — ✅ implemented: cover image, creator row, garment list by slot, slot thumbnail grid, total price + "Ver outfit" CTA
 - [x] `app/(tabs)/search.tsx` — ✅ implemented: debounced text query (350ms), outfits/prendas tabs, tag filter chips (#style/#occasion), 2-col grid results
@@ -89,6 +90,9 @@ OPA lives across four repositories:
 - [ ] Settings sub-screens: edit profile (display name, bio, avatar, tags), security (change password, 2FA), notifications preferences, style preferences
 
 ### Features on existing screens
+- [ ] "Seguís a X y N más en común" in `app/user/[id].tsx` — mutual connections (people the logged-in user follows who also follow the visited profile). Requires a new intersection query across both `follows` lists; no precedent in the codebase. Explicitly scoped out when building `app/user/[id].tsx` (2026-07-03).
+- [ ] "Siguiendo" button with notification bell in `app/user/[id].tsx` — requires a new column on `follows` (e.g. `notify boolean default true`) and extending `useFollow`. Explicitly scoped out when building `app/user/[id].tsx` (2026-07-03); the button currently reuses the plain Seguir/Siguiendo toggle already used in the outfit scroll.
+- [ ] Share (↑) and menu (···) actions in `app/user/[id].tsx` — visual only for now, no functionality (share profile, report, block are undefined).
 - [ ] "Ya lo tenés / te falta $X" in outfit bottom bar — if the user owns some garments from the outfit (via `prendas_armario`), show "Tenés N de M prendas — te falta $X para completar este look" instead of full total price
 - [ ] "Este look en tu talle" — when an outfit's garments are not available in the user's measured size, surface equivalent garments in the correct size and show a swap suggestion
 - [x] Highlight recommended size in the size selector — ✅ implemented in `app/product/[id].tsx`: chip with `rosaOpa` 2px border + hint text below selector
