@@ -57,6 +57,25 @@ OPA vive en 4 repos separados. Si una tarea necesita tocar otro repo, decilo exp
 
 Todos comparten el mismo proyecto Supabase (`vecnktrbjolahcalkbml`) y el mismo schema en español.
 
+### ⚠️ Migración en curso a organización de GitHub (2026-07-03, sin terminar)
+
+Se creó la organización **`opa-organization`** en GitHub para agrupar los 4 repos (hoy están sueltos bajo la cuenta personal `MaxiBernardoni`). **Todavía NO se completó la transferencia** — verificado en esta sesión: los remotes locales de `opa-mobile` y `opa-backend` siguen apuntando a `https://github.com/MaxiBernardoni/...`.
+
+Qué pasó: el usuario intentó mover `opa-mobile` con la herramienta **"Import a repository"** de GitHub (que clona por HTTPS y pide credenciales) en vez de **"Transfer ownership"** (traspaso nativo, sin clonar, sin pedir tokens). Eso tiró el error `Invalid username or token. Password authentication is not supported for Git operations.` — es un error esperado de la herramienta equivocada, no un problema real de permisos ni de la org.
+
+**Camino correcto, pendiente de confirmar si ya se hizo:**
+1. En `github.com/MaxiBernardoni/opa-mobile` → Settings → Danger Zone → **Transfer** → escribir `opa-mobile` para confirmar → new owner `opa-organization`
+2. Repetir para `opa-backend`
+3. Una vez transferidos, actualizar los remotes locales:
+   ```bash
+   git remote set-url origin https://github.com/opa-organization/opa-mobile.git
+   # (en opa-backend) git remote set-url origin https://github.com/opa-organization/opa-backend.git
+   ```
+4. Actualizar todas las referencias a `maxibernardoni/opa-backend` y `maxibernardoni/opa-mobile` en este `CLAUDE.md` y en `.claude/documents/` (incluida la tabla de arriba) a `opa-organization/...`
+5. Cuando se creen `opa-admin` y `opa-web`, crearlos directamente dentro de `opa-organization` en vez de bajo la cuenta personal.
+
+**Próxima sesión: antes de asumir que esto está resuelto, correr `git remote -v` en cada repo y confirmar contra GitHub — no dar por hecho que la migración se completó solo porque está escrita acá.**
+
 ---
 
 ## Comandos de desarrollo
