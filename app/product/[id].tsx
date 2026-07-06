@@ -96,7 +96,11 @@ export default function ProductDetail() {
         <View style={styles.body}>
           {/* Brand */}
           {garment.brand && (
-            <View style={styles.brandRow}>
+            <TouchableOpacity
+              style={styles.brandRow}
+              activeOpacity={0.7}
+              onPress={() => router.push(`/marca/${garment.brand!.id}`)}
+            >
               {garment.brand.logo_url ? (
                 <Image source={{ uri: garment.brand.logo_url }} style={styles.brandLogo} contentFit="cover" />
               ) : (
@@ -105,7 +109,7 @@ export default function ProductDetail() {
                 </View>
               )}
               <Text style={styles.brandName}>{garment.brand.name}</Text>
-            </View>
+            </TouchableOpacity>
           )}
 
           {/* Name + price */}

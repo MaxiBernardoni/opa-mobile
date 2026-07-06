@@ -45,7 +45,7 @@ OPA lives across four repositories:
 - [ ] Add `position_x numeric` and `position_y numeric` to `outfit_items` — removed in favor of `slot` categorical; needed if precise floating label positioning is implemented
 - [x] Audit RLS policies for `productos_carrito`, `orders`, `productos_orden`, `reseñas`, `prendas_armario` — ✅ done: found already applied live but missing from git history, reconstructed as `opa-backend/supabase/migrations/20260701150747_rls_policies_cart_orders_reviews_wardrobe.sql` (2026-07-03)
 - [ ] Complete `@chechuabb` (Celina Abelson) seed profile and outfits — profile row exists, no outfits seeded
-- [ ] Complete metadata for fictional brands (Forma, Revés, Capas, Sole) — `instagram_handle`, `website`, `location` are all `NULL`
+- [x] Complete metadata for fictional brands (Forma, Revés, Capas, Sole) — ✅ done: `website`/`location`/`description`/`tags` ya estaban cargados; `instagram_handle` completado el 2026-07-06 desde `opa-admin` (`reves.oficial`, `forma.oficial`, `capas.oficial`, `sole.oficial`). Nota: `profile_id` sigue `NULL` en todas las marcas (falta onboarding de cuentas de marca)
 - [ ] DB schema for brand loyalty points system — new table `brand_points` (user_id, brand_id, points, updated_at) and logic to award points when a user purchases a 100%-single-brand outfit; requires purchase flow to be implemented first
 
 ---
@@ -87,6 +87,7 @@ OPA lives across four repositories:
 - [x] `app/(tabs)/wardrobe.tsx` — ✅ implemented: real data from useWardrobe, slot filter chips, 3-col grid, tap navigates to product detail
 - [x] Body measurements input screen — ✅ implemented: `app/measurements.tsx`, numeric inputs for height, chest, waist, hip, thigh in cm; persists via `useUserMeasurements().save()`. Not yet linked from first use of the size guide.
 - [x] Settings → "Registrar Marca" — ✅ implemented: row shown in `app/settings.tsx` when `perfiles.is_brand = false`, opens a modal form (brand name, Instagram, category) that inserts into `brand_applications`
+- [x] `app/marca/[id].tsx` — ✅ implemented (2026-07-06): public brand profile, layout distinct from user profile (banner + circular logo avatar, name + `verificado_ondas` badge when `marcas.verified`, `@handle · Marca`, bio, tags, stats **Seguidores/Outfits/Prendas**, full-width Seguir, two icon-only tabs Grid/Catálogo). New hook `useBrand(marcaId)`. "Ya lo tenés" strip crosses `useWardrobe` with `garment.brand_id`. Catalog tab = 3-col `prendas` grid → `product/[id]`. Entry points wired: home "Marcas" slider (`app/(tabs)/index.tsx`) + brand row in `app/product/[id].tsx`. **Caveat:** all `marcas.profile_id` are NULL (no brand-account onboarding yet) so Outfits grid / Seguidores / Seguir are empty/inert for current brands; catalog shows real data. See `product-2026-06-10-brand-system.md`. Still pending: wardrobe filtered by brand (banner currently opens wardrobe unfiltered), brand follow system decision.
 - [ ] Settings sub-screens: edit profile (display name, bio, avatar, tags), security (change password, 2FA), notifications preferences, style preferences
 
 ### Features on existing screens

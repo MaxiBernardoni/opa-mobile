@@ -184,9 +184,10 @@ Current DB supports brands partially. Gaps to fill:
 - [ ] Settings → "Registrar Marca" button — visible only on personal accounts (`is_brand = false`)
 - [ ] Brand registration form — fields: brand name, category, IG handle, email, password (for the future brand account); submits to `POST /api/brand-applications`
 - [ ] Multi-account switcher — UI to alternate between logged-in accounts (personal + brand), similar to Instagram/TikTok account switching
-- [ ] Brand profile screen — layout distinct from user profile: banner, contextual "ya lo tenés" strip, stats row, catalog tab
-- [ ] Catalog tab on brand profile — grid of `prendas` filtered by `brand_id`; tapping goes to `product/[id]`
-- [ ] "Ya lo tenés" banner logic — cross `prendas_armario` with `prendas.brand_id` for the viewed brand
+- [x] Brand profile screen — ✅ implemented (2026-07-06): `app/marca/[id].tsx`, standalone route (fuera del Tabs navigator, navbar calcada como en `app/user/[id].tsx`). Layout distinto al de usuario: banner + avatar-logo circular que lo pisa, nombre en mayúscula + badge `verificado_ondas.png` (solo si `marcas.verified`), `@handle · Marca`, bio, tags, stats **Seguidores / Outfits / Prendas** (sin "Seguidos"), botón Seguir full-width, y dos tabs icon-only (Grid `GridFinal` / Catálogo `bag`). Hook nuevo `useBrand(marcaId)` carga marca + prendas + (si hay `profile_id`) outfits y followers. Entry points enganchados: slider "Marcas" del home (`app/(tabs)/index.tsx`) y la fila de marca en `app/product/[id].tsx`. **Limitación real:** como todas las `marcas` tienen `profile_id = null` (no existe onboarding de cuentas de marca todavía), la grilla de Outfits y el contador de Seguidores quedan vacíos y el botón Seguir es inerte para las marcas actuales — se activan solos cuando una marca tenga `profile_id`. El catálogo (prendas por `brand_id`) sí muestra datos reales.
+- [x] Catalog tab on brand profile — ✅ implemented (2026-07-06): grid 3-col de `prendas` filtradas por `brand_id`, tap → `product/[id]`. Parte de `app/marca/[id].tsx`.
+- [x] "Ya lo tenés" banner logic — ✅ implemented (2026-07-06): en `app/marca/[id].tsx` cruza `useWardrobe(session.user.id)` con `garment.brand_id === marcaId`; muestra "Tenés X prendas de MARCA en tu armario" solo si el usuario logueado tiene prendas de esa marca. Tap navega a `/(tabs)/wardrobe` (el filtro del armario por marca todavía no existe — ver abajo).
+- [ ] Wardrobe filtrado por marca — el banner "Ya lo tenés" hoy abre el armario sin filtro; falta que `app/(tabs)/wardrobe.tsx` acepte un param de marca y filtre
 - [ ] Brand management panel screens — garment upload/edit, outfit publishing, metrics dashboard, order management
 - [ ] Size selector shows unavailable sizes greyed out based on `stock_por_talle`
 

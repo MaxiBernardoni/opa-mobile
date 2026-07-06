@@ -27,6 +27,7 @@ export interface Brand {
   website: string | null
   location: string | null
   tags: string[]
+  verified: boolean
   created_at: string
 }
 

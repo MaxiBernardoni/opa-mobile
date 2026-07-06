@@ -150,7 +150,12 @@ export default function HomeScreen() {
               contentContainerStyle={styles.hScroll}
             >
               {brands.map(brand => (
-                <TouchableOpacity key={brand.id} style={styles.brandCard} activeOpacity={0.85}>
+                <TouchableOpacity
+                  key={brand.id}
+                  style={styles.brandCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(`/marca/${brand.id}`)}
+                >
                   {brand.logo_url ? (
                     <Image source={{ uri: brand.logo_url }} style={styles.brandLogo} contentFit="contain" />
                   ) : (

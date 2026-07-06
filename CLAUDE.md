@@ -175,6 +175,7 @@ app/
   outfit/[id].tsx     — detalle de outfit con prendas por slot, precio total, CTA
   product/[id].tsx    — detalle de prenda con SizeGuideSheet, selector de talle, CTA
   user/[id].tsx       — perfil de lectura de otro usuario (no marca separada); redirige a /(tabs)/profile si es el propio
+  marca/[id].tsx      — perfil público de una marca (banner + avatar-logo, badge verificada, "ya lo tenés", stats Seguidores/Outfits/Prendas, Seguir, tabs Grid/Catálogo). Hook useBrand. Outfits/Seguidores vacíos hasta que las marcas tengan profile_id (onboarding pendiente); catálogo con datos reales
 ```
 
 **Flujo de auth:** `_layout.tsx` llama `supabase.auth.getSession()` + `onAuthStateChange()` → popula `useAuthStore` (session + profile). `initialized` previene flashes de UI.
@@ -302,6 +303,7 @@ Los documentos de referencia viven en `.claude/documents/`:
 - [x] Fuente Merge One en `assets/fonts/MergeOne-Regular.ttf` — cargada en `_layout.tsx`
 - [x] Extracción de `backend/` a `maxibernardoni/opa-backend` — confirmado independiente y `backend/` eliminado de este repo (2026-07-03)
 - [x] `app/user/[id].tsx` — perfil de lectura de otro usuario (gap real que no existía: antes solo se podía ver el perfil propio). Reusa `useProfile`, `useOutfits`, `useFollow`. Actualizados 3 puntos de entrada para navegar acá en vez de saltar directo al scroll de outfits (2026-07-03). Pulido en una segunda vuelta el mismo día: flecha de volver (`flecha.png`) y compartir (`compartir.png`) con assets reales de Storage en vez de texto/emoji, ícono de grid centrado en la tab bar, y bottom navbar agregada (esta pantalla está fuera del `Tabs` navigator, así que se armó una versión standalone calcada de `BottomNavBar` con "perfil" marcado como activo)
+- [x] `app/marca/[id].tsx` — perfil público de marca "ajeno" (2026-07-06). Construido a spec del doc de brand-system: banner (reusa `logo_url`, no hay columna de cover), avatar-logo circular, nombre en mayúscula + badge `verificado_ondas.png` si `marcas.verified`, `@handle · Marca`, bio, tags, banner contextual "Ya lo tenés" (cruza `useWardrobe` con `garment.brand_id`), stats Seguidores/Outfits/Prendas, botón Seguir, tabs icon-only Grid (outfits) / Catálogo (prendas → `product/[id]`). Hook nuevo `useBrand`. Enganchado desde el slider "Marcas" del home y la fila de marca en el detalle de prenda. Verificado con `tsc` (sin errores nuevos) y compilando el bundle web de Metro (ruta incluida, 200). **Limitación conocida:** todas las `marcas` tienen `profile_id = null` (falta onboarding de cuentas de marca), así que Outfits/Seguidores quedan vacíos y Seguir es inerte para las marcas actuales; el catálogo sí trae datos reales. Se agregó `verified: boolean` al tipo `Brand` en `types/index.ts`
 
 ## Pendientes principales
 
