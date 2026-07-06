@@ -136,9 +136,9 @@ Radius:  card=15, chip=10, button=8, tag=8, avatar=9999
 - Do NOT use 🚚 emoji
 
 **Center tabs ("tus marcas / Descubrir"):**
-- Container: `backgroundColor: rgba(0,0,0,0.4)`, `borderRadius: 20`, `paddingHorizontal: 12`, `paddingVertical: 6`
+- Container: transparent — texto plano sobre la foto, SIN pill oscuro (se removió `rgba(0,0,0,0.4)` el 2026-07-06 para matchear el prototipo)
 - Inactive tab: `color: rgba(255,255,255,0.6)`, `fontSize: 13`, `fontWeight: 500`
-- Active tab: `color: blanco`, `fontWeight: 700`, `2px` `rosaOpa` underline
+- Active tab: `color: blanco`, `fontWeight: 700`, `2px` `rosaOpa` underline (implementado como `View` de 2px bajo el texto activo)
 - Separator "/": `color: rgba(255,255,255,0.4)`
 
 **"+" button (right):**

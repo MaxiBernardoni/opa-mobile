@@ -18,17 +18,33 @@ import { APP_WIDTH } from '../../constants/layout'
 
 const SW = APP_WIDTH
 const { height: SH } = Dimensions.get('window')
+const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
+
+const CHIP_W = 118
+const CHIP_H = 46
+// Ancla aproximada (fracción del ancho/alto del item) de cada prenda sobre la
+// figura, según su `slot`. No hay coordenadas por prenda en la DB, así que se
+// deriva del slot real (torso/piernas/calzado/extras) para dibujar la línea
+// conectora desde el chip hasta esa parte del cuerpo.
+const SLOT_ANCHOR: Record<string, { x: number; y: number }> = {
+  extras:  { x: 0.56, y: 0.14 },
+  torso:   { x: 0.46, y: 0.34 },
+  piernas: { x: 0.45, y: 0.60 },
+  calzado: { x: 0.43, y: 0.86 },
+}
+const SLOT_ORDER: Record<string, number> = { extras: 0, torso: 1, piernas: 2, calzado: 3 }
 
 interface Props {
   outfit: Outfit
   isActive: boolean
+  height?: number
 }
 
-export function OutfitScrollItem({ outfit, isActive }: Props) {
+export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
   const router = useRouter()
   const { session } = useAuthStore()
-  const { liked, count: likeCount, toggle: toggleLike } = useLike(outfit.id, outfit.likes_count)
-  const { saved, count: saveCount, toggle: toggleSave } = useSave(outfit.id, outfit.saves_count ?? 0)
+  const { liked, toggle: toggleLike } = useLike(outfit.id, outfit.likes_count)
+  const { saved, toggle: toggleSave } = useSave(outfit.id, outfit.saves_count ?? 0)
   const creatorId = outfit.creator_id ?? ''
   const isOwnOutfit = session?.user.id === creatorId
   const { following, toggle: toggleFollow } = useFollow(creatorId)
@@ -37,8 +53,33 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
   const creator = outfit.creator
   const creatorHandle = creator?.username ? `@${creator.username}` : (creator?.display_name ?? 'OPA')
 
+  // Prendas ordenadas de arriba hacia abajo según su slot, con la geometría de
+  // cada conector pre-calculada: chip a la izquierda, punto sobre el cuerpo
+  // (ancla por slot) y línea en codo entre ambos. Se evita el solape vertical
+  // de chips cuando dos prendas caen a alturas parecidas.
+  const sorted = (outfit.garments ?? [])
+    .slice(0, 4)
+    .map((og, idx) => ({ og, order: SLOT_ORDER[og.slot ?? ''] ?? 90 + idx }))
+    .sort((a, b) => a.order - b.order)
+
+  let lastBottom = 0
+  const laidOut = sorted.map(({ og }, i) => {
+    const anchor = SLOT_ANCHOR[og.slot ?? ''] ?? { x: 0.5, y: 0.22 + i * 0.2 }
+    const ax = anchor.x * SW
+    const ay = anchor.y * height
+    let chipTop = Math.max(78, Math.min(ay - CHIP_H / 2, height - 210))
+    if (chipTop < lastBottom + 8) chipTop = lastBottom + 8
+    lastBottom = chipTop + CHIP_H
+    const chipCY = chipTop + CHIP_H / 2
+    const startX = 16 + CHIP_W
+    const bendX = startX + Math.min(34, Math.max(16, Math.abs(ax - startX) * 0.4))
+    const diagLen = Math.hypot(ax - bendX, ay - chipCY)
+    const angle = (Math.atan2(ay - chipCY, ax - bendX) * 180) / Math.PI
+    return { og, ax, ay, chipTop, chipCY, startX, bendX, diagLen, angle }
+  })
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height }]}>
       <ImageBackground
         source={{ uri: outfit.cover_image_url ?? `https://picsum.photos/seed/${outfit.id}/400/711` }}
         style={styles.image}
@@ -46,36 +87,46 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
       >
         <View style={styles.gradientOverlay} />
 
-        {/* Garment labels */}
-        {outfit.garments?.slice(0, 3).map((og, i) => (
-          <View
-            key={og.garment_id}
-            style={[styles.garmentLabel, { left: 20 + i * 10, top: SH * (0.25 + i * 0.12) }]}
-          >
-            <Image
-              source={{ uri: og.garment?.image_url ?? `https://picsum.photos/seed/${og.garment_id}/40/40` }}
-              style={styles.garmentThumb}
-              contentFit="cover"
+        {/* Garment labels + connector lines (codo horizontal + diagonal → punto) */}
+        {laidOut.map(({ og, ax, ay, chipTop, chipCY, startX, bendX, diagLen, angle }) => (
+          <React.Fragment key={og.garment_id}>
+            <View style={[styles.connLine, { left: startX, top: chipCY - 0.75, width: bendX - startX }]} />
+            <View
+              style={[
+                styles.connLine,
+                { left: bendX, top: chipCY - 0.75, width: diagLen, transform: [{ rotate: `${angle}deg` }] },
+              ]}
             />
-            <View style={styles.garmentInfo}>
-              <Text style={styles.garmentName} numberOfLines={1}>{og.garment?.name}</Text>
-              <Text style={styles.garmentPrice}>${og.garment?.price.toFixed(2)}</Text>
+            <View style={[styles.connDot, { left: ax - 4, top: ay - 4 }]} />
+            <View style={[styles.garmentLabel, { left: 16, top: chipTop, width: CHIP_W }]}>
+              <Image
+                source={{ uri: og.garment?.image_url ?? `https://picsum.photos/seed/${og.garment_id}/40/40` }}
+                style={styles.garmentThumb}
+                contentFit="cover"
+              />
+              <View style={styles.garmentInfo}>
+                <Text style={styles.garmentName} numberOfLines={1}>{og.garment?.name}</Text>
+                <Text style={styles.garmentPrice}>${og.garment?.price.toFixed(2)}</Text>
+              </View>
             </View>
-          </View>
+          </React.Fragment>
         ))}
 
-        {/* Action buttons */}
-        <View style={styles.actions}>
+        {/* Action buttons — círculos blancos, icon only (sin contadores) */}
+        <View style={[styles.actions, { top: height * 0.4 }]}>
           <TouchableOpacity onPress={toggleLike} style={styles.actionBtn}>
             <Text style={[styles.actionIcon, liked && styles.actionIconLiked]}>{liked ? '♥' : '♡'}</Text>
-            <Text style={styles.actionCount}>{likeCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={toggleSave} style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>{saved ? '★' : '☆'}</Text>
-            <Text style={styles.actionCount}>{saveCount}</Text>
+            <Text style={[styles.actionIcon, saved && styles.actionIconLiked]}>{saved ? '★' : '☆'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionIcon}>↗</Text>
+            <Image
+              source={{ uri: `${STORAGE}/compartir.png` }}
+              style={styles.shareIcon}
+              contentFit="contain"
+              tintColor={colors.negro}
+            />
           </TouchableOpacity>
         </View>
 
@@ -116,9 +167,18 @@ export function OutfitScrollItem({ outfit, isActive }: Props) {
 
       {/* Bottom bar */}
       <View style={styles.bottomBar}>
-        <View>
-          <Text style={styles.totalLabel}>Total look</Text>
-          <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
+        <View style={styles.priceRow}>
+          <View style={styles.bagIconWrap}>
+            <Image
+              source={{ uri: `${STORAGE}/bag_rosa.png` }}
+              style={styles.bagIcon}
+              contentFit="contain"
+            />
+          </View>
+          <View>
+            <Text style={styles.totalLabel}>Precio total</Text>
+            <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.ctaButton}>
           <Text style={styles.ctaText}>Ver outfit</Text>
@@ -153,15 +213,33 @@ const styles = StyleSheet.create({
   garmentInfo: { flex: 1 },
   garmentName: { fontSize: 10, fontFamily: fonts.mergeOne, color: colors.negro },
   garmentPrice: { fontSize: 10, fontFamily: fonts.mergeOne, color: colors.rosaOpa },
-  actions: {
-    position: 'absolute', right: 16, bottom: 120,
-    alignItems: 'center', gap: 20,
+  connLine: {
+    position: 'absolute',
+    height: 1.5,
+    backgroundColor: colors.blanco,
+    opacity: 0.9,
+    transformOrigin: '0% 50%',
   },
-  actionBtn: { alignItems: 'center' },
-  actionIcon: { fontSize: 28, color: colors.blanco },
+  connDot: {
+    position: 'absolute',
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: colors.blanco,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 2,
+  },
+  actions: {
+    position: 'absolute', right: 14,
+    alignItems: 'center', gap: 12,
+  },
+  actionBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.blanco,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
+  },
+  actionIcon: { fontSize: 22, color: colors.negro },
   actionIconLiked: { color: colors.rosaOpa },
-  actionCount: { fontSize: 11, color: colors.blanco, marginTop: 2 },
-  brandInfo: { position: 'absolute', bottom: 110, left: 16, right: 80 },
+  shareIcon: { width: 20, height: 20 },
+  brandInfo: { position: 'absolute', bottom: 100, left: 16, right: 70 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandTapArea: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandAvatar: {
@@ -185,22 +263,27 @@ const styles = StyleSheet.create({
   followBtnText: { color: colors.blanco, fontSize: 12, fontWeight: '600' },
   followBtnTextActive: { color: colors.negro },
   bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    position: 'absolute', bottom: 12, left: 12, right: 12,
     backgroundColor: colors.blanco,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
+    borderRadius: radius.card,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 30,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
     elevation: 10,
   },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bagIconWrap: {
+    width: 40, height: 40, borderRadius: 8,
+    backgroundColor: colors.rosaOpaLight,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  bagIcon: { width: 22, height: 22 },
   totalLabel: { fontSize: 11, color: colors.grisClaro, textTransform: 'uppercase', letterSpacing: 0.5 },
   price: { fontSize: 20, fontWeight: '800', color: colors.negro, fontFamily: fonts.mergeOne },
   ctaButton: {

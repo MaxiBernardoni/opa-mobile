@@ -4,6 +4,7 @@ import {
   StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native'
 import { Image } from 'expo-image'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams } from 'expo-router'
 import { useOutfits } from '../../hooks/useOutfits'
 import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
@@ -15,6 +16,13 @@ const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/publ
 export default function OutfitsScreen() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [tab, setTab] = useState<'marcas' | 'descubrir'>('descubrir')
+  const insets = useSafeAreaInsets()
+  // La tab bar (BottomNavBar) se dibuja ENCIMA del contenido (no reserva espacio),
+  // así que cada página del scroll debe medir la ventana MENOS el alto de la tab bar,
+  // si no la barra de precio (bottom:0) queda tapada por la nav. El cálculo replica
+  // el alto real de BottomNavBar: paddingTop 8 + iconWrap 48 + paddingBottom + borde 1.
+  const tabBarHeight = 8 + 48 + (insets.bottom || 8) + 1
+  const pageH = SH - tabBarHeight
   const { outfits, loading } = useOutfits()
   const { outfitId } = useLocalSearchParams<{ outfitId?: string }>()
   const flatListRef = useRef<FlatList>(null)
@@ -69,14 +77,15 @@ export default function OutfitsScreen() {
           </TouchableOpacity>
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => setTab('marcas')} style={styles.tabItem}>
-              <Text style={[styles.tabText, tab === 'marcas' && styles.tabActive]}>tus marcas</Text>
+              <Text style={[styles.tabText, tab === 'marcas' && styles.tabActiveText]}>tus marcas</Text>
+              <View style={[styles.tabUnderline, tab === 'marcas' && styles.tabUnderlineActive]} />
             </TouchableOpacity>
-            <Text style={styles.tabSep}>/</Text>
             <TouchableOpacity onPress={() => setTab('descubrir')} style={styles.tabItem}>
-              <Text style={[styles.tabText, tab === 'descubrir' && styles.tabActive]}>Descubrir</Text>
+              <Text style={[styles.tabText, tab === 'descubrir' && styles.tabActiveText]}>Descubrir</Text>
+              <View style={[styles.tabUnderline, tab === 'descubrir' && styles.tabUnderlineActive]} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.addBtn}>
+          <TouchableOpacity style={styles.addBtn} hitSlop={10}>
             <Text style={styles.addBtnText}>+</Text>
           </TouchableOpacity>
         </View>
@@ -88,13 +97,13 @@ export default function OutfitsScreen() {
         keyExtractor={(item) => item.id}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={SH}
+        snapToInterval={pageH}
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-        getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
+        getItemLayout={(_, index) => ({ length: pageH, offset: pageH * index, index })}
         renderItem={({ item, index }) => (
-          <OutfitScrollItem outfit={item} isActive={index === activeIndex} />
+          <OutfitScrollItem outfit={item} isActive={index === activeIndex} height={pageH} />
         )}
       />
     </View>
@@ -115,20 +124,13 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 4,
+    gap: 18,
   },
-  tabItem: { paddingHorizontal: 4 },
-  tabText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
-  tabActive: { color: colors.blanco, fontWeight: '700' },
-  tabSep: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
-  addBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    borderWidth: 2, borderColor: colors.blanco,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  addBtnText: { color: colors.blanco, fontSize: 20, lineHeight: 22 },
+  tabItem: { alignItems: 'center' },
+  tabText: { color: 'rgba(255,255,255,0.7)', fontSize: 15, fontWeight: '500' },
+  tabActiveText: { color: colors.blanco, fontWeight: '700' },
+  tabUnderline: { marginTop: 3, height: 2, width: '70%', borderRadius: 1, backgroundColor: 'transparent' },
+  tabUnderlineActive: { backgroundColor: colors.rosaOpa },
+  addBtn: { alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { color: colors.blanco, fontSize: 28, fontWeight: '300', lineHeight: 30 },
 })
