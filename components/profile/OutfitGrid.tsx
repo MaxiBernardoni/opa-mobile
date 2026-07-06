@@ -6,8 +6,9 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { APP_WIDTH } from '../../constants/layout'
 
-const CARD_WIDTH = (Dimensions.get('window').width - spacing.lg * 2 - spacing.sm * 2) / 3
+const CARD_WIDTH = (APP_WIDTH - spacing.lg * 2 - spacing.sm * 2) / 3
 
 interface OutfitGridProps {
   outfits: Outfit[]

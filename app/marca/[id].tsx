@@ -10,12 +10,13 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { APP_WIDTH } from '../../constants/layout'
 import { useBrand } from '../../hooks/useBrand'
 import { useWardrobe } from '../../hooks/useWardrobe'
 import { useFollow } from '../../hooks/useFollow'
 import { useAuthStore } from '../../store/useAuthStore'
 
-const SCREEN_WIDTH = Dimensions.get('window').width
+const SCREEN_WIDTH = APP_WIDTH
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'

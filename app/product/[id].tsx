@@ -19,9 +19,10 @@ import { useRecommendedSize } from '../../hooks/useRecommendedSize'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { APP_WIDTH } from '../../constants/layout'
 import { Garment, Brand, SizeGuideEntry } from '../../types'
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+const SCREEN_WIDTH = APP_WIDTH
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()

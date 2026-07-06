@@ -14,7 +14,10 @@ import { useSave } from '../../hooks/useSave'
 import { useFollow } from '../../hooks/useFollow'
 import { useAuthStore } from '../../store/useAuthStore'
 
-const { width: SW, height: SH } = Dimensions.get('window')
+import { APP_WIDTH } from '../../constants/layout'
+
+const SW = APP_WIDTH
+const { height: SH } = Dimensions.get('window')
 
 interface Props {
   outfit: Outfit

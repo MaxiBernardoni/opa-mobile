@@ -5,6 +5,7 @@ import { PalanquinDark_400Regular } from '@expo-google-fonts/palanquin-dark'
 import * as SplashScreen from 'expo-splash-screen'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/useAuthStore'
+import { MobileFrame } from '../components/layout/MobileFrame'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -55,11 +56,13 @@ export default function RootLayout() {
   if (!fontsLoaded) return null
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="auth/index" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="outfit/[id]" />
-      <Stack.Screen name="product/[id]" />
-    </Stack>
+    <MobileFrame>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="auth/index" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="outfit/[id]" />
+        <Stack.Screen name="product/[id]" />
+      </Stack>
+    </MobileFrame>
   )
 }

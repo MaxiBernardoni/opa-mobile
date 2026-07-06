@@ -13,7 +13,9 @@ import { useOutfits } from '../../hooks/useOutfits'
 import { SectionHeader } from '../../components/home/SectionHeader'
 import { Brand, Garment, Outfit } from '../../types'
 
-const { width: SW } = Dimensions.get('window')
+import { APP_WIDTH } from '../../constants/layout'
+
+const SW = APP_WIDTH
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 // Carousel config

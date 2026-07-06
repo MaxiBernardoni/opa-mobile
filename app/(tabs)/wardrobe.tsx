@@ -17,9 +17,10 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { APP_WIDTH } from '../../constants/layout'
 import { WardrobeItem, Garment, Brand } from '../../types'
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+const SCREEN_WIDTH = APP_WIDTH
 const NUM_COLS = 3
 const CARD_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - spacing.sm * (NUM_COLS - 1)) / NUM_COLS
 

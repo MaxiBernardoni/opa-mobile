@@ -15,9 +15,10 @@ import { supabase } from '../../lib/supabase'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { APP_WIDTH } from '../../constants/layout'
 import { Outfit, OutfitItemWithData, Garment, Brand } from '../../types'
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+const SCREEN_WIDTH = APP_WIDTH
 
 type FullOutfit = Outfit & {
   creator?: { id: string; username: string; avatar_url: string | null }

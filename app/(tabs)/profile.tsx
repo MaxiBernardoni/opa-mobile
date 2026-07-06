@@ -9,13 +9,14 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { APP_WIDTH } from '../../constants/layout'
 import { useOutfits } from '../../hooks/useOutfits'
 import { useSavedOutfits } from '../../hooks/useSavedOutfits'
 import { useSavedGarments } from '../../hooks/useSavedGarments'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 
-const SCREEN_WIDTH = Dimensions.get('window').width
+const SCREEN_WIDTH = APP_WIDTH
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
 const GARMENT_SIZE = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 3) / 4)
 
