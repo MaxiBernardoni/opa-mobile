@@ -4,7 +4,7 @@ import {
   StatusBar, ScrollView, FlatList, ActivityIndicator, Alert, Dimensions,
 } from 'react-native'
 import { Image } from 'expo-image'
-import { useRouter } from 'expo-router'
+import { useRouter, Redirect } from 'expo-router'
 import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
@@ -14,6 +14,7 @@ import { useOutfits } from '../../hooks/useOutfits'
 import { useSavedOutfits } from '../../hooks/useSavedOutfits'
 import { useSavedGarments } from '../../hooks/useSavedGarments'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useMyBrand } from '../../hooks/useMyBrand'
 import { supabase } from '../../lib/supabase'
 
 const SCREEN_WIDTH = APP_WIDTH
@@ -45,6 +46,10 @@ export default function ProfileScreen() {
   }
   const [favSubTab, setFavSubTab] = useState<string>('outfits')
   const { session, profile, initialized, clear } = useAuthStore()
+  // Cuentas de marca (is_brand): su "perfil" es el perfil de marca, no el de usuario.
+  const { brand: myBrand, loading: myBrandLoading } = useMyBrand(
+    profile?.is_brand ? session?.user.id : undefined
+  )
   const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
   const { outfits: savedOutfits, loading: savedLoading, refetch: refetchSaved } = useSavedOutfits(session?.user.id)
   const { garments: savedGarments, loading: savedGarmentsLoading, refetch: refetchSavedGarments } = useSavedGarments(session?.user.id)
@@ -94,6 +99,19 @@ export default function ProfileScreen() {
         </View>
       </SafeAreaView>
     )
+  }
+
+  // Si es una cuenta de marca, redirigimos a su perfil de marca (banner, catálogo, etc.)
+  if (profile?.is_brand) {
+    if (myBrandLoading) {
+      return (
+        <SafeAreaView style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator color={colors.rosaOpa} size="large" />
+        </SafeAreaView>
+      )
+    }
+    if (myBrand) return <Redirect href={`/marca/${myBrand.id}`} />
+    // Fallback: cuenta marcada is_brand pero sin fila en `marcas` — mostramos el perfil normal
   }
 
   const displayUsername = profile?.username ?? session.user.email?.split('@')[0] ?? 'usuario'

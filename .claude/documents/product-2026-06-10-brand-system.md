@@ -37,6 +37,8 @@ The brand then logs into OPA using the email and password they chose in the form
 
 **The brand application flow (screen + backend) is not yet implemented.**
 
+> **Demo shortcut (2026-07-13):** to have a working brand login before the onboarding backend exists, one brand account was created **by hand** in the DB, skipping the application flow. The existing **Revés** brand was reused (7 real prendas) rather than creating a new one: a Supabase Auth user was inserted directly into `auth.users` (bcrypt password via `extensions.crypt`, email confirmed), the `handle_new_user` trigger created `perfiles`, then `is_brand=true` was set and `marcas.profile_id` pointed at the new profile. Credentials (test): `reves@opa.com` / `reves1234`. This is exactly what step 5 above will automate via `supabase.auth.admin.createUser()` from `opa-admin` — the manual insert is a stopgap for demo/testing, not the real onboarding path.
+
 ---
 
 ## Brand Verification

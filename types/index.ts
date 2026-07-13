@@ -43,6 +43,8 @@ export interface Garment {
   color: string | null
   available_sizes: string[]
   size_guide_id: string | null
+  sale_mode: 'direct' | 'redirect'
+  external_url: string | null
   created_at: string
   brand?: Brand
 }

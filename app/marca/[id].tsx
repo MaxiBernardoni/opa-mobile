@@ -67,23 +67,37 @@ export default function BrandProfileScreen() {
   const igHandle = brand.instagram_handle?.replace(/^@/, '')
   const tags = brand.tags ?? []
   const ownedCount = wardrobe.filter((w) => w.garment?.brand_id === id).length
+  // ¿La marca está viendo su propio perfil? (llegó acá vía el tab Perfil)
+  const isOwn = !!session?.user.id && brand.profile_id === session.user.id
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Top bar */}
+      {/* Top bar — en modo propio: engranaje de configuración; ajeno: back + compartir */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
-          <Image source={{ uri: BASE + 'flecha.png' }} style={styles.backIcon} contentFit="contain" />
-        </TouchableOpacity>
+        {isOwn ? (
+          <View style={styles.backIcon} />
+        ) : (
+          <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+            <Image source={{ uri: BASE + 'flecha.png' }} style={styles.backIcon} contentFit="contain" />
+          </TouchableOpacity>
+        )}
         <View style={styles.topBarRight}>
-          <TouchableOpacity hitSlop={10}>
-            <Image source={{ uri: BASE + 'compartir.png' }} style={styles.topBarIcon} contentFit="contain" />
-          </TouchableOpacity>
-          <TouchableOpacity hitSlop={10}>
-            <Text style={styles.menuIcon}>•••</Text>
-          </TouchableOpacity>
+          {isOwn ? (
+            <TouchableOpacity hitSlop={10} onPress={() => router.push('/settings')}>
+              <Image source={{ uri: BASE + 'configuracion.png' }} style={styles.settingsIcon} contentFit="contain" />
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity hitSlop={10}>
+                <Image source={{ uri: BASE + 'compartir.png' }} style={styles.topBarIcon} contentFit="contain" />
+              </TouchableOpacity>
+              <TouchableOpacity hitSlop={10}>
+                <Text style={styles.menuIcon}>•••</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -158,18 +172,20 @@ export default function BrandProfileScreen() {
           ))}
         </View>
 
-        {/* Follow button */}
-        <View style={styles.followRow}>
-          <TouchableOpacity
-            style={[styles.followBtn, following && styles.followBtnActive]}
-            onPress={toggleFollow}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
-              {following ? 'Siguiendo' : 'Seguir'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Follow button — oculto cuando la marca ve su propio perfil */}
+        {!isOwn && (
+          <View style={styles.followRow}>
+            <TouchableOpacity
+              style={[styles.followBtn, following && styles.followBtnActive]}
+              onPress={toggleFollow}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                {following ? 'Siguiendo' : 'Seguir'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Tab bar: Outfits (grid) + Catálogo (bag) */}
         <View style={styles.tabBar}>
@@ -266,18 +282,22 @@ export default function BrandProfileScreen() {
 
       {/* Bottom navbar — pantalla fuera del Tabs navigator, se arma standalone */}
       <View style={[styles.navBar, { paddingBottom: insets.bottom || 8 }]}>
-        {NAV_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.navTab}
-            activeOpacity={0.7}
-            onPress={() => router.push(tab.href as any)}
-          >
-            <View style={styles.navIconWrap}>
-              <Image source={{ uri: tab.icon }} style={styles.navIcon} contentFit="contain" />
-            </View>
-          </TouchableOpacity>
-        ))}
+        {NAV_TABS.map((tab) => {
+          // En el perfil propio de la marca, el tab "perfil" queda activo (rosa)
+          const active = isOwn && tab.key === 'profile'
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.navTab}
+              activeOpacity={0.7}
+              onPress={() => router.push(tab.href as any)}
+            >
+              <View style={styles.navIconWrap}>
+                <Image source={{ uri: active ? tab.iconActive : tab.icon }} style={styles.navIcon} contentFit="contain" />
+              </View>
+            </TouchableOpacity>
+          )
+        })}
       </View>
     </SafeAreaView>
   )
@@ -300,6 +320,7 @@ const styles = StyleSheet.create({
   backIcon: { width: 20, height: 20 },
   topBarRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   topBarIcon: { width: 18, height: 18 },
+  settingsIcon: { width: 22, height: 22 },
   menuIcon: { fontSize: 16, color: colors.negro },
 
   // Banner + avatar
