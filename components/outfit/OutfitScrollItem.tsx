@@ -85,8 +85,6 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
         style={styles.image}
         resizeMode="cover"
       >
-        <View style={styles.gradientOverlay} />
-
         {/* Garment labels + connector lines (codo horizontal + diagonal → punto) */}
         {laidOut.map(({ og, ax, ay, chipTop, chipCY, startX, bendX, diagLen, angle }) => (
           <React.Fragment key={og.garment_id}>
@@ -125,7 +123,7 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
               source={{ uri: `${STORAGE}/compartir.png` }}
               style={styles.shareIcon}
               contentFit="contain"
-              tintColor={colors.negro}
+              tintColor={colors.blanco}
             />
           </TouchableOpacity>
         </View>
@@ -191,10 +189,6 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
 const styles = StyleSheet.create({
   container: { width: SW, height: SH },
   image: { flex: 1, justifyContent: 'flex-end' },
-  gradientOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: 200, backgroundColor: 'rgba(0,0,0,0.35)',
-  },
   garmentLabel: {
     position: 'absolute',
     flexDirection: 'row',
@@ -227,18 +221,22 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 2,
   },
   actions: {
-    position: 'absolute', right: 14,
-    alignItems: 'center', gap: 12,
+    position: 'absolute', right: 16,
+    alignItems: 'center', gap: 20,
   },
   actionBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: colors.blanco,
+    width: 34, height: 34,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
   },
-  actionIcon: { fontSize: 22, color: colors.negro },
+  actionIcon: {
+    fontSize: 30, color: colors.blanco,
+    textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
+  },
   actionIconLiked: { color: colors.rosaOpa },
-  shareIcon: { width: 20, height: 20 },
+  shareIcon: {
+    width: 26, height: 26,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.35, shadowRadius: 3,
+  },
   brandInfo: { position: 'absolute', bottom: 100, left: 16, right: 70 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandTapArea: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },

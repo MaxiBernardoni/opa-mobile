@@ -95,9 +95,13 @@ export default function OutfitsScreen() {
         ref={flatListRef}
         data={outfits}
         keyExtractor={(item) => item.id}
+        // El viewport del FlatList debe medir EXACTAMENTE pageH (= alto del item),
+        // no el alto completo del contenedor. Si el viewport es más alto que el item,
+        // el snap (nativo por pagingEnabled, web por scroll-snap) engancha desalineado
+        // y la barra de precio del item queda fuera de vista al pasar de outfit.
+        style={{ height: pageH, flexGrow: 0 }}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={pageH}
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
