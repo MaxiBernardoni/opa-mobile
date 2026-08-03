@@ -10,12 +10,13 @@ import { spacing } from '../constants/spacing'
 import { radius } from '../constants/radius'
 import { useUserMeasurements } from '../hooks/useUserMeasurements'
 
-const FIELDS: { key: 'height' | 'chest' | 'waist' | 'hip' | 'thigh'; label: string }[] = [
+const FIELDS: { key: 'height' | 'chest' | 'waist' | 'hip' | 'thigh' | 'foot_length'; label: string }[] = [
   { key: 'height', label: 'Altura (cm)' },
   { key: 'chest', label: 'Pecho (cm)' },
   { key: 'waist', label: 'Cintura (cm)' },
   { key: 'hip', label: 'Cadera (cm)' },
   { key: 'thigh', label: 'Muslo (cm)' },
+  { key: 'foot_length', label: 'Largo de pie (cm)' },
 ]
 
 export default function MeasurementsScreen() {
@@ -34,6 +35,7 @@ export default function MeasurementsScreen() {
       waist: measurements.waist?.toString() ?? '',
       hip: measurements.hip?.toString() ?? '',
       thigh: measurements.thigh?.toString() ?? '',
+      foot_length: measurements.foot_length?.toString() ?? '',
     })
   }, [measurements])
 
