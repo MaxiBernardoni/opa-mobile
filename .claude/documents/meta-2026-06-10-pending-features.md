@@ -15,14 +15,13 @@ OPA lives across four repositories:
 | `opa-mobile` | React Native + Expo | Active — current repo, under `opa-organization` |
 | `opa-backend` | Supabase + Edge Functions + Hono API | ✅ extracted — `opa-organization/opa-backend` |
 | `opa-web` | Next.js (planned) | Not started — create directly under `opa-organization` |
-| `opa-admin` | Next.js 14 + shadcn/ui (planned) | In initial dev under `maxibernardoni/opa-admin` — not verified whether it's been moved to `opa-organization` yet |
+| `opa-admin` | Next.js 14 + shadcn/ui (planned) | In initial dev under `opa-organization/opa-admin` — ✅ transfer confirmed 2026-08-03 |
 
 `opa-backend` is the shared infrastructure for both mobile and web clients.
 
 - [x] Extract `backend/` folder to standalone `opa-backend` repo — ✅ done and confirmed independent (2026-07-03): redeployed the `api` Edge Function in production using only `opa-backend`'s code (version 2, verified via `GET /api/health`), tested `opa-mobile` end-to-end against Supabase (home carousels, outfit deep-link, like/follow) with no local `backend/` folder. `backend/` deleted from `opa-mobile`. Found and fixed two issues during verification, both committed to `opa-backend`: (1) `functions/api/index.ts` rate-limiter was registered on the invalid path `/orders/POST` and never matched any request — fixed to a `'*'` middleware checking method+path; (2) migration `20260701150747_rls_policies_cart_orders_reviews_wardrobe` was applied directly to the live DB but missing from git history in both repos — reconstructed from live RLS policies and added to `opa-backend/supabase/migrations/`.
 - [x] Migrate `opa-mobile` and `opa-backend` into the `opa-organization` GitHub org — ✅ done and confirmed (2026-07-03): `git remote -v` on both local repos now points to `github.com/opa-organization/...`; push/fetch tested working. First attempt failed using GitHub's "Import a repository" tool (clone-based, needs credentials); the fix was using "Transfer ownership" (Settings → Danger Zone → Transfer) instead, which is native and doesn't clone.
-- [ ] Confirm whether `opa-admin` has been transferred into `opa-organization` — not checked in this session (repo isn't cloned in this environment). Run `git remote -v` in that repo, or `git ls-remote https://github.com/opa-organization/opa-admin.git`, to check.
-- [ ] Initialize `opa-admin` repo with Next.js 14 + shadcn/ui + Tailwind + Supabase client — create it directly under `opa-organization`, not the personal account (only relevant if it turns out `opa-admin` hasn't been created/moved yet)
+- [x] Confirm whether `opa-admin` has been transferred into `opa-organization` — ✅ confirmed 2026-08-03: `git remote -v` in that repo points to `github.com/opa-organization/opa-admin.git`.
 - [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation); create under `opa-organization`
 - [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
 
