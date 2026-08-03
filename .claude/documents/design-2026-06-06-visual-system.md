@@ -106,18 +106,11 @@ Radius:  card=15, chip=10, button=8, tag=8, avatar=9999
 - Shadow: `shadowColor: negro, offset: {0,2}, opacity: 0.15, radius: 4, elevation: 4`
 - `maxWidth: 160`
 
-**Visual connector (line + dot):**
-- White dot: `width: 8, height: 8, borderRadius: 4, backgroundColor: blanco`
-  - Positioned at `(position_x, position_y)` coordinates on the image, centered
-- Line: `width: 1, backgroundColor: blanco, opacity: 0.85`
-  - Dynamic length: distance between the dot and the nearest chip edge
-  - Chip is placed to the left of the dot if `position_x > 0.5`, to the right if `position_x ≤ 0.5`
-- Implement with absolute `View` or `react-native-svg Line` — do NOT hardcode position
-
-**Positioning:**
-- `position_x / position_y` coordinates (0–1 values) relative to image dimensions
-- `position_x ≤ 0.5` → chip to the right of the dot
-- `position_x > 0.5` → chip to the left of the dot
+**Visual connector (línea en codo + punto), implementación real:**
+- No hay coordenadas `position_x/position_y` en la DB (`outfit_items` usa `slot` categórico) — el ancla de cada prenda se deriva de su `slot` vía una tabla `SLOT_ANCHOR` (extras/torso/piernas/calzado → fracción x/y sobre la figura)
+- Los chips se ordenan por slot y se separan verticalmente con anti-solapamiento (`lastBottom`) para no pisarse
+- Línea: segmento horizontal + diagonal (`View`s rotados con `transformOrigin`), terminando en un punto blanco (`connDot`) sobre el ancla
+- Es una aproximación **por slot**, no pixel-perfect por prenda — si se necesita precisión real habría que agregar `position_x/position_y numeric` a `outfit_items` (ver pending-features.md)
 
 **Behavior:**
 - Always visible on the active item (no tap required — tap-to-reveal applies to the future detail screen)
@@ -149,24 +142,27 @@ Radius:  card=15, chip=10, button=8, tag=8, avatar=9999
 
 ### Action Buttons (Outfit Scroll)
 
-- Vertical column, `position: absolute, right: 16`, vertically centered (~`top: 40%`)
-- `gap: 24` between buttons
+- Vertical column, `position: absolute, right: 16`, ~`top: 40%` (no centrado en toda la pantalla)
+- `gap: 20` between buttons
 - **NO numeric counters visible by default**
 - **NO "Compartir" text** — icon only
+- **Sin círculo blanco de fondo** (se quitó el 2026-07-13 — antes tenían fondo blanco 44px, ahora son iconos directamente sobre la foto)
 
 **Each button:**
-- PNG or SVG outline icon, `28×28px`, `tintColor: blanco`
-- No background, no border
+- Glyph blanco (`♥/♡`, `★/☆`) o `compartir.png` con `tintColor: blanco`, `34×34px`
+- No background, no border — `textShadow`/shadow sutil para legibilidad sobre la foto
 - On activation (like/save): outline → filled transition, spring animation `damping: 10, stiffness: 200`
 
 **Icons:**
 - Like: heart outline → filled (`rosaOpa` when active)
 - Save: star outline → filled (blanco when active)
-- Share: share/diagonal arrow icon — no toggle state
+- Share: `compartir.png` con `tintColor: blanco` — no toggle state
 
 ---
 
 ### Brand Info (Outfit Scroll)
+
+> **Nota:** hoy este bloque muestra al **creador** (usuario), no a la marca — las `marcas` no tienen outfits propios todavía (falta onboarding de cuentas de marca con publicación de looks). El diseño de abajo aplica igual a ambos casos.
 
 - Position: `absolute, bottom: [bottom bar height + 16], left: 16`, `right: 80` (to avoid overlapping buttons)
 
@@ -218,21 +214,36 @@ assets/
   logoOPA-transparente.png   # Logo for home header (transparent background)
   logoOPA-blanco.png         # White logo for dark backgrounds
   camion_blanco.png          # Delivery icon
+  flecha.png                 # Back arrow (apunta a la izquierda)
+  compartir.png              # Share icon
+  bag_rosa.png                # Bolsa rosa (precio en outfit scroll, marca/[id])
+  verificado_ondas.png       # Verified badge (marca/[id])
+  Grid.png / Grid_rosa.png                 # Profile grid tab
+  estrella_gris.png / estrella_negra.png   # Favoritos tab
+  percha_negra.png           # Prendas guardadas sub-tab
+  caja_negra.png / caja_rosa.png           # Pedidos tab
   nav/
     home.png / home_rosa.png
     outfit.png / outfit_rosa.png
     search.png / search_rosa.png
     armario.png / armario_rosa.png
     user.png / user_rosa.png
+    outfit_v2.png             # Outfits guardados sub-tab
 ```
+
+> Nombres de archivo case-sensitive. Antes de usar texto/emoji como placeholder para un ícono, chequear si ya existe en este bucket (`fetch(BASE + 'nombre.png', {method:'HEAD'})` desde el preview del browser).
 
 ### Bucket `avatars` (public)
 ```
 avatars/
   brands/
-    midway_avatar.png
-    doblev_avatar.png
-    batuk_avatar.jfif
+    midway_avatar.png    # real
+    doblev_avatar.png    # real
+    batuk_avatar.jfif    # real
+    forma_avatar.png     # ficción
+    reves_avatar.png     # ficción
+    capas_avatar.png     # ficción
+    sole_avatar.png      # ficción
 ```
 
 **Base URL:** `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/`

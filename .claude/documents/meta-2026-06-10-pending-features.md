@@ -15,15 +15,16 @@ OPA lives across four repositories:
 | `opa-mobile` | React Native + Expo | Active — current repo, under `opa-organization` |
 | `opa-backend` | Supabase + Edge Functions + Hono API | ✅ extracted — `opa-organization/opa-backend` |
 | `opa-web` | Next.js (planned) | Not started — create directly under `opa-organization` |
-| `opa-admin` | Next.js 14 + shadcn/ui (planned) | In initial dev under `opa-organization/opa-admin` — ✅ transfer confirmed 2026-08-03 |
+| `opa-admin` | Next.js 14 + Tailwind (no shadcn CLI actually installed) | ✅ `opa-organization/opa-admin` — functional locally against real Supabase data (confirmed 2026-08-03 by reading the cloned repo, see `## opa-admin` section below), not deployed |
 
 `opa-backend` is the shared infrastructure for both mobile and web clients.
 
 - [x] Extract `backend/` folder to standalone `opa-backend` repo — ✅ done and confirmed independent (2026-07-03): redeployed the `api` Edge Function in production using only `opa-backend`'s code (version 2, verified via `GET /api/health`), tested `opa-mobile` end-to-end against Supabase (home carousels, outfit deep-link, like/follow) with no local `backend/` folder. `backend/` deleted from `opa-mobile`. Found and fixed two issues during verification, both committed to `opa-backend`: (1) `functions/api/index.ts` rate-limiter was registered on the invalid path `/orders/POST` and never matched any request — fixed to a `'*'` middleware checking method+path; (2) migration `20260701150747_rls_policies_cart_orders_reviews_wardrobe` was applied directly to the live DB but missing from git history in both repos — reconstructed from live RLS policies and added to `opa-backend/supabase/migrations/`.
-- [x] Migrate `opa-mobile` and `opa-backend` into the `opa-organization` GitHub org — ✅ done and confirmed (2026-07-03): `git remote -v` on both local repos now points to `github.com/opa-organization/...`; push/fetch tested working. First attempt failed using GitHub's "Import a repository" tool (clone-based, needs credentials); the fix was using "Transfer ownership" (Settings → Danger Zone → Transfer) instead, which is native and doesn't clone.
-- [x] Confirm whether `opa-admin` has been transferred into `opa-organization` — ✅ confirmed 2026-08-03: `git remote -v` in that repo points to `github.com/opa-organization/opa-admin.git`.
-- [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation); create under `opa-organization`
-- [ ] Design the API layer in `opa-backend` that `opa-web` will consume (REST or tRPC over Supabase)
+- [x] Migrate `opa-mobile` and `opa-backend` into the `opa-organization` GitHub org — ✅ done and confirmed (2026-07-03, re-verified 2026-08-03 via `git remote -v` on both local repos): both point to `github.com/opa-organization/...`; push/fetch tested working. First attempt failed using GitHub's "Import a repository" tool (clone-based, needs credentials); the fix was using "Transfer ownership" (Settings → Danger Zone → Transfer) instead, which is native and doesn't clone.
+- [x] Confirm whether `opa-admin` has been transferred into `opa-organization` — ✅ confirmed by user 2026-08-03: it's under `opa-organization/opa-admin`. Not independently re-verified via `git remote -v` (repo not cloned in this environment); the user plans to clone it in for a future session so its actual dev/code state can be checked.
+- [x] Initialize `opa-admin` repo with Next.js 14 + Supabase client — ✅ done, confirmed 2026-08-03 (see `## opa-admin` section below for the full breakdown; not shadcn/ui specifically, see that section)
+- [ ] Define `opa-web` stack and initialize repo — brand panel for desktop (analytics, stock management, order management, automation); create under `opa-organization`. Not started — deliberately deprioritized (2026-08-03), pick up later.
+- [x] Design the API layer in `opa-backend` that `opa-web` will consume — ✅ effectively already done (found 2026-08-03 while reviewing pendings): `opa-backend/functions/api/routes/brands.ts` is explicitly commented "for opa-web brand panel" and already covers brand info CRUD (`GET/PATCH /brands/me`), garment/stock management (`GET/POST /brands/me/prendas`, `PATCH /brands/me/prendas/:id` incl. `stock_por_talle`), and metrics (`GET /brands/me/metrics`); `orders.ts` covers order management (`GET /orders`, `PATCH /orders/:id/status` with brand-ownership check). It's REST (not tRPC). CORS in `index.ts` already whitelists `localhost:3000` + a placeholder opa-web prod domain. Remaining gaps are already tracked separately below: metrics only cover likes/saves (no visit/click/conversion tables yet), and the CORS prod domain is still a placeholder.
 
 ---
 
@@ -38,14 +39,15 @@ OPA lives across four repositories:
 - [x] Migration: renombrar `marcas.owner_id` a `marcas.profile_id` — ✅ aplicado (`20260629000001_rename_marcas_owner_id_to_profile_id.sql`); RLS y referencias en API actualizadas
 
 ### General
-- [ ] Assign `size_guide_id` to the 25 existing seed `prendas` — currently all `NULL`
-- [ ] Add `foot_length` column to `user_measurements` — currently `get_recommended_size` uses `height` as a proxy for shoe size; replace once the real measurement is available
-- [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — removed in current schema for simplicity; needed when the purchase flow is implemented
-- [ ] Add `position_x numeric` and `position_y numeric` to `outfit_items` — removed in favor of `slot` categorical; needed if precise floating label positioning is implemented
+- [x] Assign `size_guide_id` to the 25 existing seed `prendas` — ✅ done 2026-08-03. Found 8 already assigned from an undocumented earlier pass (7 calzado + 1 cinturón); assigned the remaining 17 (6 piernas, 10 torso, 1 extras/bolso) via a name/style-based heuristic (e.g. "Oversized" in the name → guide `Oversize`; "Slim"/"Wide Leg" → `Skinny`/`Baggy`; ambiguous tops default to `Relaxed`, the middle option). Low-confidence call: "Slip Dress Negro" and "Trench Camel" don't map cleanly to any of the 3 tops guides (boxy/oversize/relaxed) — both went to `Relaxed` as the safest default; revisit if it looks wrong in the size selector.
+- [x] Add `foot_length` column to `user_measurements` — ✅ done 2026-08-03 (migration `add_foot_length_to_user_measurements`, version `20260803120322`). `get_recommended_size()` now does `coalesce(u.foot_length, u.height)` for calzado — uses the real measurement when present, falls back to the old height-proxy otherwise so existing users aren't broken. Added the field to `app/measurements.tsx` (`FIELDS` array — "Largo de pie (cm)") and `types/index.ts` (`UserMeasurements.foot_length`). Verified with `tsc --noEmit`: no new errors vs. baseline.
+- [ ] Restore `size`, `color`, `source` columns to `prendas_armario` — **not done, needs a decision.** The item was explicitly deferred ("needed when the purchase flow is implemented") and there's still no purchase flow, so adding these now would be unused schema with no consumer. Flagged to the user 2026-08-03; waiting on whether to add now anyway or keep deferring.
+- [ ] Add `position_x numeric` and `position_y numeric` to `outfit_items` — **not done, needs a decision.** Just adding empty nullable columns has no value on its own (nothing populates or reads them); doing this properly means either (a) schema-only prep for a future position editor, or (b) actually hand-placing real x/y per garment per outfit by looking at each of the 7 outfit cover photos, plus updating `OutfitScrollItem`'s connector-line rendering to consume real coordinates over the current `slot`-based anchors. `constants/mockData.ts`'s mock coords don't help — they're keyed to fake mock outfit/garment ids, not the real 25 seed `outfit_items`. Flagged to the user 2026-08-03.
 - [x] Audit RLS policies for `productos_carrito`, `orders`, `productos_orden`, `reseñas`, `prendas_armario` — ✅ done: found already applied live but missing from git history, reconstructed as `opa-backend/supabase/migrations/20260701150747_rls_policies_cart_orders_reviews_wardrobe.sql` (2026-07-03)
 - [ ] Complete `@chechuabb` (Celina Abelson) seed profile and outfits — profile row exists, no outfits seeded
 - [x] Complete metadata for fictional brands (Forma, Revés, Capas, Sole) — ✅ done: `website`/`location`/`description`/`tags` ya estaban cargados; `instagram_handle` completado el 2026-07-06 desde `opa-admin` (`reves.oficial`, `forma.oficial`, `capas.oficial`, `sole.oficial`). Nota: `profile_id` sigue `NULL` en todas las marcas (falta onboarding de cuentas de marca)
 - [ ] DB schema for brand loyalty points system — new table `brand_points` (user_id, brand_id, points, updated_at) and logic to award points when a user purchases a 100%-single-brand outfit; requires purchase flow to be implemented first
+- [ ] **Investigate `admin_impersonation_log` table** — found unexpectedly 2026-08-03 while checking `list_migrations` (migration `admin_impersonation_log`, version `20260803115219`, applied same day, right before this session's own DB work). Columns: `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`. RLS enabled with zero policies (service_role only). Not referenced anywhere in `opa-mobile`, `opa-backend`, or `opa-admin`'s own docs/checklists as of this session. Looks like an "admin impersonates a brand account" audit-log feature, likely built in an undocumented `opa-admin` session. Nothing was changed — just flagging that it exists and needs to be documented (or investigated if unexpected) in `product-2026-06-15-admin-panel.md` / `opa-admin/CLAUDE.md`. See `database-2026-06-06-schema-and-seed.md` for full detail.
 
 ---
 
@@ -139,17 +141,23 @@ Ideas discussed that need design + technical scoping before becoming implementat
 
 ## opa-admin
 
-All items below are for the `maxibernardoni/opa-admin` repo (separate session). See `product-2026-06-15-admin-panel.md` for full screen specs.
+All items below are for the `opa-organization/opa-admin` repo (separate session). See `product-2026-06-15-admin-panel.md` for full screen specs.
 
-- [ ] Initialize repo with Next.js 14 (App Router) + TypeScript + shadcn/ui + Tailwind
-- [ ] Configure Supabase client — anon key for auth, service_role for DB operations (server-side only)
-- [ ] Implement Next.js middleware auth gate — check `perfiles.is_admin = true` before allowing access to any route except `/login`
-- [ ] Dashboard screen — aggregate queries for global KPIs (users, outfits, prendas, orders, revenue, top content)
-- [ ] Brand Management: solicitudes pendientes screen + approve/reject flow (requires `brand_applications` table)
-- [ ] Brand Management: lista de marcas + detalle/edición + toggle verified
-- [ ] User Management: lista de usuarios + perfil + acciones (suspend/ban/delete — requires `perfiles.status` column)
-- [ ] Content Moderation: delete outfits, prendas, reseñas (no pre-approval)
-- [ ] Statistics: general, per-brand, sales, content trends
+> **Corrected 2026-08-03** — this section previously said "not started" / "initial dev", which was wrong. Verified directly against the cloned repo (`C:\Users\devandroid\opa-admin`): file tree, `git log` (8 real commits), and `git remote -v` (→ `opa-organization/opa-admin`, confirming the org transfer independently of the user's report). The panel is **functional locally against real Supabase data**, just not deployed yet.
+
+- [x] Initialize repo with Next.js 14 (App Router) + TypeScript + Supabase client — ✅ done. Not shadcn/ui — its own `CLAUDE.md` notes the declared stack says shadcn but the actual UI components are custom Tailwind (`components/`), no shadcn CLI installed
+- [x] Configure Supabase client — ✅ `lib/supabase/server.ts` (`createServiceRoleClient()`, service_role, server-only) + `lib/supabase/client.ts` (browser client for auth)
+- [x] Implement Next.js middleware auth gate — ✅ `middleware.ts`: checks Supabase session, then `perfiles.is_admin` (service_role) on first request, caches the result in an `httpOnly` cookie `opa_is_admin` for 8h to avoid a DB roundtrip per request
+- [x] Dashboard screen — ✅ `app/(admin)/dashboard/`: global KPIs (users, outfits, prendas, marcas, orders/revenue) + top 5 outfits by likes
+- [ ] Brand Management: solicitudes pendientes screen + approve/reject flow — ❌ still missing (requires `brand_applications` table, which exists in DB but has no admin UI yet). Verified via grep: no reference to `brand_applications` anywhere in the opa-admin codebase.
+- [x] Brand Management: lista de marcas + detalle/edición + toggle verified — ✅ `app/(admin)/marcas/` (list + search) and `app/(admin)/marcas/[id]/` (inline field edit, verified toggle, add/remove prendas for that brand)
+- [x] User Management: lista de usuarios + perfil + acciones (suspend/ban/delete) — ✅ `app/(admin)/usuarios/` (list) and `app/(admin)/usuarios/[id]/` (detail: outfits, orders, stats + suspend/ban/delete via `user-actions.tsx`)
+- [x] Content Moderation: delete outfits, prendas, reseñas (no pre-approval) — ✅ `app/(admin)/moderacion/{outfits,prendas,reseñas}/`, each with brand filter + text search + delete; hover-preview of the image on garment/outfit name
+- [ ] Statistics: per-brand, sales, content trends — ❌ still missing; dashboard only has the global KPIs + top-5-outfits above, no dedicated stats screens
+- [ ] Pagination in long lists (usuarios/outfits/prendas) — uses a fixed `.limit()`, no real pagination yet
+- [ ] Deploy to Vercel — not deployed; needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` env vars set there
+- [ ] Assign `is_admin = true` to the first real admin user in production Supabase
+- [ ] Decide whether to formally adopt shadcn/ui (per the originally declared stack) or keep the current custom Tailwind components as the standard
 
 ---
 

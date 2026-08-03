@@ -39,6 +39,8 @@ app/
     [id].tsx           # Detalle de outfit con prendas por slot
   user/
     [id].tsx           # Perfil de otro usuario (no el propio) — solo lectura + follow
+  marca/
+    [id].tsx           # Perfil público de marca (banner + catálogo); modo isOwn para la propia marca logueada
 ```
 
 ---
@@ -58,21 +60,23 @@ app/
 - Connected to real data via `useOutfits()`
 
 ### Outfit Scroll (`app/(tabs)/outfits.tsx`)
-- Full-screen `FlatList` with `pagingEnabled` — vertical TikTok-style scroll
-- Floating header: truck (left) + "Your brands / Discover" tabs (center) + + button (right)
-- `OutfitScrollItem` per item: full-screen image + overlaid UI
-- Floating garment labels with thumbnail + name + price
-- Action buttons: Like · Save · Share (local state)
-- Brand info bottom-left: avatar + name + outfit title
-- Bottom bar: total price calculated from garments + "View outfit"
+- Full-screen `FlatList` with `pagingEnabled` — vertical TikTok-style scroll. En web, `snapToInterval` es un no-op (react-native-web 0.21.2); el snap real lo da `pagingEnabled`. El `FlatList` fuerza `style={{ height: pageH }}` (viewport == alto de cada item) para que el snap no quede desalineado.
+- `pageH = SH - tabBarHeight`: cada item mide el alto de ventana menos el alto real de `BottomNavBar` (que se dibuja encima del contenido, no reserva espacio) — si no se descuenta, la barra de precio queda tapada por la nav.
+- Floating header: camión (`assets/camion_blanco.png`, imagen real — no emoji) a la izquierda + tabs "tus marcas / Descubrir" al centro (sin separador "/", sin pill oscuro de fondo — texto plano sobre la foto con subrayado rosa 2px en la tab activa) + botón "+" a la derecha (solo el signo, sin círculo/borde)
+- `OutfitScrollItem` por item: imagen full-bleed (sin overlay oscuro de gradiente) + UI superpuesta
+- Chips de prenda flotantes (thumbnail + nombre + precio) con líneas conectoras en forma de codo hacia un punto en la prenda; el ancla se deriva del `slot` de cada prenda (no hay coordenadas `position_x/position_y` en la DB — ver limitación en pending-features.md)
+- Botones de acción (like/save/share): iconos blancos sin círculo de fondo, 34×34px, gap 20, sobre la foto directamente (sin contador numérico visible)
+- Info del creador (avatar + nombre + título del outfit) abajo a la izquierda — sigue mostrando el **creador**, no la marca, hasta que exista onboarding de cuentas de marca con outfits propios
+- Barra de precio flotante (no pegada al fondo): ícono de bolsa rosa + "Precio total" + monto + botón "Ver outfit"
 - Connected to `useOutfits()`
 
 ### Profile (`app/(tabs)/profile.tsx`)
-Three states:
+Four states:
 
 1. **Initializing** (`!initialized`): centered `ActivityIndicator`
 2. **No session** (`!session`): Auth gate con logo OPA + botones iniciar sesión / crear cuenta
-3. **With session**: full profile
+3. **Cuenta de marca** (`profile.is_brand === true`): `<Redirect>` a `/marca/[id]` (con `id` = la marca via `useMyBrand`) — la cuenta de marca nunca ve este layout de perfil personal
+4. **Con sesión (personal)**: full profile
    - Header horizontal: avatar 80×80 (izquierda) + username / nombre / bio / ig handle / tags (derecha)
    - Settings icon (arriba derecha) → `app/settings.tsx`
    - Stats: Seguidores · Seguidos · Outfits · Guardados (valor real de `outfits_guardados`)
@@ -149,6 +153,14 @@ Accessible from Settings → "Mis medidas" row.
 - Iconos de compartir y menú arriba a la derecha son solo visuales por ahora, sin acción — ver pendientes.
 - **Bottom navbar standalone**: esta pantalla vive fuera del `Tabs` navigator (es un stack screen bajo `app/`), así que no puede reusar `components/navigation/BottomNavBar.tsx` directamente (ese componente depende de `state`/`navigation` de `@react-navigation/bottom-tabs`). Se armó una versión propia dentro del mismo archivo, calcada visualmente (mismos ícono paths en `assets/nav/`, mismo `iconWrap` con fondo rosa cuando activo), con "perfil" siempre marcado como activo y cada ícono navegando con `router.push` a la ruta del tab real (`/(tabs)`, `/(tabs)/outfits`, etc.). Si se agrega otra pantalla standalone que necesite esta navbar, vale la pena extraer esto a un componente compartido en vez de copiar el bloque de nuevo.
 - Puntos de entrada actualizados para navegar acá en vez de saltar directo al scroll: fila de creador en `outfit/[id].tsx`, avatar/nombre del creador en `OutfitScrollItem` (scroll principal), y `@username` en resultados de `search.tsx`.
+
+### Brand Profile (`app/marca/[id].tsx`)
+Perfil público de una marca — layout distinto al de usuario (banner + avatar-logo circular, badge `verificado_ondas.png` si `marcas.verified`, `@handle · Marca`, bio, tags, stats Seguidores/Outfits/Prendas, tabs icon-only Grid/Catálogo). Hook `useBrand(marcaId)`.
+
+- **Modo `isOwn`** (`brand.profile_id === session.user.id`, agregado 2026-07-13): engranaje de configuración (→ `/settings`) en vez de compartir/menú, sin botón "Seguir", tab "perfil" de la navbar activo. Es el layout que ve una cuenta de marca logueada de sí misma (ver Profile arriba).
+- **Modo ajeno**: banner "Ya lo tenés" si el usuario logueado tiene prendas de esa marca en el armario (cruza `useWardrobe` con `garment.brand_id`), botón Seguir.
+- Igual que `app/user/[id].tsx`, vive fuera del `Tabs` navigator — bottom navbar standalone propia.
+- **Limitación conocida:** todas las `marcas` menos Revés tienen `profile_id = NULL` (falta onboarding de cuentas de marca), así que Outfits/Seguidores quedan vacíos y Seguir es inerte para esas marcas; el catálogo sí trae datos reales siempre.
 
 ### User Outfits (`app/user-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits de un perfil específico
@@ -288,6 +300,8 @@ xs:4, sm:8, md:12, lg:16, xl:24, xxl:32
 - `--legacy-peer-deps` required for all `npm install` — peer dependency conflicts between Expo SDK 54 packages
 - `pointerEvents` as a style prop (not a direct prop) in RN 0.71+
 - `babel.config.js` and `metro.config.js` are mandatory — Metro cannot compile the project without them
+- **`components/layout/MobileFrame.tsx`** (2026-07-06): en web, si la ventana es más ancha que un teléfono, encuadra la app en una columna centrada de 393px (`APP_MAX_WIDTH`, iPhone 16 Pro) sobre fondo gris; en móvil/Chrome responsive angosto no se aplica. Wrapper en `app/_layout.tsx` envolviendo el `<Stack>`.
+- **`constants/layout.ts`** (`APP_WIDTH`): todos los cálculos de layout basados en ancho (carruseles, grillas, cards) usan `APP_WIDTH` en vez de `Dimensions.get('window').width`, para que el layout se calcule contra el ancho del "teléfono" y no del monitor. La altura sigue usando `Dimensions.get('window').height` directo. Son constantes a nivel de módulo — no se recalculan en un resize en vivo, solo en cada carga.
 
 ---
 

@@ -24,10 +24,10 @@ It is NOT accessible to brands or regular users. Access is restricted to OPA sta
 | | |
 |---|---|
 | **Framework** | Next.js 14 (App Router) + TypeScript |
-| **UI** | shadcn/ui + Tailwind CSS |
-| **Auth** | Supabase Auth — admin users only; `service_role` key for privileged DB operations |
-| **Deploy** | Vercel |
-| **Repo** | `maxibernardoni/opa-admin` (separate repo) |
+| **UI** | Tailwind CSS + custom components (declared stack said shadcn/ui, but no shadcn CLI is actually installed — real, per opa-admin's own `CLAUDE.md`; decide whether to formally adopt shadcn or keep this) |
+| **Auth** | Supabase Auth (`@supabase/ssr`) — admin users only, gated by `perfiles.is_admin` in `middleware.ts`; `service_role` key for privileged DB operations, server-only |
+| **Deploy** | Vercel — not deployed yet, runs locally against real Supabase data |
+| **Repo** | `opa-organization/opa-admin` (separate repo — org transfer confirmed 2026-08-03 both by the user and independently via `git remote -v` on the cloned repo) |
 
 ---
 
@@ -89,15 +89,24 @@ Global platform metrics at a glance:
 
 ---
 
+## Implemented ✅
+
+> Verified 2026-08-03 directly against the cloned repo (file tree + `git log`), not just against opa-admin's own docs. See `meta-2026-06-10-pending-features.md` for the authoritative per-item breakdown.
+
+- Next.js 14 + Supabase client (anon for auth, `service_role` server-only for privileged ops)
+- Admin auth gate (`middleware.ts`): session check + `perfiles.is_admin`, cached in an 8h `httpOnly` cookie
+- `is_admin` and `status` columns on `perfiles` (migration `add_admin_columns_to_perfiles`)
+- Dashboard: global KPIs (users, outfits, prendas, marcas, orders/revenue) + top 5 outfits by likes
+- Brand list + detail (inline edit, verified toggle, add/remove prendas for that brand)
+- User list + profile detail (outfits, orders, stats) + suspend/ban/delete
+- Content moderation: outfits, prendas, reseñas — each with brand filter + text search + delete, hover-preview of images
+- Loading animation (`components/spinner.tsx` + shared `app/(admin)/loading.tsx`)
+
 ## Pending
 
-- [ ] Initialize `opa-admin` repo with Next.js 14 + shadcn/ui + Tailwind + Supabase client
-- [ ] Add `is_admin boolean default false` column to `perfiles` in DB (migration needed)
-- [ ] Implement admin auth gate — middleware that checks `perfiles.is_admin` before allowing access to any page
-- [ ] Dashboard screen — aggregate queries for global KPIs
-- [ ] Brand solicitudes screen + approve/reject flow — requires brand application table (see `product-2026-06-10-brand-system.md`)
-- [ ] Brand list + detail + edit + verify screens
-- [ ] User list + profile + suspend/ban/delete screens
-- [ ] Content moderation screens (outfits, prendas, reseñas)
-- [ ] Statistics screens (per-brand, sales, content)
-- [ ] DB migration: add `status` column to `perfiles` for suspended/banned states
+- [ ] **Brand solicitudes screen + approve/reject flow** — the `brand_applications` table exists in the DB but has no admin UI at all yet (confirmed via grep — zero references in the opa-admin codebase). This is the one Brand Management screen from the spec below that's genuinely missing.
+- [ ] Statistics screens (per-brand, sales, content trends) — dashboard only has the global KPIs + top-5-outfits, no dedicated stats screens
+- [ ] Pagination in long lists (usuarios/outfits/prendas) — fixed `.limit()`, not real pagination
+- [ ] Deploy to Vercel
+- [ ] Assign `is_admin = true` to the first real admin user in production
+- [ ] Decide whether to formally adopt shadcn/ui or keep the current custom Tailwind components

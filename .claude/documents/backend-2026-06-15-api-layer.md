@@ -20,7 +20,7 @@ Supabase is still called directly from opa-mobile for read-heavy operations (fee
 | **Framework** | Hono v4 |
 | **Auth** | Supabase JWT validation via `supabase.auth.getUser(token)` |
 | **Deploy** | Supabase Edge Functions — no separate infra needed |
-| **Location** | `functions/api/` in the separate repo `maxibernardoni/opa-backend` (no longer in `opa-mobile`) |
+| **Location** | `functions/api/` in the separate repo `opa-organization/opa-backend` (no longer in `opa-mobile`) |
 
 ---
 
@@ -118,7 +118,7 @@ Health check: `GET https://vecnktrbjolahcalkbml.supabase.co/functions/v1/api/hea
 
 ## Standalone Repo
 
-The API source lives exclusively in `maxibernardoni/opa-backend`. Confirmed independent on 2026-07-03: redeployed the `api` Edge Function using only `opa-backend`'s code (version 2), verified via health check, and tested `opa-mobile` end-to-end with no local `backend/` folder. `backend/` was removed from `opa-mobile`.
+The API source lives exclusively in `opa-organization/opa-backend`. Confirmed independent on 2026-07-03: redeployed the `api` Edge Function using only `opa-backend`'s code (version 2), verified via health check, and tested `opa-mobile` end-to-end with no local `backend/` folder. `backend/` was removed from `opa-mobile`. Both `opa-mobile` and `opa-backend` were transferred into the `opa-organization` GitHub org on 2026-07-03 (confirmed via `git remote -v` on both repos).
 
 ## Pending
 

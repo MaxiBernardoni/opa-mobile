@@ -174,5 +174,6 @@ export interface UserMeasurements {
   hip: number | null
   height: number | null
   thigh: number | null
+  foot_length: number | null
   updated_at: string
 }
