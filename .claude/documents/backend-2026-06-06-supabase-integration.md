@@ -79,21 +79,7 @@ Called from `app/settings.tsx`. Two-step flow:
 1. Verify password: `supabase.auth.signInWithPassword({ email, password })`
 2. Delete via RPC: `supabase.rpc('delete_user')`
 
-The `delete_user()` function must exist in Supabase as a SQL function with `SECURITY DEFINER` so it can delete from `auth.users`. **This function has not been created yet** — account deletion will fail until it is.
-
-Suggested SQL (to be applied by the Database chat):
-```sql
-create or replace function delete_user()
-returns void
-language plpgsql
-security definer
-as $$
-begin
-  delete from perfiles where id = auth.uid();
-  delete from auth.users where id = auth.uid();
-end;
-$$;
-```
+The `delete_user()` function exists in Supabase (`SECURITY DEFINER`, migration `create_delete_user_function`) — see full SQL and deletion order in the "Delete Account" section below.
 
 ---
 
@@ -163,11 +149,17 @@ Fetches the authenticated user's body measurements from `user_measurements`. Exp
 ### `hooks/useRecommendedSize.ts`
 Calls `supabase.rpc('get_recommended_size', { guide_id })` with the authenticated user's measurements. Returns the recommended `size_label` string or `null` if measurements are incomplete. Retorna `{ recommendedSize, loading }`.
 
+### `hooks/useBrand.ts`
+Fetches a `marcas` row by id + sus `prendas` (catálogo) + (si tiene `profile_id`) outfits y followers count. Usado en `app/marca/[id].tsx`.
+
+### `hooks/useMyBrand.ts`
+Fetches la `marcas` row donde `profile_id = session.user.id` — la marca del usuario de marca autenticado. Usado en `app/(tabs)/profile.tsx` para el redirect a `/marca/[id]` y en el modo `isOwn` de `app/marca/[id].tsx`.
+
 ---
 
 ## TypeScript Types (`types/index.ts`)
 
-Types are aligned to the real Spanish-named schema:
+Types are aligned to the real Spanish-named schema. Core entities (see the file itself for the full list, including `WardrobeItem`, `Follow`, `SavedOutfit`, `CartItem`, `Order`/`OrderItem`, `Review`, and the size-guide types):
 
 ```ts
 export interface Profile {
@@ -176,6 +168,7 @@ export interface Profile {
   display_name: string | null
   bio: string | null
   avatar_url: string | null
+  instagram_handle: string | null
   tags: string[]
   followers_count: number
   following_count: number
@@ -187,45 +180,57 @@ export interface Profile {
 export interface Brand {
   id: string
   name: string
+  description: string | null
   logo_url: string | null
+  profile_id: string | null
   instagram_handle: string | null
   website: string | null
   location: string | null
   tags: string[]
+  verified: boolean
+  created_at: string
 }
 
 export interface Garment {
   id: string
   brand_id: string
   name: string
+  description: string | null
   price: number
   category: string | null
+  style: string | null
   image_url: string | null
   color: string | null
   available_sizes: string[]
+  size_guide_id: string | null
+  sale_mode: 'direct' | 'redirect'
+  external_url: string | null
   created_at: string
   brand?: Brand
 }
 
+// outfit_items — links outfits to garments by slot (no position coordinates)
 export interface OutfitItem {
+  id: string
   outfit_id: string
   garment_id: string
-  position_x: number | null
-  position_y: number | null
+  slot: string | null  // torso | piernas | calzado | extras
 }
 
 export interface OutfitItemWithData extends OutfitItem {
-  garment?: Garment
+  garment: Garment
 }
 
 export interface Outfit {
   id: string
   creator_id: string | null
   title: string | null
+  description: string | null
   cover_image_url: string | null
   occasion: string | null
   style: string | null
   likes_count: number
+  saves_count: number
   created_at: string
   creator?: Profile
   garments?: OutfitItemWithData[]

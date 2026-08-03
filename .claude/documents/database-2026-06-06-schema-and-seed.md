@@ -1,6 +1,6 @@
 # Database — Schema & Seed Data
 
-_Última actualización: 2026-06-09_
+_Última actualización: 2026-07-13_
 
 ## Proyecto Supabase
 - **Project ID:** `vecnktrbjolahcalkbml`
@@ -9,6 +9,8 @@ _Última actualización: 2026-06-09_
 ---
 
 ## Migraciones aplicadas
+
+> **Corregido 2026-08-03:** esta tabla tenía versiones inventadas/aproximadas (no las reales) desde su creación — se reemplazaron todas por las que devuelve `list_migrations` contra la DB real. Si vas a buscar una migración por versión (ej. para `supabase migration repair` o para diffear contra los archivos locales en `opa-backend/supabase/migrations/`), usá esta tabla, no los nombres de archivo locales — ya vimos al menos un caso (`rename_marcas_owner_id_to_profile_id`) donde el archivo local tiene un prefijo de fecha distinto al que quedó aplicado en la DB.
 
 | Versión | Nombre |
 |---|---|
@@ -20,13 +22,22 @@ _Última actualización: 2026-06-09_
 | 20260601114335 | create_storage_bucket_assets |
 | 20260601114442 | fix_storage_anon_upload_policy |
 | 20260601114756 | perfiles_auth_rls_policies |
-| 20260609000001 | likes_saves_follows_rls_and_triggers |
-| 20260609000002 | unique_constraints_likes_and_saves |
-| 20260609000003 | size_guide_system |
-| 20260609000004 | size_guide_calzado_extras |
-| 20260626000001 | admin_and_status_columns_on_perfiles |
-| 20260626000002 | sale_mode_and_external_url_on_prendas |
-| 20260626000003 | create_brand_applications |
+| 20260608111420 | create_delete_user_function |
+| 20260609135539 | likes_saves_follows_rls_and_triggers |
+| 20260609140121 | unique_constraints_likes_and_saves |
+| 20260609151300 | size_guide_system |
+| 20260609153111 | size_guide_calzado_extras |
+| 20260622115551 | add_admin_columns_to_perfiles |
+| 20260622145756 | add_verified_to_marcas |
+| 20260626142434 | admin_and_status_columns_on_perfiles |
+| 20260626142440 | sale_mode_and_external_url_on_prendas |
+| 20260626142443 | create_brand_applications |
+| 20260629142025 | rename_marcas_owner_id_to_profile_id |
+| 20260701150747 | rls_policies_cart_orders_reviews_wardrobe |
+| 20260803115219 | **`admin_impersonation_log`** ⚠️ sin documentar en ningún repo — ver nota abajo |
+| 20260803120322 | add_foot_length_to_user_measurements |
+
+> **⚠️ `admin_impersonation_log` (2026-08-03) — encontrada sin querer, no documentada en ningún lado.** Creó una tabla `admin_impersonation_log` (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`), RLS habilitado con **cero policies** (bloqueada del todo salvo `service_role`). Pinta a un feature de "un admin de OPA puede impersonar/loguearse como una marca" con auditoría — probablemente trabajo de otra sesión sobre `opa-admin` que todavía no se sincronizó a ningún doc. **No se tocó ni se le agregó nada** — si sabés qué es, contámelo para documentarlo bien; si no lo reconocés, vale la pena confirmar que es intencional antes de asumir que es inofensiva.
 
 ---
 
@@ -64,6 +75,8 @@ Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 | `@mateo.h` | Mateo Herrera | ✅ Completo |
 | `@chechuabb` | Celina Abelson | ⏳ Pendiente |
 
+**Cuenta de marca (2026-07-13):** además de los 3 usuarios seed de arriba, existe un 4to `auth.users`/`perfiles` para la cuenta de marca de prueba `reves@opa.com` (`is_brand = true`), creada a mano vía SQL (no vino de una migración) y vinculada a `marcas.profile_id` de Revés. Credenciales de prueba: `reves@opa.com` / `reves1234`. Ver `product-2026-06-10-brand-system.md` para el detalle del atajo de onboarding.
+
 ---
 
 ### `marcas`
@@ -95,6 +108,8 @@ Extiende `auth.users`. Se crea automáticamente via trigger al registrarse.
 | Sole | `avatars/brands/sole_avatar.png` | — | — | — | Ficción |
 
 > Pull&Bear y Stradivarius fueron reemplazados por marcas ficticias propias. Ónix fue creada y eliminada (joyería pasó a ser referencia visual únicamente).
+
+> **`profile_id` (2026-07-13):** Revés es la única marca con `profile_id` seteado (apunta a la cuenta de marca `reves@opa.com` creada a mano, ver tabla de usuarios seed arriba) — su grilla de Outfits y Seguidores están "vivos" en `app/marca/[id].tsx` aunque lean 0 (no tiene outfits ni followers seed). Las otras 6 marcas siguen con `profile_id = NULL`.
 
 Los logos reales están en el bucket `avatars` (público). URL base:
 `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/avatars/`
@@ -437,6 +452,7 @@ URL base pública: `https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/p
 | hip | numeric | nullable — cadera cm |
 | height | numeric | nullable — altura cm |
 | thigh | numeric | nullable — muslo cm |
+| foot_length | numeric | nullable — largo de pie cm (agregado 2026-08-03, migración `add_foot_length_to_user_measurements`) |
 | updated_at | timestamp | default now() |
 
 **RLS:** habilitado — SELECT/INSERT/UPDATE/DELETE solo propio (`user_id = auth.uid()`). Una fila por usuario (UNIQUE en `user_id`).
@@ -451,12 +467,10 @@ Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
 - Por categoría:
   - `tops`: match por pecho (chest), fit_preference ajustado/holgado/justo
   - `bottoms`: match por cintura (waist), fit_preference ajustado/holgado/justo
-  - `calzado`: match por altura como proxy de largo de pie (foot_length_min/max), siempre devuelve `'justo'`
+  - `calzado`: match por `foot_length` real si el usuario la cargó; si no, sigue usando `height` como proxy (`coalesce(u.foot_length, u.height)`, actualizado 2026-08-03), siempre devuelve `'justo'`
   - `extras`: match por cintura si tiene `waist_min` (Cinturón), sin match si no (Bolso devuelve vacío), siempre `'justo'`
 - Devuelve vacío si el usuario no tiene medidas cargadas
 - `SECURITY DEFINER` — `GRANT EXECUTE TO authenticated`
-
-> **Nota:** calzado usa `u.height` como proxy de largo de pie hasta que se agregue `foot_length` a `user_measurements`.
 
 ---
 
