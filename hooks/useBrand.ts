@@ -7,6 +7,7 @@ interface BrandData {
   garments: Garment[]   // catálogo (prendas de la marca)
   outfits: Outfit[]     // outfits publicados por la cuenta de la marca
   followersCount: number
+  adjustFollowersCount: (delta: number) => void
   loading: boolean
 }
 
@@ -70,5 +71,11 @@ export function useBrand(brandId?: string): BrandData {
     }
   }
 
-  return { brand, garments, outfits, followersCount, loading }
+  // Ajuste optimista del contador tras Seguir/Siguiendo — evita depender de un
+  // refetch completo (mismo patrón que el optimistic update de useLike/useSave).
+  function adjustFollowersCount(delta: number) {
+    setFollowersCount((prev) => Math.max(0, prev + delta))
+  }
+
+  return { brand, garments, outfits, followersCount, adjustFollowersCount, loading }
 }

@@ -3,9 +3,11 @@ import { Stack } from 'expo-router'
 import { useFonts } from 'expo-font'
 import { PalanquinDark_400Regular } from '@expo-google-fonts/palanquin-dark'
 import * as SplashScreen from 'expo-splash-screen'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/useAuthStore'
 import { MobileFrame } from '../components/layout/MobileFrame'
+import { upsertRememberedAccount, removeRememberedAccount } from '../lib/rememberedAccounts'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -21,15 +23,22 @@ export default function RootLayout() {
     // Load initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session?.user) fetchProfile(session.user.id)
+      if (session?.user) fetchProfile(session.user.id, session)
       else setInitialized(true)
     })
 
     // Listen for auth changes — skip INITIAL_SESSION, already handled by getSession() above
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'INITIAL_SESSION') return
+      if (event === 'SIGNED_OUT') {
+        // "Cerrar sesión" (en cualquiera de sus dos implementaciones, local o
+        // global) significa "salí de esta cuenta en este dispositivo" — se
+        // borra del switcher para no ofrecer un re-ingreso sin contraseña.
+        const prevUserId = useAuthStore.getState().session?.user.id
+        if (prevUserId) removeRememberedAccount(prevUserId)
+      }
       setSession(session)
-      if (session?.user) fetchProfile(session.user.id)
+      if (session?.user) fetchProfile(session.user.id, session)
       else {
         setProfile(null)
         setInitialized(true)
@@ -39,7 +48,7 @@ export default function RootLayout() {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchProfile(userId: string) {
+  async function fetchProfile(userId: string, session: Session) {
     const { data } = await supabase
       .from('perfiles')
       .select('*')
@@ -47,6 +56,22 @@ export default function RootLayout() {
       .single()
     setProfile(data ?? null)
     setInitialized(true)
+
+    // Recuerda/actualiza la cuenta para el switcher multi-cuenta. Se re-escribe
+    // en cada llamada (incluido TOKEN_REFRESHED) porque el refresh_token rota.
+    if (data && session.user.email) {
+      upsertRememberedAccount({
+        userId,
+        email: session.user.email,
+        username: data.username ?? null,
+        displayName: data.display_name ?? null,
+        avatarUrl: data.avatar_url ?? null,
+        isBrand: !!data.is_brand,
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        updatedAt: new Date().toISOString(),
+      })
+    }
   }
 
   useEffect(() => {

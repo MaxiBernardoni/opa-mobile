@@ -48,11 +48,18 @@ export default function BrandProfileScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { session } = useAuthStore()
+  const { session, profile } = useAuthStore()
+  // Las cuentas de marca no pueden seguir a otras cuentas ni acceder al feed.
+  const viewerIsBrand = !!profile?.is_brand
 
-  const { brand, garments, outfits, followersCount, loading } = useBrand(id)
+  const { brand, garments, outfits, followersCount, adjustFollowersCount, loading } = useBrand(id)
   const { items: wardrobe } = useWardrobe(session?.user.id)
   const { following, toggle: toggleFollow } = useFollow(brand?.profile_id ?? '')
+
+  function handleToggleFollow() {
+    adjustFollowersCount(following ? -1 : 1)
+    toggleFollow()
+  }
 
   const [activeTab, setActiveTab] = useState<'outfits' | 'catalogo'>('outfits')
 
@@ -172,12 +179,12 @@ export default function BrandProfileScreen() {
           ))}
         </View>
 
-        {/* Follow button — oculto cuando la marca ve su propio perfil */}
-        {!isOwn && (
+        {/* Follow button — oculto cuando la marca ve su propio perfil, o cuando quien mira es una cuenta de marca */}
+        {!isOwn && !viewerIsBrand && (
           <View style={styles.followRow}>
             <TouchableOpacity
               style={[styles.followBtn, following && styles.followBtnActive]}
-              onPress={toggleFollow}
+              onPress={handleToggleFollow}
               activeOpacity={0.85}
             >
               <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
@@ -282,7 +289,7 @@ export default function BrandProfileScreen() {
 
       {/* Bottom navbar — pantalla fuera del Tabs navigator, se arma standalone */}
       <View style={[styles.navBar, { paddingBottom: insets.bottom || 8 }]}>
-        {NAV_TABS.map((tab) => {
+        {NAV_TABS.filter((tab) => !(viewerIsBrand && tab.key === 'outfits')).map((tab) => {
           // En el perfil propio de la marca, el tab "perfil" queda activo (rosa)
           const active = isOwn && tab.key === 'profile'
           return (

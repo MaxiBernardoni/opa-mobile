@@ -36,7 +36,9 @@ export default function UserProfileScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { session } = useAuthStore()
+  const { session, profile: viewerProfile } = useAuthStore()
+  // Las cuentas de marca no pueden seguir a otras cuentas ni acceder al feed.
+  const viewerIsBrand = !!viewerProfile?.is_brand
   const { profile, loading: profileLoading } = useProfile(id)
   const { outfits, loading: outfitsLoading } = useOutfits(id)
   const { following, toggle: toggleFollow } = useFollow(id ?? '')
@@ -124,18 +126,20 @@ export default function UserProfileScreen() {
           )}
         </View>
 
-        {/* Follow button */}
-        <View style={styles.followRow}>
-          <TouchableOpacity
-            style={[styles.followBtn, following && styles.followBtnActive]}
-            onPress={toggleFollow}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
-              {following ? 'Siguiendo' : 'Seguir'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Follow button — oculto cuando quien mira es una cuenta de marca */}
+        {!viewerIsBrand && (
+          <View style={styles.followRow}>
+            <TouchableOpacity
+              style={[styles.followBtn, following && styles.followBtnActive]}
+              onPress={toggleFollow}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                {following ? 'Siguiendo' : 'Seguir'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Tab bar (solo grid — outfits públicos) */}
         <View style={styles.profileNav}>
@@ -189,7 +193,7 @@ export default function UserProfileScreen() {
 
       {/* Bottom navbar — pantalla fuera del Tabs navigator, se arma standalone */}
       <View style={[styles.navBar, { paddingBottom: insets.bottom || 8 }]}>
-        {NAV_TABS.map((tab) => {
+        {NAV_TABS.filter((tab) => !(viewerIsBrand && tab.key === 'outfits')).map((tab) => {
           const active = tab.key === 'profile'
           return (
             <TouchableOpacity

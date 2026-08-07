@@ -82,6 +82,9 @@ export interface WardrobeItem {
   user_id: string
   garment_id: string
   added_at: string
+  size: string | null
+  color: string | null
+  source: string | null
   garment?: Garment
 }
 

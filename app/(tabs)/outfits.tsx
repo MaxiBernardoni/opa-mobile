@@ -5,10 +5,12 @@ import {
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, Redirect } from 'expo-router'
 import { useOutfits } from '../../hooks/useOutfits'
+import { useFollowedBrandIds } from '../../hooks/useFollowedBrandIds'
 import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
 import { colors } from '../../constants/colors'
+import { useAuthStore } from '../../store/useAuthStore'
 
 const { height: SH } = Dimensions.get('window')
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
@@ -23,10 +25,25 @@ export default function OutfitsScreen() {
   // el alto real de BottomNavBar: paddingTop 8 + iconWrap 48 + paddingBottom + borde 1.
   const tabBarHeight = 8 + 48 + (insets.bottom || 8) + 1
   const pageH = SH - tabBarHeight
+  const { profile } = useAuthStore()
   const { outfits, loading } = useOutfits()
+  const { brandIds: followedBrandIds, loading: loadingBrands } = useFollowedBrandIds()
   const { outfitId } = useLocalSearchParams<{ outfitId?: string }>()
   const flatListRef = useRef<FlatList>(null)
   const didScrollRef = useRef(false)
+
+  // "tus marcas": outfits que tienen al menos una prenda de una marca que el usuario sigue
+  const marcasOutfits = outfits.filter((o) =>
+    o.garments?.some((gi) => gi.garment && followedBrandIds.includes(gi.garment.brand_id))
+  )
+  const displayedOutfits = tab === 'marcas' ? marcasOutfits : outfits
+
+  // Al cambiar de tab el listado cambia de largo — volver al principio evita
+  // quedar con un índice activo que ya no corresponde a ningún item.
+  useEffect(() => {
+    setActiveIndex(0)
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false })
+  }, [tab])
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0)
@@ -61,6 +78,12 @@ export default function OutfitsScreen() {
     )
   }
 
+  // Las cuentas de marca no tienen acceso a la sección de feed (no pueden
+  // like/save/follow — son cuentas de contenido/venta, no de consumo).
+  if (profile?.is_brand) {
+    return <Redirect href="/(tabs)/profile" />
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -91,25 +114,39 @@ export default function OutfitsScreen() {
         </View>
       </SafeAreaView>
 
-      <FlatList
-        ref={flatListRef}
-        data={outfits}
-        keyExtractor={(item) => item.id}
-        // El viewport del FlatList debe medir EXACTAMENTE pageH (= alto del item),
-        // no el alto completo del contenedor. Si el viewport es más alto que el item,
-        // el snap (nativo por pagingEnabled, web por scroll-snap) engancha desalineado
-        // y la barra de precio del item queda fuera de vista al pasar de outfit.
-        style={{ height: pageH, flexGrow: 0 }}
-        pagingEnabled
-        showsVerticalScrollIndicator={false}
-        decelerationRate="fast"
-        onViewableItemsChanged={onViewableItemsChanged.current}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-        getItemLayout={(_, index) => ({ length: pageH, offset: pageH * index, index })}
-        renderItem={({ item, index }) => (
-          <OutfitScrollItem outfit={item} isActive={index === activeIndex} height={pageH} />
-        )}
-      />
+      {tab === 'marcas' && loadingBrands ? (
+        <View style={[styles.emptyState, { height: pageH }]}>
+          <ActivityIndicator color={colors.blanco} size="large" />
+        </View>
+      ) : tab === 'marcas' && displayedOutfits.length === 0 ? (
+        <View style={[styles.emptyState, { height: pageH }]}>
+          <Text style={styles.emptyStateText}>
+            {followedBrandIds.length === 0
+              ? 'Todavía no seguís ninguna marca.\nExplorá marcas y seguilas para verlas acá.'
+              : 'Todavía no hay outfits con prendas de las marcas que seguís.'}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={displayedOutfits}
+          keyExtractor={(item) => item.id}
+          // El viewport del FlatList debe medir EXACTAMENTE pageH (= alto del item),
+          // no el alto completo del contenedor. Si el viewport es más alto que el item,
+          // el snap (nativo por pagingEnabled, web por scroll-snap) engancha desalineado
+          // y la barra de precio del item queda fuera de vista al pasar de outfit.
+          style={{ height: pageH, flexGrow: 0 }}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          decelerationRate="fast"
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          getItemLayout={(_, index) => ({ length: pageH, offset: pageH * index, index })}
+          renderItem={({ item, index }) => (
+            <OutfitScrollItem outfit={item} isActive={index === activeIndex} height={pageH} />
+          )}
+        />
+      )}
     </View>
   )
 }
@@ -137,4 +174,6 @@ const styles = StyleSheet.create({
   tabUnderlineActive: { backgroundColor: colors.rosaOpa },
   addBtn: { alignItems: 'center', justifyContent: 'center' },
   addBtnText: { color: colors.blanco, fontSize: 28, fontWeight: '300', lineHeight: 30 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  emptyStateText: { color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center', lineHeight: 20 },
 })

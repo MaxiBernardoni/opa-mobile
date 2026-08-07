@@ -42,7 +42,9 @@ interface Props {
 
 export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
   const router = useRouter()
-  const { session } = useAuthStore()
+  const { session, profile } = useAuthStore()
+  // Las cuentas de marca no pueden like/save/follow — son cuentas de contenido/venta.
+  const viewerIsBrand = !!profile?.is_brand
   const { liked, toggle: toggleLike } = useLike(outfit.id, outfit.likes_count)
   const { saved, toggle: toggleSave } = useSave(outfit.id, outfit.saves_count ?? 0)
   const creatorId = outfit.creator_id ?? ''
@@ -112,12 +114,16 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
 
         {/* Action buttons — círculos blancos, icon only (sin contadores) */}
         <View style={[styles.actions, { top: height * 0.4 }]}>
-          <TouchableOpacity onPress={toggleLike} style={styles.actionBtn}>
-            <Text style={[styles.actionIcon, liked && styles.actionIconLiked]}>{liked ? '♥' : '♡'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={toggleSave} style={styles.actionBtn}>
-            <Text style={[styles.actionIcon, saved && styles.actionIconLiked]}>{saved ? '★' : '☆'}</Text>
-          </TouchableOpacity>
+          {!viewerIsBrand && (
+            <>
+              <TouchableOpacity onPress={toggleLike} style={styles.actionBtn}>
+                <Text style={[styles.actionIcon, liked && styles.actionIconLiked]}>{liked ? '♥' : '♡'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleSave} style={styles.actionBtn}>
+                <Text style={[styles.actionIcon, saved && styles.actionIconLiked]}>{saved ? '★' : '☆'}</Text>
+              </TouchableOpacity>
+            </>
+          )}
           <TouchableOpacity style={styles.actionBtn}>
             <Image
               source={{ uri: `${STORAGE}/compartir.png` }}
@@ -149,7 +155,7 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
                 <Text style={styles.outfitTitle}>{outfit.title}</Text>
               </View>
             </TouchableOpacity>
-            {!isOwnOutfit && creatorId && (
+            {!isOwnOutfit && creatorId && !viewerIsBrand && (
               <TouchableOpacity
                 onPress={toggleFollow}
                 style={[styles.followBtn, following && styles.followBtnActive]}

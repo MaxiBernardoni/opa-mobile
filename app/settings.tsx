@@ -14,12 +14,15 @@ import { supabase } from '../lib/supabase'
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 
-type SettingsItem = { label: string; desc: string; icon: string; route?: string }
+// icon: nombre de archivo en Storage; textIcon: glifo de texto para casos sin
+// asset dedicado (no hay ícono de "cambiar cuenta" en el bucket — ver CLAUDE.md).
+type SettingsItem = { label: string; desc: string; icon?: string; textIcon?: string; route?: string }
 
 const SECTIONS: { title: string; items: SettingsItem[] }[] = [
   {
     title: 'CUENTA',
     items: [
+      { label: 'Cambiar de cuenta', desc: 'Saltá entre las cuentas de este dispositivo', textIcon: '⇄', route: '/switch-account' },
       { label: 'Editar perfil', desc: 'Actualizá tu información personal', icon: 'lapiz_rosa.png' },
       { label: 'Seguridad', desc: 'Contraseña, sesión y verificación en dos pasos', icon: 'candado.png' },
       { label: 'Email y notificaciones', desc: 'Gestioná tus notificaciones y preferencias', icon: 'carta.png' },
@@ -196,11 +199,15 @@ export default function SettingsScreen() {
                     onPress={item.route ? () => router.push(item.route as any) : undefined}
                   >
                     <View style={styles.rowIconWrap}>
-                      <Image
-                        source={{ uri: BASE + item.icon }}
-                        style={styles.rowIcon}
-                        contentFit="contain"
-                      />
+                      {item.textIcon ? (
+                        <Text style={styles.rowTextIcon}>{item.textIcon}</Text>
+                      ) : (
+                        <Image
+                          source={{ uri: BASE + item.icon }}
+                          style={styles.rowIcon}
+                          contentFit="contain"
+                        />
+                      )}
                     </View>
                     <View style={styles.rowText}>
                       <Text style={styles.rowLabel}>{item.label}</Text>
@@ -490,6 +497,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowIcon: { width: 20, height: 20 },
+  rowTextIcon: { fontSize: 18, color: colors.rosaOpa, fontWeight: '600' },
   rowText: { flex: 1 },
   rowLabel: { fontSize: 14, fontFamily: fonts.palanquinDark, color: colors.negro },
   rowDesc: { fontSize: 11, color: colors.grisClaro, marginTop: 1 },

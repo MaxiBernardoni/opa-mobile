@@ -10,7 +10,9 @@ const toSafeKey = (key: string) =>
   key.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 255)
 
 // expo-secure-store is native-only. On web we fall back to localStorage.
-const storage =
+// Exported so lib/rememberedAccounts.ts can persist the multi-account switcher
+// list under the same platform-appropriate storage.
+export const storage =
   Platform.OS === 'web'
     ? {
         getItem: (key: string) =>

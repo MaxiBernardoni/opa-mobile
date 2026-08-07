@@ -4,6 +4,7 @@ import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { colors } from '../../constants/colors'
+import { useAuthStore } from '../../store/useAuthStore'
 
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/nav'
 
@@ -17,10 +18,14 @@ const TAB_ICONS: Record<string, { default: string; active: string }> = {
 
 export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
+  const { profile } = useAuthStore()
+  // Las cuentas de marca no acceden a la sección de feed (no pueden like/save/follow).
+  const routes = profile?.is_brand ? state.routes.filter((r) => r.name !== 'outfits') : state.routes
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || 8 }]}>
-      {state.routes.map((route, index) => {
+      {routes.map((route) => {
+        const index = state.routes.indexOf(route)
         const isFocused = state.index === index
         const icons = TAB_ICONS[route.name]
 
