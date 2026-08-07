@@ -205,6 +205,7 @@ export interface Garment {
   size_guide_id: string | null
   sale_mode: 'direct' | 'redirect'
   external_url: string | null
+  stock_por_talle: Record<string, number> | null   // agregado 2026-08-07; columna ya existía en la DB, faltaba en el tipo
   created_at: string
   brand?: Brand
 }

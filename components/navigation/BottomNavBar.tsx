@@ -4,25 +4,32 @@ import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { colors } from '../../constants/colors'
+import { useAuthStore } from '../../store/useAuthStore'
 
-const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/nav'
+const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
+const NAV = `${STORAGE}/nav`
 
 const TAB_ICONS: Record<string, { default: string; active: string }> = {
-  index:    { default: `${STORAGE}/home.png`,    active: `${STORAGE}/home_rosa.png` },
-  outfits:  { default: `${STORAGE}/outfit_v2.png`,  active: `${STORAGE}/outfit_rosa_v2.png` },
-  search:   { default: `${STORAGE}/search.png`,  active: `${STORAGE}/search_rosa.png` },
-  wardrobe: { default: `${STORAGE}/armario.png`, active: `${STORAGE}/armario_rosa.png` },
-  profile:  { default: `${STORAGE}/user.png`,    active: `${STORAGE}/user_rosa.png` },
+  index:    { default: `${NAV}/home.png`,    active: `${NAV}/home_rosa.png` },
+  outfits:  { default: `${NAV}/outfit_v2.png`,  active: `${NAV}/outfit_rosa_v2.png` },
+  search:   { default: `${NAV}/search.png`,  active: `${NAV}/search_rosa.png` },
+  wardrobe: { default: `${NAV}/armario.png`, active: `${NAV}/armario_rosa.png` },
+  profile:  { default: `${NAV}/user.png`,    active: `${NAV}/user_rosa.png` },
 }
+
+// Cuentas de marca no tienen armario personal — en su lugar ven su catálogo
+// propio (prendas con stock + outfits de la marca), mismo tab, otro ícono.
+const CATALOGO_ICONS = { default: `${STORAGE}/bag_negra.png`, active: `${STORAGE}/bag_rosa.png` }
 
 export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
+  const isBrand = useAuthStore((s) => s.profile?.is_brand ?? false)
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || 8 }]}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index
-        const icons = TAB_ICONS[route.name]
+        const icons = route.name === 'wardrobe' && isBrand ? CATALOGO_ICONS : TAB_ICONS[route.name]
 
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })

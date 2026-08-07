@@ -125,6 +125,9 @@ Four states:
 - Nota: búsqueda client-side con `.ilike()` — no usa `to_tsvector`; full-text search queda como mejora futura
 
 ### Wardrobe (`app/(tabs)/wardrobe.tsx`)
+Mismo tab/ruta para las dos audiencias; el componente rama según `profile.is_brand` (2026-08-07):
+
+**Usuarios normales — `PersonalWardrobeView`**
 - Usa `useWardrobe(session.user.id)` — datos de `prendas_armario`
 - Auth gate: si no hay sesión, empty state con mensaje "Iniciá sesión para ver tu armario"
 - **Header:** "Mi Armario" + contador de prendas
@@ -132,6 +135,15 @@ Four states:
 - **Grid:** 3 columnas, `WardrobeCard` — imagen + nombre + marca; tap navega a `product/[id]`
 - Empty state por slot: mensaje contextual diferenciado (armario vacío vs. slot sin prendas)
 - Nota: el filtro depende de que `prendas_armario` tenga columna `slot`; si no existe, siempre muestra "Todo" sin romper
+
+**Cuentas de marca (`profile.is_brand`) — `BrandCatalogView`**
+- Reemplaza por completo la función de armario: una marca no tiene armario personal, tiene inventario propio.
+- Resuelve la marca de la cuenta logueada con `useMyBrand(session.user.id)`, y reusa `useBrand(brand.id)` (mismo hook que `app/marca/[id].tsx`) para traer `garments` y `outfits`.
+- **Header:** "Catálogo" + contador según la sub-tab activa.
+- **Dos sub-tabs** (mismo patrón visual que `BRAND_TABS` de `app/marca/[id].tsx`, pero con label de texto en vez de ícono): **Prendas** y **Outfits**.
+  - **Prendas:** grid de 3 columnas, `GarmentStockCard` — imagen + nombre + **stock total** (`Object.values(garment.stock_por_talle).reduce(sum)`), en rosa "Sin stock" si da 0. Tap navega a `product/[id]` (solo lectura — no hay pantalla de edición de prendas en esta app, eso vive en `opa-web`, sin iniciar).
+  - **Outfits:** grid de 3 columnas con los outfits creados por esa marca (`creator_id = marcas.profile_id`, vía `useBrand`); si la marca no tiene `profile_id` o no publicó outfits, queda vacío (mismo gap conocido de `marca/[id].tsx`).
+- Solo lectura en ambas sub-tabs — es un espejo interno del catálogo público con un dato extra privado (stock), no un panel de gestión.
 
 ### Measurements (`app/measurements.tsx`)
 Accessible from Settings → "Mis medidas" row.
@@ -234,6 +246,7 @@ Accessible from the ⚙ icon in Profile. Requires active session.
 - `paddingBottom` via `useSafeAreaInsets().bottom` (not hardcoded)
 - No text labels
 - Registered in `app/(tabs)/_layout.tsx` as `tabBar={(props) => <BottomNavBar {...props} />}`
+- **Ícono condicional del tab Wardrobe (2026-08-07):** lee `profile.is_brand` de `useAuthStore`. Si es una cuenta de marca, el tab `wardrobe` muestra `assets/bag_negra.png` / `bag_rosa.png` (mismos assets que el tab "Catálogo" de `app/marca/[id].tsx`) en vez de `assets/nav/armario.png` / `armario_rosa.png` — la ruta sigue siendo `wardrobe`, solo cambia el ícono; el contenido detrás lo resuelve `app/(tabs)/wardrobe.tsx` (ver sección Wardrobe más arriba).
 
 > `BottomTabBar.tsx` still exists but is unused (logic stripped). `BottomNavBar.tsx` is the active component.
 
