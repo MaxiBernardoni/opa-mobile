@@ -275,8 +275,11 @@ Armario personal del usuario.
 | user_id | uuid | FK → perfiles.id, nullable |
 | garment_id | uuid | FK → prendas.id, nullable |
 | added_at | timestamp | default now() |
+| size | varchar | nullable, sin formato fijo (no hay check constraint) |
+| color | varchar | nullable |
+| source | varchar | nullable, sin formato fijo — pensado como `'purchase'`/`'manual'` pero no forzado por constraint |
 
-> **Columnas eliminadas vs. diseño original:** `size`, `color`, `source` ('purchase'/'manual') — simplificadas en esta iteración. Agregar cuando se implemente el flujo de compra.
+> **Restauradas 2026-08-07:** `size`/`color`/`source` habían sido eliminadas en el diseño original por falta de flujo de compra que las consumiera (ver nota histórica más abajo). Se restauraron a pedido del usuario aunque el flujo de compra todavía no existe — la tabla sigue con 0 filas (nadie las llena todavía), así que no hubo backfill. Migración: `20260807141330_add_size_color_source_to_prendas_armario` (`opa-backend/supabase/migrations/`). Reflejado en `types/index.ts` (`WardrobeItem`).
 
 **RLS:** habilitado.
 

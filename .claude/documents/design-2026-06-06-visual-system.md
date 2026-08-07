@@ -110,7 +110,7 @@ Radius:  card=15, chip=10, button=8, tag=8, avatar=9999
 - No hay coordenadas `position_x/position_y` en la DB (`outfit_items` usa `slot` categórico) — el ancla de cada prenda se deriva de su `slot` vía una tabla `SLOT_ANCHOR` (extras/torso/piernas/calzado → fracción x/y sobre la figura)
 - Los chips se ordenan por slot y se separan verticalmente con anti-solapamiento (`lastBottom`) para no pisarse
 - Línea: segmento horizontal + diagonal (`View`s rotados con `transformOrigin`), terminando en un punto blanco (`connDot`) sobre el ancla
-- Es una aproximación **por slot**, no pixel-perfect por prenda — si se necesita precisión real habría que agregar `position_x/position_y numeric` a `outfit_items` (ver pending-features.md)
+- Es una aproximación **por slot**, no pixel-perfect por prenda — si se necesita precisión real habría que agregar `position_x/position_y numeric` a `outfit_items` (ver pending-features.md). **Decidido 2026-08-07:** ese x/y no se va a completar a mano por nosotros para los outfits seed — lo va a cargar la marca de forma visual al crear/editar una prenda (un paso de "ubicá esta prenda sobre la foto"), probablemente en `opa-web`. Cuando eso exista, el render acá tiene que consumir coordenadas reales si están presentes y caer al ancla por `slot` si no (para no romper prendas/outfits viejos sin coordenadas)
 
 **Behavior:**
 - Always visible on the active item (no tap required — tap-to-reveal applies to the future detail screen)
