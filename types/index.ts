@@ -45,6 +45,7 @@ export interface Garment {
   size_guide_id: string | null
   sale_mode: 'direct' | 'redirect'
   external_url: string | null
+  stock_por_talle: Record<string, number> | null
   created_at: string
   brand?: Brand
 }

@@ -7,18 +7,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
-  Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { useWardrobe } from '../../hooks/useWardrobe'
+import { useMyBrand } from '../../hooks/useMyBrand'
+import { useBrand } from '../../hooks/useBrand'
 import { useAuthStore } from '../../store/useAuthStore'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { APP_WIDTH } from '../../constants/layout'
-import { WardrobeItem, Garment, Brand } from '../../types'
+import { WardrobeItem, Garment, Brand, Outfit } from '../../types'
 
 const SCREEN_WIDTH = APP_WIDTH
 const NUM_COLS = 3
@@ -33,10 +34,7 @@ const SLOTS = [
 ]
 
 export default function WardrobeScreen() {
-  const router = useRouter()
-  const { session, initialized } = useAuthStore()
-  const { items, loading } = useWardrobe(session?.user.id)
-  const [activeSlot, setActiveSlot] = useState('all')
+  const { session, profile, initialized } = useAuthStore()
 
   if (!initialized) {
     return (
@@ -56,6 +54,16 @@ export default function WardrobeScreen() {
       </SafeAreaView>
     )
   }
+
+  return profile?.is_brand ? <BrandCatalogView userId={session.user.id} /> : <PersonalWardrobeView userId={session.user.id} />
+}
+
+// ─── Armario personal (usuarios) ───────────────────────────────────────────────
+
+function PersonalWardrobeView({ userId }: { userId: string }) {
+  const router = useRouter()
+  const { items, loading } = useWardrobe(userId)
+  const [activeSlot, setActiveSlot] = useState('all')
 
   const filtered = activeSlot === 'all'
     ? items
@@ -119,8 +127,6 @@ export default function WardrobeScreen() {
   )
 }
 
-// ─── WardrobeCard ─────────────────────────────────────────────────────────────
-
 type WardrobeCardItem = WardrobeItem & { garment?: Garment & { brand?: Brand } }
 
 function WardrobeCard({ item, onPress }: { item: WardrobeCardItem; onPress: () => void }) {
@@ -138,6 +144,133 @@ function WardrobeCard({ item, onPress }: { item: WardrobeCardItem; onPress: () =
           {g.brand && <Text style={styles.cardBrand} numberOfLines={1}>{g.brand.name}</Text>}
         </View>
       )}
+    </TouchableOpacity>
+  )
+}
+
+// ─── Catálogo (cuentas de marca) ────────────────────────────────────────────────
+// Reemplaza al armario para is_brand=true: vista propia de inventario (con stock,
+// dato privado que no se muestra en el perfil público /marca/[id]) + outfits
+// publicados por la marca. Reusa useMyBrand (resuelve la marca de la cuenta
+// logueada) + useBrand (mismo fetch de garments/outfits que ya usa el perfil
+// público). Solo lectura: no hay pantalla de edición de prendas en esta app
+// todavía (eso vive en opa-web, sin iniciar).
+
+function totalStock(g: Garment): number {
+  if (!g.stock_por_talle) return 0
+  return Object.values(g.stock_por_talle).reduce((sum, n) => sum + (n ?? 0), 0)
+}
+
+function BrandCatalogView({ userId }: { userId: string }) {
+  const router = useRouter()
+  const { brand, loading: loadingBrand } = useMyBrand(userId)
+  const { garments, outfits, loading: loadingBrandData } = useBrand(brand?.id)
+  const [activeTab, setActiveTab] = useState<'prendas' | 'outfits'>('prendas')
+
+  const loading = loadingBrand || loadingBrandData
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+
+      <View style={styles.header}>
+        <Text style={styles.title}>Catálogo</Text>
+        <Text style={styles.count}>
+          {activeTab === 'prendas'
+            ? `${garments.length} ${garments.length === 1 ? 'prenda' : 'prendas'}`
+            : `${outfits.length} ${outfits.length === 1 ? 'outfit' : 'outfits'}`}
+        </Text>
+      </View>
+
+      <View style={styles.brandTabBar}>
+        {(['prendas', 'outfits'] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={styles.brandTabItem}
+            onPress={() => setActiveTab(tab)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.brandTabText, activeTab === tab && styles.brandTabTextActive]}>
+              {tab === 'prendas' ? 'Prendas' : 'Outfits'}
+            </Text>
+            {activeTab === tab && <View style={styles.brandTabIndicator} />}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {loading ? (
+        <ActivityIndicator color={colors.rosaOpa} style={{ marginTop: 40 }} />
+      ) : activeTab === 'prendas' ? (
+        garments.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyIcon}>🛍️</Text>
+            <Text style={styles.emptyText}>Todavía no cargaste prendas.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={garments}
+            keyExtractor={(item) => item.id}
+            numColumns={NUM_COLS}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.grid}
+            renderItem={({ item }) => (
+              <GarmentStockCard item={item} onPress={() => router.push(`/product/${item.id}`)} />
+            )}
+          />
+        )
+      ) : outfits.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyIcon}>🎽</Text>
+          <Text style={styles.emptyText}>Todavía no publicaste outfits.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={outfits}
+          keyExtractor={(item) => item.id}
+          numColumns={NUM_COLS}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.grid}
+          renderItem={({ item, index }) => (
+            <OutfitCard
+              item={item}
+              onPress={() => router.push({
+                pathname: '/user-outfits',
+                params: { userId: brand?.profile_id ?? '', startIndex: String(index) },
+              })}
+            />
+          )}
+        />
+      )}
+    </SafeAreaView>
+  )
+}
+
+function GarmentStockCard({ item, onPress }: { item: Garment; onPress: () => void }) {
+  const stock = totalStock(item)
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+      <Image source={{ uri: item.image_url ?? undefined }} style={styles.cardImage} contentFit="cover" />
+      <View style={styles.cardMeta}>
+        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+        <Text style={[styles.stockText, stock === 0 && styles.stockTextEmpty]}>
+          {stock === 0 ? 'Sin stock' : `${stock} en stock`}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+function OutfitCard({ item, onPress }: { item: Outfit; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+      <Image
+        source={{ uri: item.cover_image_url ?? undefined }}
+        style={[styles.cardImage, { height: CARD_SIZE * 1.4 }]}
+        contentFit="cover"
+      />
+      <View style={styles.cardMeta}>
+        <Text style={styles.cardName} numberOfLines={1}>♥ {item.likes_count}</Text>
+      </View>
     </TouchableOpacity>
   )
 }
@@ -173,6 +306,12 @@ const styles = StyleSheet.create({
   slotChipText: { fontSize: 13, fontWeight: '600', color: colors.grisOscuro },
   slotChipTextActive: { color: colors.blanco },
 
+  brandTabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.grisBorde, marginBottom: spacing.sm },
+  brandTabItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' },
+  brandTabText: { fontSize: 14, fontWeight: '600', color: colors.grisClaro },
+  brandTabTextActive: { color: colors.negro },
+  brandTabIndicator: { position: 'absolute', bottom: 0, left: '35%', right: '35%', height: 2, backgroundColor: colors.rosaOpa, borderRadius: 1 },
+
   grid: { padding: spacing.lg, gap: spacing.sm },
   row: { gap: spacing.sm },
   card: { width: CARD_SIZE, borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisBorde },
@@ -180,4 +319,6 @@ const styles = StyleSheet.create({
   cardMeta: { padding: spacing.xs },
   cardName: { fontSize: 11, fontWeight: '600', color: colors.negro },
   cardBrand: { fontSize: 10, color: colors.grisClaro, marginTop: 1 },
+  stockText: { fontSize: 10, color: colors.grisOscuro, marginTop: 1, fontWeight: '600' },
+  stockTextEmpty: { color: colors.rosaOpa },
 })
