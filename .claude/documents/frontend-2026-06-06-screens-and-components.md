@@ -119,11 +119,11 @@ Four states:
 - **Search bar:** input con `backgroundColor: grisBorde`, icono 🔍, botón ✕ para limpiar
 - **Tabs:** Outfits / Prendas — cambia el target de búsqueda; borde inferior `rosaOpa` en activo
 - **Tag filters:** horizontal `FlatList` con 13 tags fijos (`STYLE_TAGS` + `OCCASION_TAGS`); un tag activo a la vez; tap en activo lo deselecciona
-- **Query outfits:** `.ilike('title', ...)` + `.or('style.ilike...,occasion.ilike...')` — `LIMIT 30`, ordenado por `likes_count DESC`
-- **Query prendas:** `.ilike('name', ...)` + `.ilike('style', ...)` — `LIMIT 30`, ordenado por `created_at DESC`
+- **Query outfits:** `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` (full-text sobre title+description) + `.or('style.ilike...,occasion.ilike...')` — `LIMIT 30`, ordenado por `likes_count DESC`
+- **Query prendas:** `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` (full-text sobre name+description+nombre de marca) + `.ilike('style', ...)` — `LIMIT 30`, ordenado por `created_at DESC`
 - **Grid resultados:** 2 columnas, cards con imagen + título/nombre + creator/brand; tap navega a `outfit/[id]` o `product/[id]`
 - Estado vacío inicial: ícono 👗 + texto descriptivo. Sin resultados: mensaje con el query.
-- Nota: búsqueda client-side con `.ilike()` — no usa `to_tsvector`; full-text search queda como mejora futura
+- **Full-text search (2026-08-10):** reemplazó el `.ilike()` anterior, que solo matcheaba `title`/`name` — no encontraba nada al buscar por texto de la descripción ni por nombre de marca (ninguna prenda se llama literalmente "Capas", por ejemplo). Columnas `search_vector` (`tsvector`, config `'spanish'`, con stemming — buscar "vestido" encuentra también "vestirse") + índice GIN en `outfits` y `prendas` (ver `database-2026-06-06-schema-and-seed.md`). Verificado en browser: "Capas" en tab Prendas trae las 4 prendas de esa marca; "vestido" en tab Outfits trae "noche sin esfuerzo" (tiene "vestido" en la descripción) y "otoño en Palermo" (tiene "vestirse" — misma raíz).
 
 ### Wardrobe (`app/(tabs)/wardrobe.tsx`)
 Mismo tab/ruta para las dos audiencias; el componente rama según `profile.is_brand` (2026-08-07):

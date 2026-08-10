@@ -62,7 +62,7 @@ OPA lives across four repositories:
 - [x] Brand collections in feed — ✅ done 2026-08-07: `app/(tabs)/outfits.tsx` "tus marcas" tab now filters to outfits with ≥1 garment from a followed brand (user-decided threshold). Turned out `follows` on brands was **not** actually a blocker — `marca/[id].tsx`'s Seguir button already targets `brand.profile_id` through the same `follows` table used for user-to-user follows, since a brand's `perfiles.id` IS its `marcas.profile_id`. New hook `hooks/useFollowedBrandIds.ts`. See `frontend-2026-06-06-screens-and-components.md` for full detail.
 - [ ] Edge Functions for server-side like/save logic — currently handled by client + DB trigger; Edge Functions would add rate limiting and abuse prevention
 - [ ] Realtime subscriptions for live like/save counts
-- [ ] Full-text search on outfits and garments
+- [x] Full-text search on outfits and garments — ✅ done 2026-08-10: `search_vector tsvector` (config `'spanish'`) + GIN index on both `outfits` (title+description, generated column) and `prendas` (name+description+brand name, trigger-maintained since brand name is cross-table). `app/(tabs)/search.tsx` now uses `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` instead of `.ilike()`. Migration `20260810110614_add_full_text_search_outfits_prendas`. See `database-2026-06-06-schema-and-seed.md` and `frontend-2026-06-06-screens-and-components.md` for full detail.
 - [ ] Cursor-based pagination in `useOutfits` — currently `LIMIT 20`; needs infinite scroll support
 
 ### API (Hono — code now in `opa-backend/functions/api/`, separate repo)

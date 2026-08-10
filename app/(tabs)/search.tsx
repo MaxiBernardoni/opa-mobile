@@ -54,7 +54,8 @@ export default function SearchScreen() {
           .select('*, creator:perfiles(id, username, avatar_url)')
           .order('likes_count', { ascending: false })
           .limit(30)
-        if (text.trim()) q = q.ilike('title', `%${text.trim()}%`)
+        // Full-text search sobre title + description (search_vector, columna generada)
+        if (text.trim()) q = q.textSearch('search_vector', text.trim(), { type: 'websearch', config: 'spanish' })
         if (tag) {
           q = q.or(`style.ilike.%${tag}%,occasion.ilike.%${tag}%`)
         }
@@ -66,7 +67,9 @@ export default function SearchScreen() {
           .select('*, brand:marcas(id, name, logo_url)')
           .order('created_at', { ascending: false })
           .limit(30)
-        if (text.trim()) q = q.ilike('name', `%${text.trim()}%`)
+        // Full-text search sobre name + description + nombre de marca (search_vector,
+        // mantenida por trigger porque el nombre de marca es de otra tabla)
+        if (text.trim()) q = q.textSearch('search_vector', text.trim(), { type: 'websearch', config: 'spanish' })
         if (tag) q = q.ilike('style', `%${tag}%`)
         const { data } = await q
         setGarments((data ?? []) as (Garment & { brand?: Brand })[])

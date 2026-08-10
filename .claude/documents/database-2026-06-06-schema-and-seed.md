@@ -34,10 +34,12 @@ _Última actualización: 2026-07-13_
 | 20260626142443 | create_brand_applications |
 | 20260629142025 | rename_marcas_owner_id_to_profile_id |
 | 20260701150747 | rls_policies_cart_orders_reviews_wardrobe |
-| 20260803115219 | **`admin_impersonation_log`** ⚠️ sin documentar en ningún repo — ver nota abajo |
+| 20260803115219 | admin_impersonation_log |
 | 20260803120322 | add_foot_length_to_user_measurements |
+| 20260807141330 | add_size_color_source_to_prendas_armario |
+| 20260810110614 | add_full_text_search_outfits_prendas |
 
-> **⚠️ `admin_impersonation_log` (2026-08-03) — encontrada sin querer, no documentada en ningún lado.** Creó una tabla `admin_impersonation_log` (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`), RLS habilitado con **cero policies** (bloqueada del todo salvo `service_role`). Pinta a un feature de "un admin de OPA puede impersonar/loguearse como una marca" con auditoría — probablemente trabajo de otra sesión sobre `opa-admin` que todavía no se sincronizó a ningún doc. **No se tocó ni se le agregó nada** — si sabés qué es, contámelo para documentarlo bien; si no lo reconocés, vale la pena confirmar que es intencional antes de asumir que es inofensiva.
+> **`admin_impersonation_log` (2026-08-03) — ya identificada (2026-08-03), no es un misterio.** Tabla de auditoría (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`) del feature "login como marca sin password" de `opa-admin` (ver nota completa en `CLAUDE.md` → "Login como marca sin password"). RLS habilitado sin policies públicas — solo accesible vía `service_role`, por diseño (es un log de auditoría, no algo que la app deba leer).
 
 ---
 
@@ -133,9 +135,12 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 | size_guide_id | uuid | FK → size_guides.id, nullable |
 | sale_mode | text | default 'direct' — CHECK: 'direct' \| 'redirect' |
 | external_url | text | nullable — URL externa si sale_mode = 'redirect' |
+| search_vector | tsvector | nullable — full-text search (2026-08-10), ver nota abajo |
 | created_at | timestamp | default now() |
 
 **Columnas eliminadas:** `talle` (redundante con `available_sizes` y `stock_por_talle`).
+
+**`search_vector` (2026-08-10):** indexa `name + description + nombre de marca` (config `'spanish'`), con índice GIN. A diferencia de `outfits.search_vector`, **no** es una columna `GENERATED` porque el nombre de marca vive en otra tabla (`marcas`) — es mantenida por dos triggers: `prendas_search_vector_trigger` (recalcula al crear/editar una prenda) y `marcas_search_vector_sync_trigger` (recalcula las prendas de una marca cuando se le cambia el `name`). Consultada en `app/(tabs)/search.tsx` vía `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` — reemplazó el `.ilike('name', ...)` anterior, que no encontraba nada al buscar por marca o por texto de la descripción.
 
 **RLS:** habilitado.
 
@@ -158,6 +163,7 @@ Ejemplo: `prendas/forma/remera_forma_verano25.png`
 | style | varchar | nullable |
 | likes_count | int | default 0 — mantenido por trigger `on_outfit_like` |
 | saves_count | int | default 0 — mantenido por trigger `on_outfit_save` |
+| search_vector | tsvector | `GENERATED ALWAYS AS (...) STORED` — full-text de `title + description` (2026-08-10), índice GIN |
 | created_at | timestamp | default now() |
 
 **RLS:** habilitado.
