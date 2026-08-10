@@ -221,16 +221,7 @@ Accessible from the ⚙ icon in Profile. Requires active session.
 - **Mis medidas** row in PREFERENCIAS section → navigates to `app/measurements.tsx`
 - **Registrar Marca** row — shown only when `perfiles.is_brand = false`. Opens a modal with fields: Nombre de marca (free text), Instagram (free text), Categoría (free text varchar, no constraint). On submit: inserts into `brand_applications` table with `profile_id`, `brand_name`, `instagram_handle`, `category`. Modal state vars: `showBrandModal`, `brandName`, `brandInstagram`, `brandCategory`, `brandError`, `brandLoading`.
 
-**Not implemented yet ❌**
-- Editar perfil (edit name, bio, avatar, tags)
-- Seguridad (change password, 2FA)
-- Email y notificaciones
-- Preferencias de estilo
-- Talles preferidos
-- Notificaciones (push)
-- Privacidad
-- Ayuda y soporte
-- ~~`delete_user()` SQL function in Supabase~~ ✅ Created (migration `create_delete_user_function`)
+Settings sub-screens (editar perfil, seguridad, notificaciones, preferencias de estilo, etc.) are tracked in `meta-2026-06-10-pending-features.md` — not duplicated here.
 
 ---
 
