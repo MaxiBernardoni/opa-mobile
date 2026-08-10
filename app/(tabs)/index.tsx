@@ -130,7 +130,12 @@ export default function HomeScreen() {
               contentContainerStyle={styles.hScroll}
             >
               {garments.map(item => (
-                <TouchableOpacity key={item.id} style={styles.garmentCard} activeOpacity={0.85}>
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.garmentCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(`/product/${item.id}`)}
+                >
                   <View style={styles.garmentImageWrap}>
                     <Image
                       source={{ uri: item.image_url ?? undefined }}

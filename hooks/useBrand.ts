@@ -9,6 +9,7 @@ interface BrandData {
   followersCount: number
   adjustFollowersCount: (delta: number) => void
   loading: boolean
+  refetch: () => void
 }
 
 // Carga todo lo que necesita el perfil público de una marca.
@@ -77,5 +78,9 @@ export function useBrand(brandId?: string): BrandData {
     setFollowersCount((prev) => Math.max(0, prev + delta))
   }
 
-  return { brand, garments, outfits, followersCount, adjustFollowersCount, loading }
+  function refetch() {
+    if (brandId) fetchAll(brandId)
+  }
+
+  return { brand, garments, outfits, followersCount, adjustFollowersCount, loading, refetch }
 }

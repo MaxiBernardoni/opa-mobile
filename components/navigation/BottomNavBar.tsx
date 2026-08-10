@@ -19,7 +19,7 @@ const TAB_ICONS: Record<string, { default: string; active: string }> = {
 
 // Cuentas de marca no tienen armario personal — en su lugar ven su catálogo
 // propio (prendas con stock + outfits de la marca), mismo tab, otro ícono.
-const CATALOGO_ICONS = { default: `${STORAGE}/bag_negra.png`, active: `${STORAGE}/bag_rosa.png` }
+const CATALOGO_ICONS = { default: `${STORAGE}/catalogo.png`, active: `${STORAGE}/catalogo_rosa.png` }
 
 export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()

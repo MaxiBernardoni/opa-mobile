@@ -102,11 +102,13 @@ The catalog tab is exclusive to brand profiles — regular users do not have it.
 
 ## What a Brand Can Do (Management Panel)
 
-The panel is accessible to the brand owner from their profile. **Not yet implemented.**
+The panel is accessible to the brand owner from their profile.
+
+> **2026-08-10: garment creation is now implemented — and it lives in `opa-mobile`, not `opa-web`.** Every earlier version of this doc (and of `CLAUDE.md`) assumed the brand management panel would be a separate desktop tool in the not-yet-started `opa-web` repo. The user explicitly asked to build "crear prenda" into the mobile app instead, in the Catálogo tab a brand already sees when logged in. This wasn't a reversal of the `opa-web` plan for everything — outfit publishing, metrics, and order management are still assumed to belong there — just garment upload specifically, because that's what got asked for and it fit naturally where the brand already manages its catalog. Full detail in `frontend-2026-06-06-screens-and-components.md` → "Create Garment".
 
 | Feature | Description |
 |---|---|
-| Upload and edit garments | Name, description, price, category, images, available sizes, stock per size (`stock_por_talle` jsonb) |
+| Upload and edit garments | ✅ **Create implemented** (`app/brand/create-garment.tsx`, 2026-08-10) — name, description, price, category, image (real upload to Storage), available sizes + stock per size, size guide (from existing OPA/brand guides only — see gap below). **Edit not implemented** — no way to update a garment after creating it, and no way to delete one either (see RLS gap below). |
 | Publish outfits | Build looks from their own garments; outfits appear in the general feed |
 | Create custom size guides | Brand-specific `size_guides` rows linked to their `marcas.id`; override OPA default guides |
 | Configure sale mode | Per-garment: sell directly through OPA or redirect to external URL (Tienda Nube, website, etc.) |
@@ -191,8 +193,12 @@ Current DB supports brands partially. Gaps to fill:
 - [x] Catalog tab on brand profile — ✅ implemented (2026-07-06): grid 3-col de `prendas` filtradas por `brand_id`, tap → `product/[id]`. Parte de `app/marca/[id].tsx`.
 - [x] "Ya lo tenés" banner logic — ✅ implemented (2026-07-06): en `app/marca/[id].tsx` cruza `useWardrobe(session.user.id)` con `garment.brand_id === marcaId`; muestra "Tenés X prendas de MARCA en tu armario" solo si el usuario logueado tiene prendas de esa marca. Tap navega a `/(tabs)/wardrobe` (el filtro del armario por marca todavía no existe — ver abajo).
 - [ ] Wardrobe filtrado por marca — el banner "Ya lo tenés" hoy abre el armario sin filtro; falta que `app/(tabs)/wardrobe.tsx` acepte un param de marca y filtre
-- [ ] Brand management panel screens — garment upload/edit, outfit publishing, metrics dashboard, order management
-- [ ] Size selector shows unavailable sizes greyed out based on `stock_por_talle`
+- [x] Garment creation screen — ✅ done 2026-08-10, `app/brand/create-garment.tsx`. See `frontend-2026-06-06-screens-and-components.md` for full detail.
+- [ ] Garment edit screen — no way to update an existing garment (price, stock, image, etc.) after creation
+- [ ] Garment delete — **blocked on RLS, not just missing UI.** Tested 2026-08-10: a DELETE against `prendas` using the brand's own authenticated session returns `200` with an empty body (PostgREST's way of saying "matched 0 rows under RLS") — there's no DELETE policy letting a brand owner remove their own garment. A real garment created during testing this session is stuck in Capas' catalog for exactly this reason; the user is removing it manually via `opa-admin`'s moderation panel (service_role bypasses RLS there). Needs an RLS policy (`brand owns garment` check) or a dedicated `DELETE /api/brands/me/prendas/:id` endpoint before this can be a mobile feature.
+- [ ] Brand custom size guide creation — **blocked on `opa-backend` access, not a mobile-side limitation.** `size_guides` RLS already lets a brand owner INSERT directly (`brand_id = auth.uid()`'s marca), but `size_guide_entries` (the actual per-size measurement rows) only allows `service_role` to INSERT — a brand can create the guide shell but not its measurements without going through a backend endpoint that doesn't exist yet. The 2026-08-10 create-garment form only lets brands pick from existing guides (10 OPA defaults + any brand-specific ones, none exist yet) for this reason — building a real "create your own guide" flow needs a new `opa-backend` endpoint (not buildable from an `opa-mobile`-only session; that repo isn't cloned here and there's no deploy access).
+- [ ] Brand management panel screens — outfit publishing, metrics dashboard, order management (garment upload is now done, see above)
+- [x] Size selector shows unavailable sizes greyed out based on `stock_por_talle` — ✅ done 2026-08-10 as part of the `app/product/[id].tsx` redesign (same session, see `CLAUDE.md`)
 
 ### opa-admin
 - [ ] Brand application review screen — shows pending applications with all submitted fields including email; approve creates the account, reject sends reason

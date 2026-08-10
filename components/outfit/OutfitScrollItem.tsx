@@ -98,7 +98,11 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
               ]}
             />
             <View style={[styles.connDot, { left: ax - 4, top: ay - 4 }]} />
-            <View style={[styles.garmentLabel, { left: 16, top: chipTop, width: CHIP_W }]}>
+            <TouchableOpacity
+              style={[styles.garmentLabel, { left: 16, top: chipTop, width: CHIP_W }]}
+              activeOpacity={0.8}
+              onPress={() => router.push(`/product/${og.garment_id}`)}
+            >
               <Image
                 source={{ uri: og.garment?.image_url ?? `https://picsum.photos/seed/${og.garment_id}/40/40` }}
                 style={styles.garmentThumb}
@@ -108,7 +112,7 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
                 <Text style={styles.garmentName} numberOfLines={1}>{og.garment?.name}</Text>
                 <Text style={styles.garmentPrice}>${og.garment?.price.toFixed(2)}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </React.Fragment>
         ))}
 

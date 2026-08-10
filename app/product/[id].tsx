@@ -8,38 +8,57 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
-  Dimensions,
   FlatList,
+  Share,
+  Linking,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '../../lib/supabase'
 import { useSizeGuide } from '../../hooks/useSizeGuide'
 import { useRecommendedSize } from '../../hooks/useRecommendedSize'
+import { useSaveGarment } from '../../hooks/useSaveGarment'
+import { useCart } from '../../hooks/useCart'
+import { useGarmentReviews } from '../../hooks/useGarmentReviews'
+import { ZoomableImage } from '../../components/product/ZoomableImage'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
+import { fonts } from '../../constants/fonts'
 import { APP_WIDTH } from '../../constants/layout'
 import { Garment, Brand, SizeGuideEntry } from '../../types'
 
 const SCREEN_WIDTH = APP_WIDTH
+const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
 
   const [garment, setGarment] = useState<Garment & { brand?: Brand } | null>(null)
+  const [related, setRelated] = useState<Garment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
+  const [quantity, setQuantity] = useState(1)
   const [sizeSheetVisible, setSizeSheetVisible] = useState(false)
+  const [zoomVisible, setZoomVisible] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   const { guide, entries, loading: guideLoading } = useSizeGuide(garment?.size_guide_id)
   const { recommendation } = useRecommendedSize(garment?.size_guide_id)
+  const { saved, toggle: toggleSave, requiresAuth: saveRequiresAuth } = useSaveGarment(garment?.id)
+  const { addItem, count: cartCount } = useCart()
+  const { reviews, average, loading: reviewsLoading } = useGarmentReviews(garment?.id)
 
   useEffect(() => {
     if (!id) return
     fetchGarment(id)
   }, [id])
+
+  useEffect(() => {
+    if (garment?.brand_id) fetchRelated(garment.brand_id, garment.id)
+  }, [garment?.brand_id, garment?.id])
 
   async function fetchGarment(garmentId: string) {
     setLoading(true)
@@ -49,7 +68,52 @@ export default function ProductDetail() {
       .eq('id', garmentId)
       .maybeSingle()
     setGarment(data as (Garment & { brand?: Brand }) | null)
+    setSelectedSize(null)
+    setQuantity(1)
     setLoading(false)
+  }
+
+  async function fetchRelated(brandId: string, excludeId: string) {
+    const { data } = await supabase
+      .from('prendas')
+      .select('*')
+      .eq('brand_id', brandId)
+      .neq('id', excludeId)
+      .limit(8)
+    setRelated((data ?? []) as Garment[])
+  }
+
+  function showToast(message: string) {
+    setToast(message)
+    setTimeout(() => setToast(null), 1800)
+  }
+
+  async function handleAddToCart() {
+    if (!garment) return
+    if (saveRequiresAuth) { router.push('/auth'); return }
+    if (hasSizes && !selectedSize) return
+    setAdding(true)
+    await addItem(garment.id, hasSizes ? selectedSize : null, quantity)
+    setAdding(false)
+    showToast('Agregado al carrito')
+  }
+
+  function handleToggleSave() {
+    if (saveRequiresAuth) { router.push('/auth'); return }
+    toggleSave()
+  }
+
+  async function handleShare() {
+    if (!garment) return
+    try {
+      await Share.share({
+        message: `Mirá "${garment.name}" de ${garment.brand?.name ?? 'OPA'} — $${garment.price.toLocaleString('es-AR')}`,
+      })
+    } catch {}
+  }
+
+  function handleOpenStore() {
+    if (garment?.external_url) Linking.openURL(garment.external_url)
   }
 
   if (loading) {
@@ -64,7 +128,7 @@ export default function ProductDetail() {
     return (
       <SafeAreaView style={styles.safe}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <Image source={{ uri: `${STORAGE}/flecha.png` }} style={styles.backIcon} contentFit="contain" />
         </TouchableOpacity>
         <View style={styles.center}>
           <Text style={styles.emptyText}>Prenda no encontrada</Text>
@@ -74,25 +138,63 @@ export default function ProductDetail() {
   }
 
   const availableSizes: string[] = garment.available_sizes ?? []
+  const hasSizes = availableSizes.length > 0
+  const stockMap = garment.stock_por_talle ?? null
+
+  const selectedStock = hasSizes
+    ? (selectedSize ? stockMap?.[selectedSize] ?? null : null)
+    : (stockMap ? Object.values(stockMap).reduce((s, v) => s + v, 0) : null)
+
+  const outOfStockForSelection = hasSizes
+    ? (selectedSize != null && selectedStock === 0)
+    : selectedStock === 0
+
+  const canAddToCart = garment.sale_mode === 'direct'
+    && (!hasSizes || !!selectedSize)
+    && !outOfStockForSelection
+
+  const maxQuantity = selectedStock != null ? Math.max(1, selectedStock) : 10
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
+      {/* Header flotante sobre la imagen */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Image source={{ uri: `${STORAGE}/flecha.png` }} style={styles.headerIcon} contentFit="contain" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{garment.name}</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
+            <Image
+              source={{ uri: `${STORAGE}/compartir.png` }}
+              style={styles.headerIcon}
+              contentFit="contain"
+              tintColor={colors.negro}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.headerBtn}>
+            <Image source={{ uri: `${STORAGE}/bag_negra.png` }} style={styles.headerIcon} contentFit="contain" />
+            {cartCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Image */}
-        <Image
-          source={{ uri: garment.image_url ?? undefined }}
-          style={styles.image}
-          contentFit="cover"
-        />
+        <TouchableOpacity activeOpacity={0.95} onPress={() => setZoomVisible(true)}>
+          <Image
+            source={{ uri: garment.image_url ?? undefined }}
+            style={styles.image}
+            contentFit="cover"
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.saveFloatBtn} onPress={handleToggleSave} hitSlop={6}>
+          <Text style={[styles.saveFloatIcon, saved && styles.saveFloatIconActive]}>{saved ? '★' : '☆'}</Text>
+        </TouchableOpacity>
 
         <View style={styles.body}>
           {/* Brand */}
@@ -113,9 +215,17 @@ export default function ProductDetail() {
             </TouchableOpacity>
           )}
 
-          {/* Name + price */}
+          {/* Name + price + color */}
           <Text style={styles.garmentName}>{garment.name}</Text>
-          <Text style={styles.price}>${garment.price.toLocaleString('es-AR')}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>${garment.price.toLocaleString('es-AR')}</Text>
+            {garment.color && (
+              <View style={styles.colorTag}>
+                <View style={[styles.colorDot, { backgroundColor: colorToHex(garment.color) }]} />
+                <Text style={styles.colorText}>{garment.color}</Text>
+              </View>
+            )}
+          </View>
 
           {/* Description */}
           {garment.description && (
@@ -123,7 +233,7 @@ export default function ProductDetail() {
           )}
 
           {/* Size selector */}
-          {availableSizes.length > 0 && (
+          {hasSizes && (
             <View style={styles.section}>
               <View style={styles.sizeHeader}>
                 <Text style={styles.sectionTitle}>TALLE</Text>
@@ -137,19 +247,24 @@ export default function ProductDetail() {
                 {availableSizes.map((size) => {
                   const isSelected = selectedSize === size
                   const isRecommended = recommendation?.size_label === size
+                  const sizeStock = stockMap?.[size] ?? null
+                  const isSoldOut = sizeStock === 0
                   return (
                     <TouchableOpacity
                       key={size}
-                      onPress={() => setSelectedSize(size)}
+                      onPress={() => !isSoldOut && setSelectedSize(size)}
+                      disabled={isSoldOut}
                       style={[
                         styles.sizeChip,
                         isSelected && styles.sizeChipSelected,
                         isRecommended && !isSelected && styles.sizeChipRecommended,
+                        isSoldOut && styles.sizeChipDisabled,
                       ]}
                     >
                       <Text style={[
                         styles.sizeChipText,
                         isSelected && styles.sizeChipTextSelected,
+                        isSoldOut && styles.sizeChipTextDisabled,
                       ]}>
                         {size}
                       </Text>
@@ -162,6 +277,36 @@ export default function ProductDetail() {
                   Tu talle recomendado: <Text style={styles.recommendedBold}>{recommendation.size_label}</Text>
                 </Text>
               )}
+              {selectedSize && selectedStock != null && selectedStock > 0 && selectedStock <= 5 && (
+                <Text style={styles.urgencyHint}>¡Últimas {selectedStock} unidades en talle {selectedSize}!</Text>
+              )}
+              {selectedSize && selectedStock === 0 && (
+                <Text style={styles.soldOutHint}>Sin stock en este talle</Text>
+              )}
+            </View>
+          )}
+
+          {/* Quantity — solo para venta directa */}
+          {garment.sale_mode === 'direct' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>CANTIDAD</Text>
+              <View style={styles.stepper}>
+                <TouchableOpacity
+                  onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+                  style={styles.stepperBtn}
+                  disabled={quantity <= 1}
+                >
+                  <Text style={[styles.stepperBtnText, quantity <= 1 && styles.stepperBtnTextDisabled]}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepperValue}>{quantity}</Text>
+                <TouchableOpacity
+                  onPress={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                  style={styles.stepperBtn}
+                  disabled={quantity >= maxQuantity}
+                >
+                  <Text style={[styles.stepperBtnText, quantity >= maxQuantity && styles.stepperBtnTextDisabled]}>+</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -172,24 +317,87 @@ export default function ProductDetail() {
               {garment.style && <View style={styles.tag}><Text style={styles.tagText}>{garment.style}</Text></View>}
             </View>
           )}
+
+          {/* Más de esta marca */}
+          {related.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>MÁS DE {garment.brand?.name?.toUpperCase()}</Text>
+              <FlatList
+                data={related}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: spacing.md, paddingTop: spacing.sm }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.relatedCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push(`/product/${item.id}`)}
+                  >
+                    <Image source={{ uri: item.image_url ?? undefined }} style={styles.relatedImage} contentFit="cover" />
+                    <Text style={styles.relatedName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.relatedPrice}>${item.price.toLocaleString('es-AR')}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
+
+          {/* Reseñas */}
+          <View style={styles.section}>
+            <View style={styles.reviewsHeader}>
+              <Text style={styles.sectionTitle}>RESEÑAS</Text>
+              {reviews.length > 0 && (
+                <Text style={styles.reviewsAverage}>★ {average.toFixed(1)} ({reviews.length})</Text>
+              )}
+            </View>
+            {reviewsLoading ? (
+              <ActivityIndicator color={colors.rosaOpa} style={{ marginVertical: spacing.md }} />
+            ) : reviews.length === 0 ? (
+              <Text style={styles.reviewsEmpty}>Aún no hay reseñas de esta prenda.</Text>
+            ) : (
+              <View style={{ gap: spacing.md }}>
+                {reviews.map((r) => (
+                  <View key={r.id} style={styles.reviewRow}>
+                    <View style={styles.reviewHeaderRow}>
+                      <Text style={styles.reviewUser}>{r.user?.username ? `@${r.user.username}` : 'Usuario'}</Text>
+                      <Text style={styles.reviewStars}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
+                    </View>
+                    {r.comment && <Text style={styles.reviewComment}>{r.comment}</Text>}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* CTA */}
       <View style={styles.cta}>
         {garment.sale_mode === 'redirect' ? (
-          <TouchableOpacity style={styles.ctaBtn}>
+          <TouchableOpacity style={styles.ctaBtn} onPress={handleOpenStore}>
             <Text style={styles.ctaBtnText}>Ver en tienda →</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.ctaBtn, !selectedSize && availableSizes.length > 0 && styles.ctaBtnDisabled]}
-            disabled={availableSizes.length > 0 && !selectedSize}
+            style={[styles.ctaBtn, (!canAddToCart || adding) && styles.ctaBtnDisabled]}
+            disabled={!canAddToCart || adding}
+            onPress={handleAddToCart}
           >
-            <Text style={styles.ctaBtnText}>Agregar al carrito</Text>
+            <Text style={styles.ctaBtnText}>
+              {outOfStockForSelection ? 'Sin stock' : adding ? 'Agregando…' : 'Agregar al carrito'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {toast && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      )}
 
       {/* Size Guide Sheet */}
       <SizeGuideSheet
@@ -201,8 +409,24 @@ export default function ProductDetail() {
         recommendedSize={recommendation?.size_label ?? null}
         category={garment.category}
       />
+
+      {/* Zoom de imagen */}
+      <ZoomableImage uri={garment.image_url} visible={zoomVisible} onClose={() => setZoomVisible(false)} />
     </SafeAreaView>
   )
+}
+
+// Aproxima un nombre de color en español a un hex para el swatch — no hay
+// columna de hex en la DB, solo el nombre libre que cargó cada marca.
+function colorToHex(colorName: string): string {
+  const key = colorName.trim().toLowerCase()
+  const map: Record<string, string> = {
+    negro: '#000000', blanco: '#FFFFFF', gris: '#9E9E9E', beige: '#E8DCC8',
+    camel: '#C19A6B', crema: '#F5F0E1', azul: '#2C5AA0', celeste: '#87CEEB',
+    verde: '#4A7C59', oliva: '#6B7A3A', rojo: '#C0392B', bordo: '#7B241C',
+    rosa: '#EB006B', marron: '#6F4E37', cognac: '#9A5B33', mostaza: '#C9A227',
+  }
+  return map[key] ?? colors.grisMedio
 }
 
 // ─── SizeGuideSheet ───────────────────────────────────────────────────────────
@@ -318,18 +542,39 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.grisClaro, fontSize: 16 },
 
   header: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.grisBorde,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
   },
-  backBtn: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  backText: { fontSize: 22, color: colors.negro },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '600', color: colors.negro },
+  headerRight: { flexDirection: 'row', gap: spacing.sm },
+  headerBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerIcon: { width: 18, height: 18 },
+  cartBadge: {
+    position: 'absolute', top: -2, right: -2,
+    minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
+    backgroundColor: colors.rosaOpa, alignItems: 'center', justifyContent: 'center',
+  },
+  cartBadgeText: { color: colors.blanco, fontSize: 9, fontWeight: '700' },
+
+  backBtn: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center', padding: spacing.md },
+  backIcon: { width: 20, height: 20 },
 
   image: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.1, backgroundColor: colors.grisBorde },
+  saveFloatBtn: {
+    position: 'absolute', top: SCREEN_WIDTH * 1.1 - 56, right: spacing.md,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  saveFloatIcon: { fontSize: 22, color: colors.grisOscuro },
+  saveFloatIconActive: { color: colors.rosaOpa },
 
   body: { padding: spacing.lg },
 
@@ -340,7 +585,11 @@ const styles = StyleSheet.create({
   brandName: { fontSize: 13, color: colors.grisOscuro, fontWeight: '500' },
 
   garmentName: { fontSize: 22, fontWeight: '800', color: colors.negro, marginBottom: spacing.xs },
-  price: { fontSize: 20, fontWeight: '700', color: colors.rosaOpa, marginBottom: spacing.md },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  price: { fontSize: 20, fontWeight: '700', color: colors.rosaOpa },
+  colorTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  colorDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: colors.grisBorde },
+  colorText: { fontSize: 13, color: colors.grisOscuro },
   description: { fontSize: 14, color: colors.grisOscuro, lineHeight: 20, marginBottom: spacing.lg },
 
   section: { marginBottom: spacing.lg },
@@ -360,13 +609,26 @@ const styles = StyleSheet.create({
   },
   sizeChipSelected: { borderColor: colors.negro, backgroundColor: colors.negro },
   sizeChipRecommended: { borderColor: colors.rosaOpa, borderWidth: 2 },
+  sizeChipDisabled: { backgroundColor: colors.grisBorde, borderColor: colors.grisBorde },
   sizeChipText: { fontSize: 13, fontWeight: '600', color: colors.negro },
   sizeChipTextSelected: { color: colors.blanco },
+  sizeChipTextDisabled: { color: colors.grisClaro, textDecorationLine: 'line-through' },
 
   recommendedHint: { fontSize: 12, color: colors.grisClaro, marginTop: spacing.sm },
   recommendedBold: { color: colors.rosaOpa, fontWeight: '700' },
+  urgencyHint: { fontSize: 12, color: colors.rosaOpa, fontWeight: '700', marginTop: spacing.sm },
+  soldOutHint: { fontSize: 12, color: colors.grisClaro, marginTop: spacing.sm },
 
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  stepper: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+    borderWidth: 1.5, borderColor: colors.grisMedio, borderRadius: radius.chip,
+  },
+  stepperBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  stepperBtnText: { fontSize: 18, color: colors.negro, fontWeight: '600' },
+  stepperBtnTextDisabled: { color: colors.grisMedio },
+  stepperValue: { minWidth: 28, textAlign: 'center', fontSize: 14, fontWeight: '700', color: colors.negro },
+
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   tag: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -375,6 +637,20 @@ const styles = StyleSheet.create({
     borderColor: colors.bordeTag,
   },
   tagText: { fontSize: 12, color: colors.grisOscuro },
+
+  relatedCard: { width: 110 },
+  relatedImage: { width: 110, height: 140, borderRadius: radius.card, backgroundColor: colors.grisBorde },
+  relatedName: { fontSize: 12, fontWeight: '600', color: colors.negro, marginTop: 6 },
+  relatedPrice: { fontSize: 12, fontWeight: '700', color: colors.rosaOpa, marginTop: 2 },
+
+  reviewsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  reviewsAverage: { fontSize: 13, fontWeight: '700', color: colors.rosaOpa },
+  reviewsEmpty: { fontSize: 13, color: colors.grisClaro },
+  reviewRow: { borderBottomWidth: 1, borderBottomColor: colors.grisBorde, paddingBottom: spacing.md },
+  reviewHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reviewUser: { fontSize: 13, fontWeight: '700', color: colors.negro },
+  reviewStars: { fontSize: 12, color: colors.rosaOpa },
+  reviewComment: { fontSize: 13, color: colors.grisOscuro, marginTop: 4, lineHeight: 18 },
 
   cta: {
     padding: spacing.lg,
@@ -389,6 +665,14 @@ const styles = StyleSheet.create({
   },
   ctaBtnDisabled: { backgroundColor: colors.grisMedio },
   ctaBtnText: { color: colors.blanco, fontSize: 15, fontWeight: '700' },
+
+  toast: {
+    position: 'absolute', bottom: 90, left: spacing.lg, right: spacing.lg,
+    backgroundColor: colors.negro, borderRadius: radius.chip,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+    alignItems: 'center',
+  },
+  toastText: { color: colors.blanco, fontSize: 13, fontWeight: '600' },
 
   // Sheet
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },

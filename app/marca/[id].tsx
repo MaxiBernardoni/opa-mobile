@@ -35,8 +35,11 @@ const NAV_TABS = [
 // Tabs propias del perfil de marca (icon-only, sin labels)
 const BRAND_TABS = [
   { key: 'outfits', icon: BASE + 'GridFinal.png', iconActive: BASE + 'GridFinal_rosa.png' },
-  { key: 'catalogo', icon: BASE + 'bag_negra.png', iconActive: BASE + 'bag_rosa.png' },
+  { key: 'catalogo', icon: BASE + 'catalogo.png', iconActive: BASE + 'catalogo_rosa.png' },
 ] as const
+
+// Cuentas de marca no tienen armario personal — mismo criterio que BottomNavBar.tsx
+const CATALOGO_ICONS = { icon: BASE + 'catalogo.png', iconActive: BASE + 'catalogo_rosa.png' }
 
 // 12,4K estilo screenshot
 function formatCount(n: number) {
@@ -292,6 +295,7 @@ export default function BrandProfileScreen() {
         {NAV_TABS.filter((tab) => !(viewerIsBrand && tab.key === 'outfits')).map((tab) => {
           // En el perfil propio de la marca, el tab "perfil" queda activo (rosa)
           const active = isOwn && tab.key === 'profile'
+          const icons = tab.key === 'wardrobe' && viewerIsBrand ? CATALOGO_ICONS : tab
           return (
             <TouchableOpacity
               key={tab.key}
@@ -300,7 +304,7 @@ export default function BrandProfileScreen() {
               onPress={() => router.push(tab.href as any)}
             >
               <View style={styles.navIconWrap}>
-                <Image source={{ uri: active ? tab.iconActive : tab.icon }} style={styles.navIcon} contentFit="contain" />
+                <Image source={{ uri: active ? icons.iconActive : icons.icon }} style={styles.navIcon} contentFit="contain" />
               </View>
             </TouchableOpacity>
           )

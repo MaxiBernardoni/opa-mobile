@@ -30,9 +30,29 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   return body
 }
 
+export interface CreateGarmentPayload {
+  name: string
+  description: string | null
+  price: number
+  category: string | null
+  style: string | null
+  image_url: string | null
+  color: string | null
+  available_sizes: string[]
+  stock_por_talle: Record<string, number> | null
+  size_guide_id: string | null
+  sale_mode: 'direct' | 'redirect'
+  external_url: string | null
+}
+
 export const api = {
   likeOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/like`, { method: 'POST' }),
   unlikeOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/like`, { method: 'DELETE' }),
   saveOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/save`, { method: 'POST' }),
   unsaveOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/save`, { method: 'DELETE' }),
+  // Crea una prenda para la marca autenticada. El endpoint ya vive en
+  // opa-backend (pensado originalmente "para opa-web"), pero es un REST
+  // genérico gateado por auth+ownership — nada impide llamarlo desde acá.
+  createGarment: (payload: CreateGarmentPayload) =>
+    apiFetch('/brands/me/prendas', { method: 'POST', body: JSON.stringify(payload) }),
 }

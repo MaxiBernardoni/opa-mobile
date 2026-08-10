@@ -90,17 +90,60 @@ Four states:
    - Al activar Favoritos se hace `refetch()` de outfits y prendas guardadas
 
 ### Product Detail (`app/product/[id].tsx`)
+Rediseño completo 2026-08-10 — antes era una vista básica (imagen, talle, CTA sin `onPress`); ahora es la vista "estilo Shein" pedida por el usuario, con todas las funcionalidades de compra que existían en la DB pero no estaban conectadas al frontend. Ver decisiones de alcance abajo.
+
 - Parámetro: `id` (garment ID)
-- Fetch directo a `prendas` con join `brand:marcas(*)` vía `supabase.maybeSingle()`
-- Usa `useSizeGuide(garment.size_guide_id)` y `useRecommendedSize(garment.size_guide_id)`
-- **Header:** botón back + nombre de prenda centrado
-- **Imagen:** full-width, aspect ratio 1:1.1, `expo-image` con `contentFit: 'cover'`
-- **Brand row:** logo circular 28px (o inicial si sin logo) + nombre de marca
-- **Precio:** `rosaOpa`, formato `toLocaleString('es-AR')`
-- **Selector de talle:** chips horizontales con wrap; estado: default / selected (negro) / recomendado (borde `rosaOpa` 2px). Botón "ⓘ Guía de talles" → abre `SizeGuideSheet`. Hint de talle recomendado debajo.
+- Fetch directo a `prendas` con join `brand:marcas(*)` vía `supabase.maybeSingle()`; fetch aparte de `related` (hasta 8 prendas del mismo `brand_id`, excluyendo la actual)
+- Hooks: `useSizeGuide`, `useRecommendedSize`, `useSaveGarment` (nuevo), `useCart` (nuevo), `useGarmentReviews` (nuevo)
+- **Header flotante** sobre la imagen: back (`flecha.png`) a la izquierda; compartir (`compartir.png`, `Share.share` nativo) + carrito (`bag_negra.png` con badge rosa de cantidad) a la derecha — el carrito es alcanzable desde acá en cualquier momento, no solo tras agregar algo
+- **Imagen:** full-width, aspect ratio 1:1.1, tap abre `ZoomableImage` (visor full-screen, doble tap para zoom 2.2x). Sin galería — cada prenda tiene una sola `image_url` en la DB (decisión del usuario: no tocar el schema para esto ahora)
+- **Botón guardar** (★/☆, mismo glifo que usa el resto de la app para "guardar/bookmark", no un corazón) flotando sobre la esquina inferior derecha de la imagen — toggle real contra `prendas_guardadas` vía `useSaveGarment`. Si no hay sesión, redirige a `/auth`
+- **Brand row:** logo circular 28px (o inicial si sin logo) + nombre de marca → tap navega a `/marca/[id]`
+- **Nombre + precio + color:** precio en `rosaOpa`; si la prenda tiene `color`, se muestra un swatch (dot) al lado — el color se aproxima a un hex desde el nombre libre en español (`colorToHex()`, sin columna de hex en la DB) más el nombre como texto
+- **Selector de talle:** chips horizontales con wrap; estados: default / selected (negro) / recomendado (borde `rosaOpa` 2px) / **agotado** (fondo gris, texto tachado, deshabilitado — nuevo, cruza `stock_por_talle`). Botón "ⓘ Guía de talles" → abre `SizeGuideSheet`. Debajo: hint de talle recomendado, o **urgencia de stock** ("¡Últimas N unidades!" si `stock_por_talle[talle] <= 5`) o "Sin stock en este talle"
+- **Cantidad:** stepper +/− (nuevo), clamp entre 1 y el stock del talle seleccionado (o 10 si la prenda no tiene talles)
 - **Tags:** categoría + estilo como chips con borde `bordeTag`
-- **CTA sticky:** `sale_mode === 'redirect'` → "Ver en tienda →"; `direct` → "Agregar al carrito" (deshabilitado si no hay talle seleccionado y hay talles disponibles)
-- **`SizeGuideSheet` (inline):** `Modal` con `animationType: 'slide'`, `transparent`, overlay semitransparente. Tabla horizontal scrolleable con columnas adaptadas por categoría: `calzado` → pie; `piernas`/`bottoms` → cintura/cadera/muslo; default → busto/cintura/cadera. Fila del talle recomendado destacada en `rosaOpaLight` con texto `rosaOpa`. Banner inferior con el talle recomendado.
+- **"Más de {marca}"** (nuevo): fila horizontal con otras prendas de la misma marca → tap navega a otra `product/[id]`
+- **Reseñas** (nuevo): lee `reseñas` vía `useGarmentReviews` — estrellas promedio + lista de comentarios si hay filas, o estado vacío "Aún no hay reseñas de esta prenda" (la tabla está vacía hoy — requiere `order_id`, o sea compra verificada, y todavía no hay flujo de compra; queda lista para cuando haya datos reales)
+- **CTA sticky:** `sale_mode === 'redirect'` → "Ver en tienda →" (ahora sí conectado, `Linking.openURL(garment.external_url)`); `direct` → "Agregar al carrito" — ahora hace un INSERT/UPDATE real en `productos_carrito` vía `useCart().addItem()` (si ya existe una fila con mismo talle, suma cantidad en vez de duplicar), deshabilitado si falta seleccionar talle o si no hay stock, muestra "Sin stock" en el botón cuando corresponde. Si no hay sesión, redirige a `/auth`. Toast simple ("Agregado al carrito") tras el insert
+- **`SizeGuideSheet` (inline, sin cambios):** `Modal` con `animationType: 'slide'`, `transparent`, overlay semitransparente. Tabla horizontal scrolleable con columnas adaptadas por categoría: `calzado` → pie; `piernas`/`bottoms` → cintura/cadera/muslo; default → busto/cintura/cadera. Fila del talle recomendado destacada en `rosaOpaLight` con texto `rosaOpa`. Banner inferior con el talle recomendado.
+- **`ZoomableImage` (`components/product/ZoomableImage.tsx`, nuevo):** visor full-screen con doble tap para alternar zoom 1x↔2.2x (`Animated.spring`). **Nota de implementación:** se probó primero una versión con `PanResponder` (pellizco con 2 dedos + paneo continuo), pero en este entorno (react-native-web 0.21, sin `GestureHandlerRootView` montado a nivel root) dejaba el sistema de responders trabado — una vez abierto el modal, ningún botón de la pantalla (ni el propio botón de cerrar) volvía a responder a taps. Se reemplazó por una versión sin `PanResponder` (solo `onPress`/doble-tap, mismo mecanismo que el resto de los botones de la app). **Limitación de testing conocida (no es un bug de producto):** en el browser headless de esta sesión, cerrar CUALQUIER `Modal` de RN (incluido el `SizeGuideSheet` preexistente, no tocado en esta sesión) vía click sintético no funcionó — se confirmó que es una limitación del entorno de automatización con `Modal`, no algo introducido acá, así que no se puede asegurar al 100% que el botón "✕" del zoom funcione hasta probarlo en un dispositivo/browser real con gestos reales.
+
+### Carrito (`app/cart.tsx`, nuevo 2026-08-10)
+Pantalla **muy básica y temporal** (decisión explícita del usuario) para poder ver/editar lo que ya inserta `app/product/[id].tsx` en `productos_carrito` — no hay checkout todavía, eso queda como pendiente aparte.
+- Hook `hooks/useCart.ts`: lee `productos_carrito` del usuario logueado con join a `prendas`/`marcas`; expone `addItem`, `updateQuantity`, `removeItem`, `total`, `count`
+- **Lista:** imagen + marca + nombre + talle + precio + stepper de cantidad + botón sacar (✕) por fila; tap en la fila navega a `product/[id]`
+- **Footer:** total sumado + botón "Finalizar compra (próximamente)" deshabilitado a propósito (no hay checkout implementado)
+- **Entry point:** ícono de bolsa (`bag_negra.png`) con badge de cantidad en el header de `app/product/[id].tsx` — no se agregó entry point en otras pantallas (fuera de alcance de este pedido)
+- Estado vacío: 🛍️ + "Tu carrito está vacío"
+
+### Nuevos hooks de esta sesión (2026-08-10)
+- `hooks/useSaveGarment.ts` — toggle de `prendas_guardadas` (favoritos de compra), mismo patrón optimista que `useLike`/`useSave`
+- `hooks/useCart.ts` — CRUD básico sobre `productos_carrito` (ver arriba)
+- `hooks/useGarmentReviews.ts` — lee `reseñas` de una prenda + promedio de rating
+
+### Create Garment (`app/brand/create-garment.tsx`, nuevo 2026-08-10)
+Formulario para que una cuenta de marca cree una prenda nueva, publicándola directo en su catálogo. Antes de esto no existía ningún camino en la app para cargar una prenda — el dato del catálogo era 100% seed. Ver decisiones de alcance en `product-2026-06-10-brand-system.md` → "What a Brand Can Do".
+
+- **Entry point:** botón "+ Agregar prenda" en el header del tab Prendas de `app/(tabs)/wardrobe.tsx` (`BrandCatalogView`), visible solo ahí (junto al contador de prendas)
+- **Imagen:** primera vez que la app sube un archivo desde el cliente. `expo-image-picker` (nueva dependencia, plugin agregado a `app.json` con el texto de permiso de galería) + `lib/uploadImage.ts` (nuevo) sube el blob al bucket público `assets`, path `prendas/{marca-slug}/{prenda-slug}_{marca-slug}_{timestamp}.{ext}` (mismo patrón de naming que ya documentaba `database-2026-06-06-schema-and-seed.md`, con timestamp en vez de "colección"). La extensión se deriva del `blob.type` del archivo elegido, no de la URI local — en web la URI es un `blob:` sin extensión real, parsearla daba `.jpg` para cualquier imagen. **La imagen es obligatoria**: se descubrió recién al probar (no al leer el schema) que `prendas.image_url` tiene `NOT NULL` en la DB — el formulario originalmente la trataba como opcional y el submit fallaba con el error crudo de Postgres hasta que se agregó la validación.
+- **Campos:** nombre, descripción, precio, categoría (Torso/Piernas/Calzado/Extras, chips, single-select), color (texto libre), estilo (texto libre, ej. "street"/"vintage"/"minimal" — mismos valores que ya usa el seed, sin picker rígido)
+- **Talles y stock:** aparece recién al elegir categoría — chips por talle (XS–XXL para torso/piernas/extras, EU 35–42 para calzado, hook `sizeOptionsFor()`); tocar un talle lo activa con un input de stock al lado (default "10", editable). Arma `available_sizes` + `stock_por_talle` directamente de los talles activados.
+- **Guía de talles (opcional):** hook nuevo `hooks/useSizeGuidesForCategory.ts` — lista las guías de OPA (`brand_id IS NULL`) + las propias de la marca si tuviera, filtradas por categoría con el mismo mapeo torso→tops / piernas→bottoms / calzado→calzado / extras→extras que ya usa `measurementCols()` en `app/product/[id].tsx`. **No permite crear una guía propia en este flujo** — decisión confirmada con el usuario: `size_guide_entries` (las medidas por talle) solo acepta INSERT de `service_role` vía RLS, así que una guía custom necesita un endpoint nuevo en `opa-backend` que esta sesión no puede construir ni desplegar (repo no clonado acá, sin `supabase`/`gh` CLI, MCP de Supabase sin autorizar). Queda como pendiente con el detalle técnico en `product-2026-06-10-brand-system.md`.
+- **Modo de venta:** Directo en OPA / Redirigir a mi tienda (segmented); si redirect, input de URL obligatorio
+- **Submit:** sube la imagen (si hay una nueva), arma el payload y llama `api.createGarment()` (nuevo método en `lib/api.ts`) → `POST /api/brands/me/prendas` en `opa-backend` — **primera vez que `opa-mobile` usa ese endpoint**, que ya existía (comentado "para opa-web") pero nadie lo llamaba desde el móvil. Reusa el mismo cliente `lib/api.ts` que ya se armó para like/save. Errores del backend (ej. validación de `external_url`) se muestran tal cual en un banner de texto rosa arriba del botón.
+- Al crear con éxito, `router.back()` vuelve al catálogo; `hooks/useBrand.ts` ganó un `refetch()` nuevo y `BrandCatalogView` lo llama con `useFocusEffect` (`@react-navigation/native`, ya disponible como dependencia de expo-router) cada vez que la pantalla recupera foco, así la prenda nueva aparece sin acción extra.
+- **Gap real encontrado al probar (2026-08-10):** no hay forma de editar ni borrar una prenda después de crearla. Borrar en particular está bloqueado por RLS, no es solo falta de UI — un DELETE contra `prendas` con la sesión de la propia marca devuelve `200` con body vacío (RLS lo filtra silenciosamente). Detalle completo y qué hace falta en `product-2026-06-10-brand-system.md`.
+- Verificado end-to-end en browser real logueado como `capas@opa.com`: formulario completo, selector de categoría → talles/guía aparecen dinámicamente, imagen simulada subida de verdad a Storage (bucket `assets`, path correcto, mime-type correcto tras el fix), prenda creada en `prendas` con todos los campos esperados, catálogo actualizado sin recargar. La prenda de prueba (`Buzo Test Automatizado`) quedó en el catálogo real de Capas porque no se pudo borrar por RLS — el usuario la va a sacar manualmente desde `opa-admin`.
+
+### Puntos de apertura de una prenda ("abrir en todo momento")
+A pedido del usuario se revisaron y conectaron todos los lugares donde se muestra una prenda pero no se podía tocar para abrirla (antes solo funcionaba desde armario, catálogo de marca, búsqueda y detalle de outfit):
+- **`components/outfit/OutfitScrollItem.tsx`** — el chip flotante de cada prenda en el scroll principal (TikTok-style) no tenía `onPress`; ahora navega a `product/[id]`. Este era el punto de entrada más usado de la app y el que más claramente motivó el pedido.
+- **`app/(tabs)/index.tsx`** — las cards del carrusel "Últimas Prendas" en Home no tenían `onPress`; ahora navegan a `product/[id]`.
+- Se decidió explícitamente **no** armar un bottom-sheet global de "vista rápida" abierto desde cualquier lugar sin navegar — el usuario eligió la opción más simple (arreglar los puntos muertos para que naveguen a la pantalla completa existente) en vez de esa alternativa.
+
+### Bug preexistente encontrado y NO arreglado (fuera de alcance, flagged aparte)
+El botón "Ver outfit" en la barra inferior de `OutfitScrollItem.tsx` (bottom bar del scroll principal) tampoco tiene `onPress` — no navega a `outfit/[id]`. Es un bug real pero de alcance de *outfit*, no de *prenda*, así que quedó fuera de esta sesión; se dejó una tarea en background para no perderlo.
 
 ### Outfit Detail (`app/outfit/[id].tsx`)
 - Parámetro: `id` (outfit ID)

@@ -33,7 +33,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "OPA necesita acceso a tus fotos para que puedas subir la imagen de una prenda."
+        }
+      ]
     ],
     "extra": {
       "router": {}

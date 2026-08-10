@@ -32,6 +32,9 @@ const NAV_TABS = [
   { key: 'profile', href: '/(tabs)/profile', icon: NAV_BASE + 'user.png', iconActive: NAV_BASE + 'user_rosa.png' },
 ] as const
 
+// Cuentas de marca no tienen armario personal — mismo criterio que BottomNavBar.tsx
+const CATALOGO_ICONS = { icon: BASE + 'catalogo.png', iconActive: BASE + 'catalogo_rosa.png' }
+
 export default function UserProfileScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -195,6 +198,7 @@ export default function UserProfileScreen() {
       <View style={[styles.navBar, { paddingBottom: insets.bottom || 8 }]}>
         {NAV_TABS.filter((tab) => !(viewerIsBrand && tab.key === 'outfits')).map((tab) => {
           const active = tab.key === 'profile'
+          const icons = tab.key === 'wardrobe' && viewerIsBrand ? CATALOGO_ICONS : tab
           return (
             <TouchableOpacity
               key={tab.key}
@@ -204,7 +208,7 @@ export default function UserProfileScreen() {
             >
               <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
                 <Image
-                  source={{ uri: active ? tab.iconActive : tab.icon }}
+                  source={{ uri: active ? icons.iconActive : icons.icon }}
                   style={styles.navIcon}
                   contentFit="contain"
                 />

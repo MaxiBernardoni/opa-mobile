@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
+import { useFocusEffect } from '@react-navigation/native'
 import { useWardrobe } from '../../hooks/useWardrobe'
 import { useMyBrand } from '../../hooks/useMyBrand'
 import { useBrand } from '../../hooks/useBrand'
@@ -164,10 +165,15 @@ function totalStock(g: Garment): number {
 function BrandCatalogView({ userId }: { userId: string }) {
   const router = useRouter()
   const { brand, loading: loadingBrand } = useMyBrand(userId)
-  const { garments, outfits, loading: loadingBrandData } = useBrand(brand?.id)
+  const { garments, outfits, loading: loadingBrandData, refetch } = useBrand(brand?.id)
   const [activeTab, setActiveTab] = useState<'prendas' | 'outfits'>('prendas')
 
   const loading = loadingBrand || loadingBrandData
+
+  // Refresca el catálogo cada vez que la pantalla vuelve a estar en foco —
+  // así una prenda recién creada en app/brand/create-garment.tsx aparece sin
+  // tener que hacer nada especial al volver.
+  useFocusEffect(useCallback(() => { refetch() }, [refetch]))
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -175,11 +181,22 @@ function BrandCatalogView({ userId }: { userId: string }) {
 
       <View style={styles.header}>
         <Text style={styles.title}>Catálogo</Text>
-        <Text style={styles.count}>
-          {activeTab === 'prendas'
-            ? `${garments.length} ${garments.length === 1 ? 'prenda' : 'prendas'}`
-            : `${outfits.length} ${outfits.length === 1 ? 'outfit' : 'outfits'}`}
-        </Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.count}>
+            {activeTab === 'prendas'
+              ? `${garments.length} ${garments.length === 1 ? 'prenda' : 'prendas'}`
+              : `${outfits.length} ${outfits.length === 1 ? 'outfit' : 'outfits'}`}
+          </Text>
+          {activeTab === 'prendas' && (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => router.push('/brand/create-garment')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.addBtnText}>+ Agregar prenda</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={styles.brandTabBar}>
@@ -293,6 +310,9 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '800', color: colors.negro },
   count: { fontSize: 13, color: colors.grisClaro },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  addBtn: { backgroundColor: colors.rosaOpa, borderRadius: radius.chip, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  addBtnText: { fontSize: 12, fontWeight: '700', color: colors.blanco },
 
   slotList: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm },
   slotChip: {
