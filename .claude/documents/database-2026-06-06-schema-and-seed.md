@@ -38,8 +38,11 @@ _Última actualización: 2026-07-13_
 | 20260803120322 | add_foot_length_to_user_measurements |
 | 20260807141330 | add_size_color_source_to_prendas_armario |
 | 20260810110614 | add_full_text_search_outfits_prendas |
+| 20260810113941 | add_rate_limits_table_and_function |
 
 > **`admin_impersonation_log` (2026-08-03) — ya identificada (2026-08-03), no es un misterio.** Tabla de auditoría (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`) del feature "login como marca sin password" de `opa-admin` (ver nota completa en `CLAUDE.md` → "Login como marca sin password"). RLS habilitado sin policies públicas — solo accesible vía `service_role`, por diseño (es un log de auditoría, no algo que la app deba leer).
+
+> **`rate_limits` (2026-08-10) — tabla de infraestructura para la API de `opa-backend`, no para la app.** Columnas `key` (PK, text — `"{scope}:{userId}"`), `count`, `reset_at`. RLS habilitado sin policies públicas (mismo patrón que `admin_impersonation_log`) — solo la Edge Function `api` la toca, vía su cliente `service_role`. Reemplaza al rate limiter en memoria que nunca funcionó de verdad en el runtime de Edge Functions de Supabase (ver `backend-2026-06-15-api-layer.md` → sección "Rate Limit Middleware" para el detalle completo de por qué). Va de la mano con la función `increment_rate_limit(p_key text, p_window_ms int, p_max int) returns boolean` — hace el incremento atómico vía `INSERT ... ON CONFLICT DO UPDATE` en un solo round trip.
 
 ---
 

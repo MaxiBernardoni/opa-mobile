@@ -128,10 +128,13 @@ Fetches a profile by user ID from `perfiles`.
 Fetches the user's wardrobe items from `prendas_armario`.
 
 ### `hooks/useLike.ts`
-Like toggle para outfits. Optimistic update — INSERT en `outfit_likes`, si error `23505` (duplicate) ignora. DELETE para unlike. Retorna `{ liked, count, toggle }`.
+Like toggle para outfits. El chequeo de estado inicial (¿ya di like?) sigue siendo un SELECT directo a `outfit_likes` — es lectura, RLS ya la permite pública, no gana nada pasando por la API. **El toggle en sí (2026-08-10) pasa por `lib/api.ts` → `POST/DELETE /api/outfits/:id/like`** en vez de escribir directo a Supabase — así el rate limiting y el bloqueo de cuentas de marca son reales (antes RLS no distinguía `is_brand`, cualquier cuenta autenticada podía insertar). `await`+`try/catch`: si la llamada falla (rate limit, red, cuenta de marca) el estado local no cambia. Retorna `{ liked, count, toggle }`.
 
 ### `hooks/useSave.ts`
-Save toggle para outfits. Mismo patrón que `useLike` sobre `outfits_guardados`. Retorna `{ saved, count, toggle }`.
+Save toggle para outfits. Mismo patrón que `useLike` (lectura directa a Supabase, toggle vía `lib/api.ts` → `/api/outfits/:id/save`, 2026-08-10). Retorna `{ saved, count, toggle }`.
+
+### `lib/api.ts` (nuevo, 2026-08-10)
+Primer cliente HTTP de `opa-mobile` hacia la API Hono de `opa-backend` (`{EXPO_PUBLIC_SUPABASE_URL}/functions/v1/api`) — hasta esta fecha, `opa-mobile` nunca la había llamado, todo iba directo a Supabase vía RLS. Adjunta el `Authorization: Bearer <access_token>` de la sesión actual. Expone `api.likeOutfit/unlikeOutfit/saveOutfit/unsaveOutfit(outfitId)`; lanza `ApiError` (con `.status`) si la respuesta no es 2xx.
 
 ### `hooks/useFollow.ts`
 Follow toggle. INSERT en `follows`, DELETE para unfollow. Retorna `{ following, toggle }`.

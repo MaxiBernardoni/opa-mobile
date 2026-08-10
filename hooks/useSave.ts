@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useAuthStore } from '../store/useAuthStore'
 
 export function useSave(outfitId: string, initialCount: number) {
@@ -19,27 +20,27 @@ export function useSave(outfitId: string, initialCount: number) {
       .then(({ data }) => setSaved(!!data))
   }, [outfitId, session])
 
+  // El toggle pasa por la API (opa-backend) en vez de escribir directo a
+  // Supabase — ahí se aplica rate limiting real y se bloquean cuentas de
+  // marca server-side (antes solo se ocultaba el botón en el cliente).
   const toggle = useCallback(async () => {
     if (!session || loading) return
     setLoading(true)
-    if (saved) {
-      await supabase
-        .from('outfits_guardados')
-        .delete()
-        .eq('outfit_id', outfitId)
-        .eq('user_id', session.user.id)
-      setSaved(false)
-      setCount((c) => Math.max(0, c - 1))
-    } else {
-      const { error } = await supabase
-        .from('outfits_guardados')
-        .insert({ outfit_id: outfitId, user_id: session.user.id })
-      if (!error || error.code === '23505') {
+    try {
+      if (saved) {
+        await api.unsaveOutfit(outfitId)
+        setSaved(false)
+        setCount((c) => Math.max(0, c - 1))
+      } else {
+        await api.saveOutfit(outfitId)
         setSaved(true)
         setCount((c) => c + 1)
       }
+    } catch {
+      // Falló (rate limit, red, cuenta de marca, etc.) — se deja el estado como estaba.
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [saved, loading, outfitId, session])
 
   return { saved, count, toggle }
