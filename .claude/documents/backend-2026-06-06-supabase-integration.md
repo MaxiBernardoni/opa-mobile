@@ -116,8 +116,10 @@ supabase
     )
   `)
   .order('created_at', { ascending: false })
-  .limit(20)
+  .order('id', { ascending: false })
+  .limit(PAGE_SIZE) // 10
 ```
+**Paginación cursor-based (2026-08-10):** reemplaza el `LIMIT 20` fijo anterior. Cursor keyset sobre `(created_at, id)` — `id` es necesario como desempate porque varios outfits seed comparten el mismo `created_at` exacto (mismo INSERT); un cursor solo con `created_at` saltea o duplica filas en ese borde. Página siguiente: `.or('created_at.lt.X,and(created_at.eq.X,id.lt.Y)')` con `X`/`Y` = `created_at`/`id` de la última fila cargada. El hook devuelve `{ outfits, loading, loadingMore, hasMore, error, loadMore, refetch }`; `refetch()` resetea el cursor (reemplaza la lista, no la agranda). Conectado a `onEndReached` en los dos scrolls verticales tipo TikTok: `app/(tabs)/outfits.tsx` (feed principal) y `app/user-outfits.tsx` (outfits de un usuario). Los usos en grillas más chicas (`profile.tsx`, `user/[id].tsx`, carousel de `index.tsx`) siguen mostrando solo la primera página — no tienen `onEndReached` conectado, no era el caso de uso motivador del pendiente. Verificado en browser bajando `PAGE_SIZE` a 3 temporalmente: 3 páginas cargaron los 7 outfits seed sin duplicados ni saltos (confirmado contra el mismo query en SQL directo antes de tocar el hook).
 
 ### `hooks/useProfile.ts`
 Fetches a profile by user ID from `perfiles`.

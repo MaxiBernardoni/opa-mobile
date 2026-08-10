@@ -13,7 +13,7 @@ const { height: SH } = Dimensions.get('window')
 export default function UserOutfitsScreen() {
   const router = useRouter()
   const { userId, startIndex } = useLocalSearchParams<{ userId: string; startIndex?: string }>()
-  const { outfits, loading } = useOutfits(userId)
+  const { outfits, loading, loadingMore, hasMore, loadMore } = useOutfits(userId)
   const [activeIndex, setActiveIndex] = useState(0)
   const flatListRef = useRef<FlatList>(null)
   const didScrollRef = useRef(false)
@@ -65,6 +65,13 @@ export default function UserOutfitsScreen() {
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
+        onEndReached={() => { if (hasMore) loadMore() }}
+        onEndReachedThreshold={1}
+        ListFooterComponent={loadingMore ? (
+          <View style={{ height: SH, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator color={colors.blanco} size="small" />
+          </View>
+        ) : null}
         renderItem={({ item, index }) => (
           <OutfitScrollItem outfit={item} isActive={index === activeIndex} />
         )}

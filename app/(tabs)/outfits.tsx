@@ -26,7 +26,7 @@ export default function OutfitsScreen() {
   const tabBarHeight = 8 + 48 + (insets.bottom || 8) + 1
   const pageH = SH - tabBarHeight
   const { profile } = useAuthStore()
-  const { outfits, loading } = useOutfits()
+  const { outfits, loading, loadingMore, hasMore, loadMore } = useOutfits()
   const { brandIds: followedBrandIds, loading: loadingBrands } = useFollowedBrandIds()
   const { outfitId } = useLocalSearchParams<{ outfitId?: string }>()
   const flatListRef = useRef<FlatList>(null)
@@ -142,6 +142,13 @@ export default function OutfitsScreen() {
           onViewableItemsChanged={onViewableItemsChanged.current}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           getItemLayout={(_, index) => ({ length: pageH, offset: pageH * index, index })}
+          onEndReached={() => { if (hasMore) loadMore() }}
+          onEndReachedThreshold={1}
+          ListFooterComponent={loadingMore ? (
+            <View style={[styles.emptyState, { height: pageH, width: undefined }]}>
+              <ActivityIndicator color={colors.blanco} size="small" />
+            </View>
+          ) : null}
           renderItem={({ item, index }) => (
             <OutfitScrollItem outfit={item} isActive={index === activeIndex} height={pageH} />
           )}
