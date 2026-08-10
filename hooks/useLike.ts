@@ -20,6 +20,26 @@ export function useLike(outfitId: string, initialCount: number) {
       .then(({ data }) => setLiked(!!data))
   }, [outfitId, session])
 
+  // Contador en vivo: on_outfit_like mantiene outfits.likes_count via trigger
+  // en cada INSERT/DELETE de outfit_likes (de cualquier usuario, no solo el
+  // propio). Se toma el valor confirmado de la fila en vez de sumar/restar a
+  // mano, así no hay drift entre lo que optimistamos localmente en toggle()
+  // y lo que terminó quedando en la DB.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`outfit-likes-${outfitId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'outfits', filter: `id=eq.${outfitId}` },
+        (payload) => {
+          const nextCount = (payload.new as { likes_count?: number }).likes_count
+          if (typeof nextCount === 'number') setCount(nextCount)
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [outfitId])
+
   // El toggle pasa por la API (opa-backend) en vez de escribir directo a
   // Supabase — ahí se aplica rate limiting real y se bloquean cuentas de
   // marca server-side (antes solo se ocultaba el botón en el cliente).

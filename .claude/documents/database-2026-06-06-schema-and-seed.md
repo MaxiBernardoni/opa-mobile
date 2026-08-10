@@ -39,6 +39,7 @@ _Última actualización: 2026-07-13_
 | 20260807141330 | add_size_color_source_to_prendas_armario |
 | 20260810110614 | add_full_text_search_outfits_prendas |
 | 20260810113941 | add_rate_limits_table_and_function |
+| 20260810120500 | enable_realtime_on_outfits |
 
 > **`admin_impersonation_log` (2026-08-03) — ya identificada (2026-08-03), no es un misterio.** Tabla de auditoría (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`) del feature "login como marca sin password" de `opa-admin` (ver nota completa en `CLAUDE.md` → "Login como marca sin password"). RLS habilitado sin policies públicas — solo accesible vía `service_role`, por diseño (es un log de auditoría, no algo que la app deba leer).
 
@@ -170,6 +171,8 @@ Ejemplo: `prendas/forma/remera_forma_verano25.png`
 | created_at | timestamp | default now() |
 
 **RLS:** habilitado.
+
+**Realtime (2026-08-10):** agregada a la publicación `supabase_realtime` (`ALTER PUBLICATION supabase_realtime ADD TABLE outfits`) — antes ninguna tabla del proyecto tenía Realtime habilitado. Sirve para que `likes_count`/`saves_count` se actualicen en vivo en `opa-mobile` (`hooks/useLike.ts`/`useSave.ts`) sin refetch, incluso cuando el cambio lo hace otro usuario. Los clientes reciben los eventos según la misma RLS que un SELECT normal (`public_read_outfits`, pública) — no hace falta ninguna policy extra.
 
 **Seed data (12 outfits):**
 
