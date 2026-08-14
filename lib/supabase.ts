@@ -42,3 +42,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 })
+
+// supabase-js sincroniza sesión entre pestañas del mismo origen (web) vía un
+// BroadcastChannel único por proyecto, no por cuenta — un signOut() en una
+// pestaña difunde SIGNED_OUT a TODAS las demás, incluso si tenían una cuenta
+// distinta logueada (el switcher multi-cuenta de esta app depende de que eso
+// no pase: cada pestaña puede representar una cuenta diferente a propósito).
+// Se desactiva el canal apenas se crea el cliente: se cierra (deja de recibir
+// mensajes de otras pestañas) y se limpia la referencia (para que este mismo
+// cliente no intente emitir en un canal cerrado — eso lanzaría una excepción
+// dentro de _notifyAllSubscribers y rompería la notificación local de
+// onAuthStateChange, no solo la del broadcast). `broadcastChannel` es
+// `protected` en el SDK, no público — el cast a `any` es deliberado, y si una
+// futura actualización de @supabase/supabase-js renombra o remueve este campo
+// interno, este fix deja de aplicarse silenciosamente (sin romper nada, pero
+// el bug de "se cierra la sesión en las dos pestañas" volvería).
+if (Platform.OS === 'web') {
+  const internalAuth = supabase.auth as unknown as { broadcastChannel?: BroadcastChannel | null }
+  internalAuth.broadcastChannel?.close()
+  internalAuth.broadcastChannel = null
+}

@@ -33,18 +33,53 @@ async function writeAll(accounts: RememberedAccount[]): Promise<void> {
   await storage.setItem(KEY, JSON.stringify(accounts))
 }
 
-export async function getRememberedAccounts(): Promise<RememberedAccount[]> {
-  return readAll()
+// upsert/remove hacen "leer todo → modificar → escribir todo" — sin encolar,
+// dos llamadas disparadas casi al mismo tiempo (ej. un TOKEN_REFRESHED de la
+// cuenta actual justo cuando se está iniciando sesión con otra vía "Agregar
+// cuenta") pueden pisarse: la segunda escritura sobreescribe la primera con
+// datos ya viejos, dejando guardado un refresh_token que Supabase ya rotó/
+// invalidó. Efecto real: la próxima vez que se intenta volver a esa cuenta
+// desde el switcher, el token guardado no sirve ("sesión vencida") y se saca
+// de la lista — como si esa cuenta nunca hubiera quedado recordada. Se
+// encadenan todas las escrituras sobre una cola en memoria para que cada una
+// lea el estado ya actualizado por la anterior, en vez de una foto vieja.
+let writeQueue: Promise<unknown> = Promise.resolve()
+
+function enqueue<T>(operation: () => Promise<T>): Promise<T> {
+  const result = writeQueue.then(operation, operation)
+  writeQueue = result.then(
+    () => undefined,
+    () => undefined,
+  )
+  return result
 }
 
-export async function upsertRememberedAccount(account: RememberedAccount): Promise<void> {
-  const accounts = await readAll()
-  const next = accounts.filter((a) => a.userId !== account.userId)
-  next.push(account)
-  await writeAll(next)
+// También encolada: si se llama justo después de un upsert/remove todavía en
+// vuelo (ej. abrir el switcher apenas se cierra sesión), espera a que esa
+// escritura termine antes de leer, en vez de devolver una foto vieja.
+export function getRememberedAccounts(): Promise<RememberedAccount[]> {
+  return enqueue(readAll)
 }
 
-export async function removeRememberedAccount(userId: string): Promise<void> {
-  const accounts = await readAll()
-  await writeAll(accounts.filter((a) => a.userId !== userId))
+export function upsertRememberedAccount(account: RememberedAccount): Promise<void> {
+  console.log('[DEBUG remembered] upsert llamado para', account.userId, account.email)
+  return enqueue(async () => {
+    const accounts = await readAll()
+    console.log('[DEBUG remembered] upsert', account.email, '-> antes:', accounts.map((a) => a.email))
+    const next = accounts.filter((a) => a.userId !== account.userId)
+    next.push(account)
+    await writeAll(next)
+    console.log('[DEBUG remembered] upsert', account.email, '-> después:', next.map((a) => a.email))
+  })
+}
+
+export function removeRememberedAccount(userId: string): Promise<void> {
+  console.log('[DEBUG remembered] remove llamado para', userId)
+  return enqueue(async () => {
+    const accounts = await readAll()
+    console.log('[DEBUG remembered] remove', userId, '-> antes:', accounts.map((a) => `${a.email}(${a.userId})`))
+    const next = accounts.filter((a) => a.userId !== userId)
+    await writeAll(next)
+    console.log('[DEBUG remembered] remove', userId, '-> después:', next.map((a) => a.email))
+  })
 }

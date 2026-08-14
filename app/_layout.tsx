@@ -29,12 +29,15 @@ export default function RootLayout() {
 
     // Listen for auth changes — skip INITIAL_SESSION, already handled by getSession() above
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // DEBUG TEMPORAL — sacar después de diagnosticar el bug del switcher (2026-08-14)
+      console.log('[DEBUG auth]', event, 'session user:', session?.user?.id, session?.user?.email, '| store session ANTES:', useAuthStore.getState().session?.user.id, useAuthStore.getState().session?.user.email)
       if (event === 'INITIAL_SESSION') return
       if (event === 'SIGNED_OUT') {
         // "Cerrar sesión" (en cualquiera de sus dos implementaciones, local o
         // global) significa "salí de esta cuenta en este dispositivo" — se
         // borra del switcher para no ofrecer un re-ingreso sin contraseña.
         const prevUserId = useAuthStore.getState().session?.user.id
+        console.log('[DEBUG auth] SIGNED_OUT -> removiendo del switcher:', prevUserId)
         if (prevUserId) removeRememberedAccount(prevUserId)
       }
       setSession(session)
@@ -59,6 +62,7 @@ export default function RootLayout() {
 
     // Recuerda/actualiza la cuenta para el switcher multi-cuenta. Se re-escribe
     // en cada llamada (incluido TOKEN_REFRESHED) porque el refresh_token rota.
+    console.log('[DEBUG auth] fetchProfile', userId, session.user.email, '-> data existe:', !!data)
     if (data && session.user.email) {
       upsertRememberedAccount({
         userId,

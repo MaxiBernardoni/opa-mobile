@@ -8,7 +8,7 @@ export function useFollow(targetUserId: string) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!session || session.user.id === targetUserId) return
+    if (!session || !targetUserId || session.user.id === targetUserId) return
     supabase
       .from('follows')
       .select('follower_id')

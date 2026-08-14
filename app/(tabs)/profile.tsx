@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-  StatusBar, ScrollView, FlatList, ActivityIndicator, Alert, Dimensions,
+  StatusBar, ScrollView, FlatList, ActivityIndicator, Dimensions,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter, Redirect } from 'expo-router'
@@ -15,7 +15,6 @@ import { useSavedOutfits } from '../../hooks/useSavedOutfits'
 import { useSavedGarments } from '../../hooks/useSavedGarments'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useMyBrand } from '../../hooks/useMyBrand'
-import { supabase } from '../../lib/supabase'
 
 const SCREEN_WIDTH = APP_WIDTH
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
@@ -45,7 +44,7 @@ export default function ProfileScreen() {
     setActiveTab(key)
   }
   const [favSubTab, setFavSubTab] = useState<string>('outfits')
-  const { session, profile, initialized, clear } = useAuthStore()
+  const { session, profile, initialized } = useAuthStore()
   // Cuentas de marca (is_brand): su "perfil" es el perfil de marca, no el de usuario.
   const { brand: myBrand, loading: myBrandLoading } = useMyBrand(
     profile?.is_brand ? session?.user.id : undefined
@@ -53,20 +52,6 @@ export default function ProfileScreen() {
   const { outfits, loading: outfitsLoading } = useOutfits(session?.user.id)
   const { outfits: savedOutfits, loading: savedLoading, refetch: refetchSaved } = useSavedOutfits(session?.user.id)
   const { garments: savedGarments, loading: savedGarmentsLoading, refetch: refetchSavedGarments } = useSavedGarments(session?.user.id)
-
-  async function handleLogout() {
-    Alert.alert('Cerrar sesión', '¿Estás seguro/a?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar sesión',
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.auth.signOut()
-          clear()
-        },
-      },
-    ])
-  }
 
   if (!initialized) {
     return (

@@ -219,6 +219,7 @@ Perfil público de una marca — layout distinto al de usuario (banner + avatar-
 - Igual que `app/user/[id].tsx`, vive fuera del `Tabs` navigator — bottom navbar standalone propia.
 - **Limitación conocida:** todas las `marcas` menos Revés tienen `profile_id = NULL` (falta onboarding de cuentas de marca), así que Outfits/Seguidores quedan vacíos y Seguir es inerte para esas marcas; el catálogo sí trae datos reales siempre.
 - **Prendas descontinuadas (2026-08-14):** el tab Catálogo filtra `garments` con `descontinuada = false` antes de renderizar (`visibleGarments`), incluso en modo `isOwn` — la gestión/reactivación no vive acá, vive en `app/(tabs)/wardrobe.tsx` → `BrandCatalogView`.
+- **Bug de `useFollow('')` encontrado y arreglado (2026-08-14):** `useFollow(brand?.profile_id ?? '')` disparaba una query a `follows` con `following_id` vacío en el primer render de esta pantalla (antes de que `useBrand` termine de cargar `brand`), tirando un 400 en consola — inofensivo (nunca hay match, no rompe nada visualmente) pero ruidoso. Encontrado de casualidad mientras se investigaba un bug no relacionado (switcher multi-cuenta, ver `CLAUDE.md`). Fix: `hooks/useFollow.ts` ahora corta si `targetUserId` es falsy, antes de armar la query.
 
 ### User Outfits (`app/user-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits de un perfil específico
