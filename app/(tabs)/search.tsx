@@ -20,28 +20,85 @@ import { radius } from '../../constants/radius'
 import { APP_WIDTH } from '../../constants/layout'
 import { Outfit, Garment, Brand } from '../../types'
 
+const ASSETS_BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
+
 const SCREEN_WIDTH = APP_WIDTH
 const CARD_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - spacing.sm) / 2
 
-type SearchTab = 'outfits' | 'prendas'
+type SearchTab = 'outfits' | 'prendas' | 'marcas'
 
-const STYLE_TAGS = ['casual', 'formal', 'sporty', 'boho', 'minimalist', 'streetwear', 'vintage']
-const OCCASION_TAGS = ['trabajo', 'salida', 'playa', 'fiesta', 'dia a dia', 'viaje']
+// Categorías reales de prenda (mismo enum que `prendas.category` / outfit_items.slot,
+// ya usado en wardrobe.tsx) — a diferencia de los tags de estilo/ocasión de abajo,
+// estos son un vocabulario controlado: siempre van a devolver resultados si existen.
+const CATEGORY_TAGS = [
+  { key: 'torso', label: 'Torso' },
+  { key: 'piernas', label: 'Piernas' },
+  { key: 'calzado', label: 'Calzado' },
+  { key: 'extras', label: 'Extras' },
+]
+
+type OutfitSort = 'popular' | 'recientes'
+type PrendaSort = 'recientes' | 'precio_asc' | 'precio_desc'
+
+const OUTFIT_SORTS: { key: OutfitSort; label: string }[] = [
+  { key: 'popular', label: 'Populares' },
+  { key: 'recientes', label: 'Recientes' },
+]
+const PRENDA_SORTS: { key: PrendaSort; label: string }[] = [
+  { key: 'recientes', label: 'Recientes' },
+  { key: 'precio_asc', label: 'Precio ↑' },
+  { key: 'precio_desc', label: 'Precio ↓' },
+]
 
 export default function SearchScreen() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<SearchTab>('outfits')
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [outfitSort, setOutfitSort] = useState<OutfitSort>('popular')
+  const [prendaSort, setPrendaSort] = useState<PrendaSort>('recientes')
   const [outfits, setOutfits] = useState<Outfit[]>([])
   const [garments, setGarments] = useState<(Garment & { brand?: Brand })[]>([])
+  const [marcas, setMarcas] = useState<Brand[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
 
-  const runSearch = useCallback(async (text: string, tag: string | null, searchTab: SearchTab) => {
-    if (!text.trim() && !tag) {
+  // Tags de estilo/ocasión de Outfits: en vez de una lista fija adivinada, se traen
+  // los valores reales que existen hoy en `outfits.style`/`outfits.occasion` — así
+  // nunca hay un chip que devuelva 0 resultados. Con el volumen actual (decenas de
+  // outfits) esto es barato; si la tabla crece mucho conviene pasarlo a una query
+  // DISTINCT server-side.
+  const [outfitTags, setOutfitTags] = useState<string[]>([])
+  useEffect(() => {
+    async function loadOutfitTags() {
+      const [{ data: styles }, { data: occasions }] = await Promise.all([
+        supabase.from('outfits').select('style').not('style', 'is', null),
+        supabase.from('outfits').select('occasion').not('occasion', 'is', null),
+      ])
+      const values = [
+        ...(styles ?? []).map((r) => r.style as string),
+        ...(occasions ?? []).map((r) => r.occasion as string),
+      ]
+      setOutfitTags(Array.from(new Set(values.filter(Boolean))))
+    }
+    loadOutfitTags()
+  }, [])
+
+  const runSearch = useCallback(async (
+    text: string,
+    tag: string | null,
+    searchTab: SearchTab,
+    min: string,
+    max: string,
+    oSort: OutfitSort,
+    pSort: PrendaSort,
+  ) => {
+    if (!text.trim() && !tag && !min.trim() && !max.trim()) {
       setOutfits([])
       setGarments([])
+      setMarcas([])
       setSearched(false)
       return
     }
@@ -52,7 +109,7 @@ export default function SearchScreen() {
         let q = supabase
           .from('outfits')
           .select('*, creator:perfiles(id, username, avatar_url)')
-          .order('likes_count', { ascending: false })
+          .order(oSort === 'popular' ? 'likes_count' : 'created_at', { ascending: false })
           .limit(30)
         // Full-text search sobre title + description (search_vector, columna generada)
         if (text.trim()) q = q.textSearch('search_vector', text.trim(), { type: 'websearch', config: 'spanish' })
@@ -61,19 +118,35 @@ export default function SearchScreen() {
         }
         const { data } = await q
         setOutfits((data ?? []) as Outfit[])
-      } else {
+      } else if (searchTab === 'prendas') {
         let q = supabase
           .from('prendas')
           .select('*, brand:marcas(id, name, logo_url)')
           .eq('descontinuada', false)
-          .order('created_at', { ascending: false })
           .limit(30)
+        if (pSort === 'precio_asc') q = q.order('price', { ascending: true })
+        else if (pSort === 'precio_desc') q = q.order('price', { ascending: false })
+        else q = q.order('created_at', { ascending: false })
         // Full-text search sobre name + description + nombre de marca (search_vector,
         // mantenida por trigger porque el nombre de marca es de otra tabla)
         if (text.trim()) q = q.textSearch('search_vector', text.trim(), { type: 'websearch', config: 'spanish' })
-        if (tag) q = q.ilike('style', `%${tag}%`)
+        if (tag) q = q.eq('category', tag)
+        const minVal = parseFloat(min)
+        const maxVal = parseFloat(max)
+        if (!isNaN(minVal)) q = q.gte('price', minVal)
+        if (!isNaN(maxVal)) q = q.lte('price', maxVal)
         const { data } = await q
         setGarments((data ?? []) as (Garment & { brand?: Brand })[])
+      } else {
+        let q = supabase
+          .from('marcas')
+          .select('*')
+          .order('name', { ascending: true })
+          .limit(30)
+        // Tabla chica (7 marcas hoy) — ilike alcanza, no amerita full-text/migración.
+        if (text.trim()) q = q.or(`name.ilike.%${text.trim()}%,description.ilike.%${text.trim()}%`)
+        const { data } = await q
+        setMarcas((data ?? []) as Brand[])
       }
     } finally {
       setLoading(false)
@@ -82,12 +155,12 @@ export default function SearchScreen() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      runSearch(query, activeTag, tab)
+      runSearch(query, activeTag, tab, minPrice, maxPrice, outfitSort, prendaSort)
     }, 350)
     return () => clearTimeout(timeout)
-  }, [query, activeTag, tab, runSearch])
+  }, [query, activeTag, tab, minPrice, maxPrice, outfitSort, prendaSort, runSearch])
 
-  const allTags = [...STYLE_TAGS, ...OCCASION_TAGS]
+  const allTags = tab === 'prendas' ? CATEGORY_TAGS.map((c) => c.key) : outfitTags
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -116,8 +189,12 @@ export default function SearchScreen() {
 
       {/* Tabs */}
       <View style={styles.tabs}>
-        {(['outfits', 'prendas'] as SearchTab[]).map((t) => (
-          <TouchableOpacity key={t} style={[styles.tabItem, tab === t && styles.tabItemActive]} onPress={() => setTab(t)}>
+        {(['outfits', 'prendas', 'marcas'] as SearchTab[]).map((t) => (
+          <TouchableOpacity
+            key={t}
+            style={[styles.tabItem, tab === t && styles.tabItemActive]}
+            onPress={() => { setTab(t); setActiveTag(null) }}
+          >
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </Text>
@@ -125,22 +202,78 @@ export default function SearchScreen() {
         ))}
       </View>
 
-      {/* Tag filters */}
-      <FlatList
-        horizontal
-        data={allTags}
-        keyExtractor={(t) => t}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tagList}
-        renderItem={({ item: tag }) => (
-          <TouchableOpacity
-            style={[styles.tag, activeTag === tag && styles.tagActive]}
-            onPress={() => setActiveTag(activeTag === tag ? null : tag)}
-          >
-            <Text style={[styles.tagText2, activeTag === tag && styles.tagTextActive]}>#{tag}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {/* Tag filters — categorías reales para Prendas, style/occasion reales para Outfits */}
+      {tab !== 'marcas' && (
+        <FlatList
+          horizontal
+          style={styles.tagListWrapper}
+          data={allTags}
+          keyExtractor={(t) => t}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tagList}
+          renderItem={({ item: tag }) => (
+            <TouchableOpacity
+              style={[styles.tag, activeTag === tag && styles.tagActive]}
+              onPress={() => setActiveTag(activeTag === tag ? null : tag)}
+            >
+              <Text style={[styles.tagText2, activeTag === tag && styles.tagTextActive]}>
+                #{tab === 'prendas' ? CATEGORY_TAGS.find((c) => c.key === tag)?.label ?? tag : tag}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+
+      {/* Precio + orden — solo aplican a Prendas / Outfits */}
+      {tab === 'prendas' && (
+        <View style={styles.filterRow}>
+          <View style={styles.priceInputs}>
+            <TextInput
+              style={styles.priceInput}
+              placeholder="Precio min"
+              placeholderTextColor={colors.grisClaro}
+              value={minPrice}
+              onChangeText={setMinPrice}
+              keyboardType="numeric"
+            />
+            <Text style={styles.priceDash}>—</Text>
+            <TextInput
+              style={styles.priceInput}
+              placeholder="Precio max"
+              placeholderTextColor={colors.grisClaro}
+              value={maxPrice}
+              onChangeText={setMaxPrice}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.sortPills}>
+            {PRENDA_SORTS.map((s) => (
+              <TouchableOpacity
+                key={s.key}
+                style={[styles.sortPill, prendaSort === s.key && styles.sortPillActive]}
+                onPress={() => setPrendaSort(s.key)}
+              >
+                <Text style={[styles.sortPillText, prendaSort === s.key && styles.sortPillTextActive]}>{s.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+      {tab === 'outfits' && (
+        <View style={styles.filterRow}>
+          <View style={styles.sortPills}>
+            {OUTFIT_SORTS.map((s) => (
+              <TouchableOpacity
+                key={s.key}
+                style={[styles.sortPill, outfitSort === s.key && styles.sortPillActive]}
+                onPress={() => setOutfitSort(s.key)}
+              >
+                <Text style={[styles.sortPillText, outfitSort === s.key && styles.sortPillTextActive]}>{s.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Results */}
       {loading ? (
@@ -181,7 +314,7 @@ export default function SearchScreen() {
             )}
           />
         )
-      ) : (
+      ) : tab === 'prendas' ? (
         garments.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Sin resultados para "{query}"</Text>
@@ -204,6 +337,38 @@ export default function SearchScreen() {
                   <Text style={styles.outfitTitle} numberOfLines={1}>{item.name}</Text>
                   {item.brand && <Text style={styles.outfitCreator}>{item.brand.name}</Text>}
                   <Text style={styles.garmentPrice}>${item.price.toLocaleString('es-AR')}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        )
+      ) : (
+        marcas.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Sin resultados para "{query}"</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={marcas}
+            keyExtractor={(m) => m.id}
+            contentContainerStyle={styles.brandList}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.brandRow} onPress={() => router.push(`/marca/${item.id}`)}>
+                <Image
+                  source={{ uri: item.logo_url ?? undefined }}
+                  style={styles.brandLogo}
+                  contentFit="cover"
+                />
+                <View style={styles.brandInfo}>
+                  <View style={styles.brandNameRow}>
+                    <Text style={styles.brandName} numberOfLines={1}>{item.name}</Text>
+                    {item.verified && (
+                      <Image source={{ uri: ASSETS_BASE + 'verificado_ondas.png' }} style={styles.brandVerified} contentFit="contain" />
+                    )}
+                  </View>
+                  {item.description && (
+                    <Text style={styles.brandDescription} numberOfLines={1}>{item.description}</Text>
+                  )}
                 </View>
               </TouchableOpacity>
             )}
@@ -237,6 +402,10 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14, color: colors.grisClaro, fontWeight: '500' },
   tabTextActive: { color: colors.rosaOpa, fontWeight: '700' },
 
+  // flexGrow: 0 evita que el FlatList horizontal se estire para llenar el alto
+  // disponible del SafeAreaView (flex:1) en react-native-web — mismo fix que ya
+  // usa app/(tabs)/outfits.tsx para su FlatList principal.
+  tagListWrapper: { flexGrow: 0 },
   tagList: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
   tag: {
     paddingHorizontal: spacing.md,
@@ -249,6 +418,46 @@ const styles = StyleSheet.create({
   tagActive: { backgroundColor: colors.negro, borderColor: colors.negro },
   tagText2: { fontSize: 12, color: colors.grisOscuro },
   tagTextActive: { color: colors.blanco },
+
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  priceInputs: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  priceInput: {
+    width: 80,
+    fontSize: 12,
+    color: colors.negro,
+    backgroundColor: colors.grisBorde,
+    borderRadius: radius.chip,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  priceDash: { fontSize: 12, color: colors.grisClaro },
+  sortPills: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
+  sortPill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.chip,
+    borderWidth: 1,
+    borderColor: colors.grisMedio,
+  },
+  sortPillActive: { backgroundColor: colors.rosaOpa, borderColor: colors.rosaOpa },
+  sortPillText: { fontSize: 11, fontWeight: '600', color: colors.grisOscuro },
+  sortPillTextActive: { color: colors.blanco },
+
+  brandList: { padding: spacing.lg, gap: spacing.md },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  brandLogo: { width: 52, height: 52, borderRadius: radius.avatar, backgroundColor: colors.grisBorde },
+  brandInfo: { flex: 1 },
+  brandNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  brandName: { fontSize: 15, fontWeight: '700', color: colors.negro, flexShrink: 1 },
+  brandVerified: { width: 16, height: 16 },
+  brandDescription: { fontSize: 12, color: colors.grisClaro, marginTop: 2 },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   emptyIcon: { fontSize: 48 },

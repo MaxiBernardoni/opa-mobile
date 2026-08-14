@@ -159,15 +159,28 @@ El botón "Ver outfit" en la barra inferior de `OutfitScrollItem.tsx` (bottom ba
 - **CTA sticky:** total price izquierda + botón "Ver outfit completo" derecha
 
 ### Search (`app/(tabs)/search.tsx`)
-- Búsqueda con debounce de 350ms sobre `query` + `activeTag` + `tab`
+Es el mismo buscador para cuentas normales y de marca — una cuenta de marca no tiene acceso al tab Outfits/feed, pero sí a Search (ver `BottomNavBar.tsx`), y lo usa para navegar el resto de OPA (otras marcas, inspiración).
+
+- Búsqueda con debounce de 350ms sobre `query` + `activeTag` + `tab` + precio + orden
 - **Search bar:** input con `backgroundColor: grisBorde`, icono 🔍, botón ✕ para limpiar
-- **Tabs:** Outfits / Prendas — cambia el target de búsqueda; borde inferior `rosaOpa` en activo
-- **Tag filters:** horizontal `FlatList` con 13 tags fijos (`STYLE_TAGS` + `OCCASION_TAGS`); un tag activo a la vez; tap en activo lo deselecciona
-- **Query outfits:** `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` (full-text sobre title+description) + `.or('style.ilike...,occasion.ilike...')` — `LIMIT 30`, ordenado por `likes_count DESC`
-- **Query prendas:** `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` (full-text sobre name+description+nombre de marca) + `.ilike('style', ...)` — `LIMIT 30`, ordenado por `created_at DESC`
-- **Grid resultados:** 2 columnas, cards con imagen + título/nombre + creator/brand; tap navega a `outfit/[id]` o `product/[id]`
+- **Tabs:** Outfits / Prendas / **Marcas** — cambia el target de búsqueda; borde inferior `rosaOpa` en activo; cambiar de tab resetea `activeTag` (los vocabularios de tags de Outfits y Prendas son distintos, no tiene sentido arrastrar la selección)
+- **Query outfits:** `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` (full-text sobre title+description) + `.or('style.ilike...,occasion.ilike...')` — `LIMIT 30`, orden elegible (ver abajo)
+- **Query prendas:** `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` (full-text sobre name+description+nombre de marca) + `.eq('category', ...)` + `.gte/.lte('price', ...)` — `LIMIT 30`, orden elegible
+- **Query marcas (2026-08-14, nuevo):** `.or('name.ilike...,description.ilike...')` sobre la tabla `marcas` — sin full-text ni migración, la tabla tiene 7 filas hoy y no lo amerita (si crece mucho, considerar `search_vector` igual que outfits/prendas). Resultado en filas (no grid): logo circular 52px + nombre + badge `verificado_ondas.png` si `marcas.verified` + descripción 1 línea → tap navega a `/marca/[id]`.
+- **Tag filters (2026-08-14, reemplazó la lista fija):**
+  - **Prendas:** chips de categoría real (`Torso`/`Piernas`/`Calzado`/`Extras`, `CATEGORY_TAGS` constante — mismo enum que `prendas.category`), filtran con `.eq('category', key)` en vez de `ilike` sobre `style`.
+  - **Outfits:** chips de `style`/`occasion` **traídos dinámicamente** de lo que existe hoy en la tabla (`SELECT style/occasion WHERE NOT NULL`, deduplicado client-side, cargado una vez al montar la pantalla) — reemplaza la lista vieja de 13 tags inventados a mano, que no coincidía con los valores reales de seed y devolvía 0 resultados en varios casos. Con el volumen actual (decenas de outfits) el costo de esta query es despreciable; si la tabla crece mucho, pasar a una query `DISTINCT` server-side o RPC.
+  - **Marcas:** sin chips — son pocas, alcanza con el texto.
+- **Filtro de precio (2026-08-14, nuevo, solo tab Prendas):** dos inputs numéricos chicos (Min/Max) sobre `prendas.price`, mismo debounce que el resto.
+- **Orden (2026-08-14, nuevo, pills):**
+  - Outfits: **Populares** (`likes_count DESC`, default — mismo comportamiento que antes) / **Recientes** (`created_at DESC`)
+  - Prendas: **Recientes** (`created_at DESC`, default — mismo comportamiento que antes) / **Precio ↑** / **Precio ↓**
+  - Marcas: sin selector, orden fijo alfabético (`name ASC`)
+- **Grid resultados** (Outfits/Prendas): 2 columnas, cards con imagen + título/nombre + creator/brand; tap navega a `outfit/[id]` o `product/[id]`
 - Estado vacío inicial: ícono 👗 + texto descriptivo. Sin resultados: mensaje con el query.
 - **Full-text search (2026-08-10):** reemplazó el `.ilike()` anterior, que solo matcheaba `title`/`name` — no encontraba nada al buscar por texto de la descripción ni por nombre de marca (ninguna prenda se llama literalmente "Capas", por ejemplo). Columnas `search_vector` (`tsvector`, config `'spanish'`, con stemming — buscar "vestido" encuentra también "vestirse") + índice GIN en `outfits` y `prendas` (ver `database-2026-06-06-schema-and-seed.md`). Verificado en browser: "Capas" en tab Prendas trae las 4 prendas de esa marca; "vestido" en tab Outfits trae "noche sin esfuerzo" (tiene "vestido" en la descripción) y "otoño en Palermo" (tiene "vestirse" — misma raíz).
+- **Verificado en browser (2026-08-14):** tab Marcas con "Capas" trae la marca real con su descripción; tab Prendas con precio mínimo $5000 + orden Precio ↑ trae solo prendas ≥ $9.800 en orden ascendente; agregar el chip #Calzado sobre eso deja solo las 7 zapatillas/botas de Sole, precio ascendente, min $5000 respetado. Sin cambios de DB — todo usa columnas que ya existían (`category`, `price`, `marcas.name/description`), no hizo falta `opa-backend` ni el MCP de Supabase (no autorizado esta sesión).
+- **Bug real encontrado por el usuario, no por mí (2026-08-14):** la primera verificación de esta misma sesión se hizo solo leyendo el DOM (`read_page`/`get_page_text`), sin capturar pantalla — pasó por alto que el `FlatList` horizontal de chips se renderizaba estirado a casi toda la altura de la pantalla (mismo bug de `flexGrow` en react-native-web que ya se había resuelto una vez en `outfits.tsx`, ver `CLAUDE.md` → Decisiones técnicas críticas). El usuario mandó un screenshot real de su celular mostrando los chips como cajas verticales gigantes. Fix: `style={{ flexGrow: 0 }}` (estilo `tagListWrapper`) en el `FlatList` de tags — confirmado por medición de `getBoundingClientRect` post-fix (chip de ~26px de alto en vez de ~700px). **Lección de proceso:** para listas horizontales nuevas, no alcanza con verificar el contenido por DOM/texto — hay que confirmar dimensiones reales (`getBoundingClientRect` como mínimo, screenshot si el pane lo permite). Se dejó una tarea flageada para revisar si `app/(tabs)/wardrobe.tsx` (filtro de slots, misma estructura) tiene el mismo bug sin detectar.
 
 ### Wardrobe (`app/(tabs)/wardrobe.tsx`)
 Mismo tab/ruta para las dos audiencias; el componente rama según `profile.is_brand` (2026-08-07):
