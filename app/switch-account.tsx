@@ -55,12 +55,18 @@ export default function SwitchAccountScreen() {
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-        </TouchableOpacity>
+        {session && (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+        )}
         <View>
           <Text style={styles.headerTitle}>Cambiar de cuenta</Text>
-          <Text style={styles.headerSubtitle}>Saltá entre las cuentas de este dispositivo</Text>
+          <Text style={styles.headerSubtitle}>
+            {session
+              ? 'Saltá entre las cuentas de este dispositivo'
+              : 'Elegí una cuenta para continuar'}
+          </Text>
         </View>
       </View>
 

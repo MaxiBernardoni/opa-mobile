@@ -62,24 +62,18 @@ export function getRememberedAccounts(): Promise<RememberedAccount[]> {
 }
 
 export function upsertRememberedAccount(account: RememberedAccount): Promise<void> {
-  console.log('[DEBUG remembered] upsert llamado para', account.userId, account.email)
   return enqueue(async () => {
     const accounts = await readAll()
-    console.log('[DEBUG remembered] upsert', account.email, '-> antes:', accounts.map((a) => a.email))
     const next = accounts.filter((a) => a.userId !== account.userId)
     next.push(account)
     await writeAll(next)
-    console.log('[DEBUG remembered] upsert', account.email, '-> después:', next.map((a) => a.email))
   })
 }
 
 export function removeRememberedAccount(userId: string): Promise<void> {
-  console.log('[DEBUG remembered] remove llamado para', userId)
   return enqueue(async () => {
     const accounts = await readAll()
-    console.log('[DEBUG remembered] remove', userId, '-> antes:', accounts.map((a) => `${a.email}(${a.userId})`))
     const next = accounts.filter((a) => a.userId !== userId)
     await writeAll(next)
-    console.log('[DEBUG remembered] remove', userId, '-> después:', next.map((a) => a.email))
   })
 }

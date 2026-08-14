@@ -11,6 +11,7 @@ import { spacing } from '../constants/spacing'
 import { radius } from '../constants/radius'
 import { useAuthStore } from '../store/useAuthStore'
 import { supabase } from '../lib/supabase'
+import { getRememberedAccounts } from '../lib/rememberedAccounts'
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 
@@ -68,9 +69,16 @@ export default function SettingsScreen() {
   const avatarUrl = profile?.avatar_url
 
   async function handleLogout() {
+    // Snapshot ANTES de signOut(): no depender de la carrera contra el
+    // removeRememberedAccount() que dispara el listener de _layout.tsx en
+    // paralelo (ver CLAUDE.md, bug del switcher 2026-08-14).
+    const currentUserId = session?.user.id
+    const otherAccounts = currentUserId
+      ? (await getRememberedAccounts()).filter((a) => a.userId !== currentUserId)
+      : []
     await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     clear()
-    router.replace('/(tabs)')
+    router.replace(otherAccounts.length > 0 ? '/switch-account' : '/(tabs)')
   }
 
   function openDeleteModal() {
@@ -147,11 +155,14 @@ export default function SettingsScreen() {
       return
     }
 
+    const currentUserId = session.user.id
+    const otherAccounts = (await getRememberedAccounts()).filter((a) => a.userId !== currentUserId)
+
     await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     clear()
     setLoading(false)
     closeDeleteModal()
-    router.replace('/(tabs)')
+    router.replace(otherAccounts.length > 0 ? '/switch-account' : '/(tabs)')
   }
 
   return (
