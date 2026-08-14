@@ -130,7 +130,7 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 | name | varchar | |
 | description | text | nullable |
 | price | numeric | |
-| image_url | text | |
+| image_url | text | **NOT NULL** — toda prenda necesita imagen (galería multi-imagen deliberadamente fuera de alcance, ver `product-2026-06-10-brand-system.md`) |
 | category | varchar | nullable — torso/piernas/calzado/extras |
 | color | varchar | |
 | style | varchar | nullable |
@@ -140,13 +140,16 @@ Los logos reales están en el bucket `avatars` (público). URL base:
 | sale_mode | text | default 'direct' — CHECK: 'direct' \| 'redirect' |
 | external_url | text | nullable — URL externa si sale_mode = 'redirect' |
 | search_vector | tsvector | nullable — full-text search (2026-08-10), ver nota abajo |
+| descontinuada | boolean | **NOT NULL, default false** (2026-08-14) — ver nota abajo |
 | created_at | timestamp | default now() |
 
 **Columnas eliminadas:** `talle` (redundante con `available_sizes` y `stock_por_talle`).
 
 **`search_vector` (2026-08-10):** indexa `name + description + nombre de marca` (config `'spanish'`), con índice GIN. A diferencia de `outfits.search_vector`, **no** es una columna `GENERATED` porque el nombre de marca vive en otra tabla (`marcas`) — es mantenida por dos triggers: `prendas_search_vector_trigger` (recalcula al crear/editar una prenda) y `marcas_search_vector_sync_trigger` (recalcula las prendas de una marca cuando se le cambia el `name`). Consultada en `app/(tabs)/search.tsx` vía `.textSearch('search_vector', query, { type: 'websearch', config: 'spanish' })` — reemplazó el `.ilike('name', ...)` anterior, que no encontraba nada al buscar por marca o por texto de la descripción.
 
-**RLS:** habilitado.
+**`descontinuada` (2026-08-14):** reemplazo de un DELETE real, descartado porque las FK hacia `prendas` tienen `ON DELETE CASCADE` desde `outfit_items`, `prendas_armario` y `prendas_guardadas` — borrar una prenda hubiera hecho desaparecer silenciosamente ese ítem de cualquier outfit publicado (de la marca o de otro usuario) y de armarios/guardados ajenos; y `productos_orden`/`reseñas` tienen `ON DELETE NO ACTION`, así que el DELETE directamente fallaba si la prenda tenía alguna orden o reseña. En su lugar, la marca "descontinúa" la prenda: sigue existiendo (los outfits que ya la usan no se rompen), pero se oculta del catálogo público (`marca/[id].tsx`, `search.tsx`) y del carrusel "más de esta marca"; en `product/[id].tsx` el CTA de compra se reemplaza por "Ya no disponible" y aparece un banner. El toggle vive en `app/(tabs)/wardrobe.tsx` (`BrandCatalogView`, botón "Descontinuar"/"Reactivar" sobre cada card). **No hay borrado real todavía** — si una marca quiere borrar de verdad, tiene que pedirlo a soporte para que lo haga desde `opa-admin` (vía `service_role`, sin RLS de por medio).
+
+**RLS:** habilitado. Policies: `public_read_prendas` (SELECT, `true`) y `brand_owner_update_own_prendas` (UPDATE, 2026-08-14 — `brand_id in (select id from marcas where profile_id = auth.uid())`, mismo criterio en `USING`/`WITH CHECK`). **Sin policy de INSERT ni DELETE** — crear prendas pasa por `POST /api/brands/me/prendas` con `service_role` (bypassea RLS), no hay ningún camino para DELETE. La policy de UPDATE se agregó puntualmente para el toggle de `descontinuada` porque el `PATCH /api/brands/me/prendas/:id` de la API tiene una whitelist de campos que no incluye la columna nueva (no se pudo tocar `opa-backend` esta sesión, no está clonado) — como consecuencia, la policy es más permisiva de lo ideal: permite a la marca modificar *cualquier* columna de sus propias prendas directo por Supabase, no solo `descontinuada`, sin las validaciones de negocio que sí tiene la API (ej. `external_url` requerido si `sale_mode='redirect'`). Pendiente prolijo: cuando una sesión tenga `opa-backend` clonado, agregar `descontinuada` a la whitelist del PATCH y evaluar si angostar esta policy.
 
 **Seed data:** 25 prendas. Las 5 prendas legacy con `style: null` fueron eliminadas.
 

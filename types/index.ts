@@ -46,6 +46,7 @@ export interface Garment {
   sale_mode: 'direct' | 'redirect'
   external_url: string | null
   stock_por_talle: Record<string, number> | null
+  descontinuada: boolean
   created_at: string
   brand?: Brand
 }

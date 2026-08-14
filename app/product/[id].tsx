@@ -78,6 +78,7 @@ export default function ProductDetail() {
       .from('prendas')
       .select('*')
       .eq('brand_id', brandId)
+      .eq('descontinuada', false)
       .neq('id', excludeId)
       .limit(8)
     setRelated((data ?? []) as Garment[])
@@ -149,7 +150,8 @@ export default function ProductDetail() {
     ? (selectedSize != null && selectedStock === 0)
     : selectedStock === 0
 
-  const canAddToCart = garment.sale_mode === 'direct'
+  const canAddToCart = !garment.descontinuada
+    && garment.sale_mode === 'direct'
     && (!hasSizes || !!selectedSize)
     && !outOfStockForSelection
 
@@ -213,6 +215,12 @@ export default function ProductDetail() {
               )}
               <Text style={styles.brandName}>{garment.brand.name}</Text>
             </TouchableOpacity>
+          )}
+
+          {garment.descontinuada && (
+            <View style={styles.discontinuedBanner}>
+              <Text style={styles.discontinuedBannerText}>Esta prenda fue descontinuada por la marca</Text>
+            </View>
           )}
 
           {/* Name + price + color */}
@@ -376,7 +384,11 @@ export default function ProductDetail() {
 
       {/* CTA */}
       <View style={styles.cta}>
-        {garment.sale_mode === 'redirect' ? (
+        {garment.descontinuada ? (
+          <View style={[styles.ctaBtn, styles.ctaBtnDisabled]}>
+            <Text style={styles.ctaBtnText}>Ya no disponible</Text>
+          </View>
+        ) : garment.sale_mode === 'redirect' ? (
           <TouchableOpacity style={styles.ctaBtn} onPress={handleOpenStore}>
             <Text style={styles.ctaBtnText}>Ver en tienda →</Text>
           </TouchableOpacity>
@@ -577,6 +589,14 @@ const styles = StyleSheet.create({
   saveFloatIconActive: { color: colors.rosaOpa },
 
   body: { padding: spacing.lg },
+  discontinuedBanner: {
+    backgroundColor: colors.grisBorde,
+    borderRadius: radius.chip,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  discontinuedBannerText: { fontSize: 12, color: colors.grisOscuro, fontWeight: '600' },
 
   brandRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   brandLogo: { width: 28, height: 28, borderRadius: radius.avatar, marginRight: spacing.sm, backgroundColor: colors.grisBorde },

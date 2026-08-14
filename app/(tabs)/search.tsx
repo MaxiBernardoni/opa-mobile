@@ -65,6 +65,7 @@ export default function SearchScreen() {
         let q = supabase
           .from('prendas')
           .select('*, brand:marcas(id, name, logo_url)')
+          .eq('descontinuada', false)
           .order('created_at', { ascending: false })
           .limit(30)
         // Full-text search sobre name + description + nombre de marca (search_vector,

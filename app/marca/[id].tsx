@@ -66,6 +66,11 @@ export default function BrandProfileScreen() {
 
   const [activeTab, setActiveTab] = useState<'outfits' | 'catalogo'>('outfits')
 
+  // Prendas descontinuadas no se muestran en el perfil público (ni siquiera al
+  // dueño viendo su propio perfil) — la gestión/reactivación vive en el tab
+  // Catálogo de wardrobe.tsx, no acá.
+  const visibleGarments = garments.filter((g) => !g.descontinuada)
+
   if (loading || !brand) {
     return (
       <SafeAreaView style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
@@ -173,7 +178,7 @@ export default function BrandProfileScreen() {
           {[
             { label: 'Seguidores', value: followersCount },
             { label: 'Outfits', value: outfits.length },
-            { label: 'Prendas', value: garments.length },
+            { label: 'Prendas', value: visibleGarments.length },
           ].map((stat) => (
             <View key={stat.label} style={styles.statItem}>
               <Text style={styles.statValue}>{formatCount(stat.value)}</Text>
@@ -255,14 +260,14 @@ export default function BrandProfileScreen() {
 
         {/* ── Tab Catálogo ── */}
         {activeTab === 'catalogo' && (
-          garments.length === 0 ? (
+          visibleGarments.length === 0 ? (
             <View style={styles.emptyTab}>
               <Text style={styles.emptyTabIcon}>🛍️</Text>
               <Text style={styles.emptyTabText}>Esta marca todavía no cargó prendas</Text>
             </View>
           ) : (
             <FlatList
-              data={garments}
+              data={visibleGarments}
               keyExtractor={(item) => item.id}
               numColumns={3}
               scrollEnabled={false}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Brand, Garment, Outfit } from '../types'
 
@@ -78,9 +78,13 @@ export function useBrand(brandId?: string): BrandData {
     setFollowersCount((prev) => Math.max(0, prev + delta))
   }
 
-  function refetch() {
+  // Memoizado: BrandCatalogView lo pasa a useFocusEffect(useCallback(() => refetch(), [refetch])) —
+  // si refetch cambiara de identidad en cada render (como antes), ese useCallback
+  // quedaría sin efecto y useFocusEffect se re-dispararía en cada render, generando
+  // un loop infinito de fetches (encontrado 2026-08-14 probando otro cambio).
+  const refetch = useCallback(() => {
     if (brandId) fetchAll(brandId)
-  }
+  }, [brandId])
 
   return { brand, garments, outfits, followersCount, adjustFollowersCount, loading, refetch }
 }

@@ -16,6 +16,7 @@ import { useWardrobe } from '../../hooks/useWardrobe'
 import { useMyBrand } from '../../hooks/useMyBrand'
 import { useBrand } from '../../hooks/useBrand'
 import { useAuthStore } from '../../store/useAuthStore'
+import { supabase } from '../../lib/supabase'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
@@ -175,6 +176,18 @@ function BrandCatalogView({ userId }: { userId: string }) {
   // tener que hacer nada especial al volver.
   useFocusEffect(useCallback(() => { refetch() }, [refetch]))
 
+  // Marcar como descontinuada (o reactivar) es la única forma de "borrar" una
+  // prenda: un DELETE real cascadea sobre outfit_items/armario/guardados de
+  // cualquier usuario que la tenga, así que se optó por ocultarla del catálogo
+  // público y bloquear la compra en su lugar (ver database-2026-06-06-schema-and-seed.md).
+  // El PATCH de la API tiene una whitelist de campos que no incluye
+  // `descontinuada` (columna nueva), así que esto escribe directo a Supabase
+  // vía una policy RLS de owner-update en vez de pasar por la API.
+  async function handleToggleDescontinuada(garmentId: string, next: boolean) {
+    await supabase.from('prendas').update({ descontinuada: next }).eq('id', garmentId)
+    refetch()
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
@@ -231,7 +244,11 @@ function BrandCatalogView({ userId }: { userId: string }) {
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.grid}
             renderItem={({ item }) => (
-              <GarmentStockCard item={item} onPress={() => router.push(`/product/${item.id}`)} />
+              <GarmentStockCard
+                item={item}
+                onPress={() => router.push(`/product/${item.id}`)}
+                onToggleDescontinuada={() => handleToggleDescontinuada(item.id, !item.descontinuada)}
+              />
             )}
           />
         )
@@ -262,16 +279,44 @@ function BrandCatalogView({ userId }: { userId: string }) {
   )
 }
 
-function GarmentStockCard({ item, onPress }: { item: Garment; onPress: () => void }) {
+function GarmentStockCard({
+  item,
+  onPress,
+  onToggleDescontinuada,
+}: {
+  item: Garment
+  onPress: () => void
+  onToggleDescontinuada: () => void
+}) {
   const stock = totalStock(item)
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      <Image source={{ uri: item.image_url ?? undefined }} style={styles.cardImage} contentFit="cover" />
+      <View style={styles.imageWrapper}>
+        <Image
+          source={{ uri: item.image_url ?? undefined }}
+          style={[styles.cardImage, item.descontinuada && styles.cardImageDimmed]}
+          contentFit="cover"
+        />
+        {item.descontinuada && (
+          <View style={styles.discontinuedBadge}>
+            <Text style={styles.discontinuedBadgeText}>Descontinuada</Text>
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.toggleBtn}
+          onPress={(e) => { e.stopPropagation(); onToggleDescontinuada() }}
+          hitSlop={4}
+        >
+          <Text style={styles.toggleBtnText}>{item.descontinuada ? 'Reactivar' : 'Descontinuar'}</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.cardMeta}>
         <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.stockText, stock === 0 && styles.stockTextEmpty]}>
-          {stock === 0 ? 'Sin stock' : `${stock} en stock`}
-        </Text>
+        {!item.descontinuada && (
+          <Text style={[styles.stockText, stock === 0 && styles.stockTextEmpty]}>
+            {stock === 0 ? 'Sin stock' : `${stock} en stock`}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   )
@@ -341,4 +386,19 @@ const styles = StyleSheet.create({
   cardBrand: { fontSize: 10, color: colors.grisClaro, marginTop: 1 },
   stockText: { fontSize: 10, color: colors.grisOscuro, marginTop: 1, fontWeight: '600' },
   stockTextEmpty: { color: colors.rosaOpa },
+
+  imageWrapper: { position: 'relative' },
+  cardImageDimmed: { opacity: 0.4 },
+  discontinuedBadge: {
+    position: 'absolute', top: spacing.xs, left: spacing.xs,
+    backgroundColor: colors.negro, borderRadius: radius.tag,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  discontinuedBadgeText: { fontSize: 9, fontWeight: '700', color: colors.blanco },
+  toggleBtn: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 4, alignItems: 'center',
+  },
+  toggleBtnText: { fontSize: 10, fontWeight: '700', color: colors.blanco },
 })
