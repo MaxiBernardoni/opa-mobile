@@ -18,7 +18,7 @@ import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { APP_WIDTH } from '../../constants/layout'
-import { Outfit, Garment, Brand } from '../../types'
+import { Outfit, Garment, Brand, Profile } from '../../types'
 
 const ASSETS_BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 
@@ -26,6 +26,19 @@ const SCREEN_WIDTH = APP_WIDTH
 const CARD_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - spacing.sm) / 2
 
 type SearchTab = 'outfits' | 'prendas' | 'marcas'
+
+const TAB_LABELS: Record<SearchTab, string> = {
+  outfits: 'Outfits',
+  prendas: 'Prendas',
+  marcas: 'Cuentas',
+}
+
+// Resultado combinado de la tab "Cuentas": marcas y usuarios (perfiles no-marca)
+// que matchean el texto buscado, cada uno con su tipo para poder distinguirlos
+// en el render y navegar a /marca/[id] o /user/[id] según corresponda.
+type AccountResult =
+  | ({ kind: 'marca' } & Brand)
+  | ({ kind: 'usuario' } & Profile)
 
 // Categorías reales de prenda (mismo enum que `prendas.category` / outfit_items.slot,
 // ya usado en wardrobe.tsx) — a diferencia de los tags de estilo/ocasión de abajo,
@@ -61,7 +74,7 @@ export default function SearchScreen() {
   const [prendaSort, setPrendaSort] = useState<PrendaSort>('recientes')
   const [outfits, setOutfits] = useState<Outfit[]>([])
   const [garments, setGarments] = useState<(Garment & { brand?: Brand })[]>([])
-  const [marcas, setMarcas] = useState<Brand[]>([])
+  const [accounts, setAccounts] = useState<AccountResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
 
@@ -98,7 +111,7 @@ export default function SearchScreen() {
     if (!text.trim() && !tag && !min.trim() && !max.trim()) {
       setOutfits([])
       setGarments([])
-      setMarcas([])
+      setAccounts([])
       setSearched(false)
       return
     }
@@ -138,15 +151,25 @@ export default function SearchScreen() {
         const { data } = await q
         setGarments((data ?? []) as (Garment & { brand?: Brand })[])
       } else {
-        let q = supabase
-          .from('marcas')
+        // Tablas chicas (7 marcas, decenas de perfiles hoy) — ilike alcanza, no
+        // amerita full-text/migración. Se excluyen perfiles is_brand=true de
+        // "usuarios" porque esa misma cuenta ya aparece como marca en `marcas`.
+        let brandsQ = supabase.from('marcas').select('*').order('name', { ascending: true }).limit(30)
+        let profilesQ = supabase
+          .from('perfiles')
           .select('*')
-          .order('name', { ascending: true })
+          .eq('is_brand', false)
+          .order('username', { ascending: true })
           .limit(30)
-        // Tabla chica (7 marcas hoy) — ilike alcanza, no amerita full-text/migración.
-        if (text.trim()) q = q.or(`name.ilike.%${text.trim()}%,description.ilike.%${text.trim()}%`)
-        const { data } = await q
-        setMarcas((data ?? []) as Brand[])
+        if (text.trim()) {
+          brandsQ = brandsQ.or(`name.ilike.%${text.trim()}%,description.ilike.%${text.trim()}%`)
+          profilesQ = profilesQ.or(`username.ilike.%${text.trim()}%,display_name.ilike.%${text.trim()}%`)
+        }
+        const [{ data: brandsData }, { data: profilesData }] = await Promise.all([brandsQ, profilesQ])
+        setAccounts([
+          ...((brandsData ?? []) as Brand[]).map((b) => ({ kind: 'marca' as const, ...b })),
+          ...((profilesData ?? []) as Profile[]).map((p) => ({ kind: 'usuario' as const, ...p })),
+        ])
       }
     } finally {
       setLoading(false)
@@ -172,7 +195,7 @@ export default function SearchScreen() {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.input}
-            placeholder="Outfits, prendas, marcas..."
+            placeholder="Outfits, prendas, marcas, usuarios..."
             placeholderTextColor={colors.grisClaro}
             value={query}
             onChangeText={setQuery}
@@ -196,7 +219,7 @@ export default function SearchScreen() {
             onPress={() => { setTab(t); setActiveTag(null) }}
           >
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {TAB_LABELS[t]}
             </Text>
           </TouchableOpacity>
         ))}
@@ -217,7 +240,7 @@ export default function SearchScreen() {
               onPress={() => setActiveTag(activeTag === tag ? null : tag)}
             >
               <Text style={[styles.tagText2, activeTag === tag && styles.tagTextActive]}>
-                #{tab === 'prendas' ? CATEGORY_TAGS.find((c) => c.key === tag)?.label ?? tag : tag}
+                {tab === 'prendas' ? CATEGORY_TAGS.find((c) => c.key === tag)?.label ?? tag : `#${tag}`}
               </Text>
             </TouchableOpacity>
           )}
@@ -343,35 +366,45 @@ export default function SearchScreen() {
           />
         )
       ) : (
-        marcas.length === 0 ? (
+        accounts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Sin resultados para "{query}"</Text>
           </View>
         ) : (
           <FlatList
-            data={marcas}
-            keyExtractor={(m) => m.id}
+            data={accounts}
+            keyExtractor={(a) => `${a.kind}-${a.id}`}
             contentContainerStyle={styles.brandList}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.brandRow} onPress={() => router.push(`/marca/${item.id}`)}>
-                <Image
-                  source={{ uri: item.logo_url ?? undefined }}
-                  style={styles.brandLogo}
-                  contentFit="cover"
-                />
-                <View style={styles.brandInfo}>
-                  <View style={styles.brandNameRow}>
-                    <Text style={styles.brandName} numberOfLines={1}>{item.name}</Text>
-                    {item.verified && (
-                      <Image source={{ uri: ASSETS_BASE + 'verificado_ondas.png' }} style={styles.brandVerified} contentFit="contain" />
+            renderItem={({ item }) => {
+              const isBrand = item.kind === 'marca'
+              const avatarUrl = isBrand ? item.logo_url : item.avatar_url
+              const name = isBrand ? item.name : (item.display_name || item.username)
+              const description = isBrand ? item.description : item.bio
+              return (
+                <TouchableOpacity
+                  style={styles.brandRow}
+                  onPress={() => router.push(isBrand ? `/marca/${item.id}` : `/user/${item.id}`)}
+                >
+                  <Image
+                    source={{ uri: avatarUrl ?? undefined }}
+                    style={styles.brandLogo}
+                    contentFit="cover"
+                  />
+                  <View style={styles.brandInfo}>
+                    <View style={styles.brandNameRow}>
+                      <Text style={styles.brandName} numberOfLines={1}>{name}</Text>
+                      <Text style={styles.accountKindTag}>{isBrand ? 'Marca' : 'Usuario'}</Text>
+                      {isBrand && item.verified && (
+                        <Image source={{ uri: ASSETS_BASE + 'verificado_ondas.png' }} style={styles.brandVerified} contentFit="contain" />
+                      )}
+                    </View>
+                    {description && (
+                      <Text style={styles.brandDescription} numberOfLines={1}>{description}</Text>
                     )}
                   </View>
-                  {item.description && (
-                    <Text style={styles.brandDescription} numberOfLines={1}>{item.description}</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
+                </TouchableOpacity>
+              )
+            }}
           />
         )
       )}
@@ -404,8 +437,14 @@ const styles = StyleSheet.create({
 
   // flexGrow: 0 evita que el FlatList horizontal se estire para llenar el alto
   // disponible del SafeAreaView (flex:1) en react-native-web — mismo fix que ya
-  // usa app/(tabs)/outfits.tsx para su FlatList principal.
-  tagListWrapper: { flexGrow: 0 },
+  // usa app/(tabs)/outfits.tsx para su FlatList principal. Acá además hace falta
+  // height + flexShrink: 0: esta fila es hermana del FlatList de resultados (que
+  // sí necesita crecer y scrollear su propio contenido) dentro de un contenedor
+  // flex:1 — sin flexShrink:0, apenas los resultados no entran en la pantalla el
+  // layout "roba" espacio de esta fila (se encoge a ~16px, el mínimo de una sola
+  // línea de texto) para dárselo al FlatList de abajo. Con fondo blanco casi no
+  // se nota, pero con el chip activo (fondo negro) el recorte tapa el texto.
+  tagListWrapper: { flexGrow: 0, flexShrink: 0, height: 44 },
   tagList: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
   tag: {
     paddingHorizontal: spacing.md,
@@ -456,6 +495,17 @@ const styles = StyleSheet.create({
   brandInfo: { flex: 1 },
   brandNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   brandName: { fontSize: 15, fontWeight: '700', color: colors.negro, flexShrink: 1 },
+  accountKindTag: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.grisClaro,
+    textTransform: 'uppercase',
+    borderWidth: 1,
+    borderColor: colors.bordeTag,
+    borderRadius: radius.tag,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
   brandVerified: { width: 16, height: 16 },
   brandDescription: { fontSize: 12, color: colors.grisClaro, marginTop: 2 },
 
