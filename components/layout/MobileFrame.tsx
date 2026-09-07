@@ -1,15 +1,17 @@
 import React from 'react'
 import { View, Platform, StyleSheet, useWindowDimensions } from 'react-native'
 import { APP_MAX_WIDTH } from '../../constants/layout'
+import { useIsCoarsePointer } from '../../hooks/useIsCoarsePointer'
 
 // Encuadra la app en una columna tipo teléfono cuando se abre en web en una
-// ventana más ancha que un celular (ej. desktop). En nativo, o cuando la
-// ventana ya es angosta (Chrome responsive / celular real), no hace nada y la
-// app ocupa toda la pantalla → responsive automático.
+// ventana ancha con mouse (desktop). En nativo, en un teléfono real (touch,
+// cualquiera sea su ancho), o en DevTools emulando un dispositivo, no hace
+// nada y la app ocupa toda la pantalla → responsive automático.
 export function MobileFrame({ children }: { children: React.ReactNode }) {
   const { width, height } = useWindowDimensions()
+  const isCoarsePointer = useIsCoarsePointer()
 
-  const shouldFrame = Platform.OS === 'web' && width > APP_MAX_WIDTH
+  const shouldFrame = Platform.OS === 'web' && width > APP_MAX_WIDTH && !isCoarsePointer
 
   if (!shouldFrame) return <>{children}</>
 

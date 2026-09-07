@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  View, FlatList, StyleSheet, Dimensions,
+  View, FlatList, StyleSheet, useWindowDimensions,
   TouchableOpacity, Text, StatusBar, ActivityIndicator,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -8,11 +8,10 @@ import { useOutfits } from '../hooks/useOutfits'
 import { OutfitScrollItem } from '../components/outfit/OutfitScrollItem'
 import { colors } from '../constants/colors'
 
-const { height: SH } = Dimensions.get('window')
-
 export default function UserOutfitsScreen() {
   const router = useRouter()
   const { userId, startIndex } = useLocalSearchParams<{ userId: string; startIndex?: string }>()
+  const { height: SH } = useWindowDimensions()
   const { outfits, loading, loadingMore, hasMore, loadMore } = useOutfits(userId)
   const [activeIndex, setActiveIndex] = useState(0)
   const flatListRef = useRef<FlatList>(null)
@@ -73,7 +72,7 @@ export default function UserOutfitsScreen() {
           </View>
         ) : null}
         renderItem={({ item, index }) => (
-          <OutfitScrollItem outfit={item} isActive={index === activeIndex} />
+          <OutfitScrollItem outfit={item} isActive={index === activeIndex} height={SH} />
         )}
       />
     </View>

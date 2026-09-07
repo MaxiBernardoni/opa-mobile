@@ -20,12 +20,17 @@ import { supabase } from '../../lib/supabase'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { WardrobeItem, Garment, Brand, Outfit } from '../../types'
 
-const SCREEN_WIDTH = APP_WIDTH
 const NUM_COLS = 3
-const CARD_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - spacing.sm * (NUM_COLS - 1)) / NUM_COLS
+
+// Compartido por WardrobeCard/GarmentStockCard/OutfitCard — cada uno necesita
+// su propio ancho de card, reactivo al ancho real de la app.
+function useCardSize() {
+  const appWidth = useAppWidth()
+  return (appWidth - spacing.lg * 2 - spacing.sm * (NUM_COLS - 1)) / NUM_COLS
+}
 
 const SLOTS = [
   { key: 'all', label: 'Todo' },
@@ -133,11 +138,12 @@ type WardrobeCardItem = WardrobeItem & { garment?: Garment & { brand?: Brand } }
 
 function WardrobeCard({ item, onPress }: { item: WardrobeCardItem; onPress: () => void }) {
   const g = item.garment
+  const cardSize = useCardSize()
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.card, { width: cardSize }]} onPress={onPress} activeOpacity={0.8}>
       <Image
         source={{ uri: g?.image_url ?? undefined }}
-        style={styles.cardImage}
+        style={[styles.cardImage, { width: cardSize, height: cardSize * 1.25 }]}
         contentFit="cover"
       />
       {g && (
@@ -289,12 +295,13 @@ function GarmentStockCard({
   onToggleDescontinuada: () => void
 }) {
   const stock = totalStock(item)
+  const cardSize = useCardSize()
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.card, { width: cardSize }]} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.imageWrapper}>
         <Image
           source={{ uri: item.image_url ?? undefined }}
-          style={[styles.cardImage, item.descontinuada && styles.cardImageDimmed]}
+          style={[styles.cardImage, { width: cardSize, height: cardSize * 1.25 }, item.descontinuada && styles.cardImageDimmed]}
           contentFit="cover"
         />
         {item.descontinuada && (
@@ -323,11 +330,12 @@ function GarmentStockCard({
 }
 
 function OutfitCard({ item, onPress }: { item: Outfit; onPress: () => void }) {
+  const cardSize = useCardSize()
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.card, { width: cardSize }]} onPress={onPress} activeOpacity={0.8}>
       <Image
         source={{ uri: item.cover_image_url ?? undefined }}
-        style={[styles.cardImage, { height: CARD_SIZE * 1.4 }]}
+        style={[styles.cardImage, { width: cardSize, height: cardSize * 1.4 }]}
         contentFit="cover"
       />
       <View style={styles.cardMeta}>
@@ -379,8 +387,8 @@ const styles = StyleSheet.create({
 
   grid: { padding: spacing.lg, gap: spacing.sm },
   row: { gap: spacing.sm },
-  card: { width: CARD_SIZE, borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisBorde },
-  cardImage: { width: CARD_SIZE, height: CARD_SIZE * 1.25 },
+  card: { borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisBorde },
+  cardImage: {},
   cardMeta: { padding: spacing.xs },
   cardName: { fontSize: 11, fontWeight: '600', color: colors.negro },
   cardBrand: { fontSize: 10, color: colors.grisClaro, marginTop: 1 },

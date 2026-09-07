@@ -17,13 +17,10 @@ import { supabase } from '../../lib/supabase'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { Outfit, Garment, Brand, Profile } from '../../types'
 
 const ASSETS_BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
-
-const SCREEN_WIDTH = APP_WIDTH
-const CARD_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - spacing.sm) / 2
 
 type SearchTab = 'outfits' | 'prendas' | 'marcas'
 
@@ -65,6 +62,8 @@ const PRENDA_SORTS: { key: PrendaSort; label: string }[] = [
 
 export default function SearchScreen() {
   const router = useRouter()
+  const screenWidth = useAppWidth()
+  const cardSize = (screenWidth - spacing.lg * 2 - spacing.sm) / 2
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<SearchTab>('outfits')
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -319,10 +318,10 @@ export default function SearchScreen() {
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.grid}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.outfitCard} onPress={() => router.push(`/outfit/${item.id}`)}>
+              <TouchableOpacity style={[styles.outfitCard, { width: cardSize }]} onPress={() => router.push(`/outfit/${item.id}`)}>
                 <Image
                   source={{ uri: item.cover_image_url ?? undefined }}
-                  style={styles.outfitImage}
+                  style={[styles.outfitImage, { width: cardSize, height: cardSize * 1.3 }]}
                   contentFit="cover"
                 />
                 <View style={styles.outfitMeta}>
@@ -350,10 +349,10 @@ export default function SearchScreen() {
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.grid}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.outfitCard} onPress={() => router.push(`/product/${item.id}`)}>
+              <TouchableOpacity style={[styles.outfitCard, { width: cardSize }]} onPress={() => router.push(`/product/${item.id}`)}>
                 <Image
                   source={{ uri: item.image_url ?? undefined }}
-                  style={styles.outfitImage}
+                  style={[styles.outfitImage, { width: cardSize, height: cardSize * 1.3 }]}
                   contentFit="cover"
                 />
                 <View style={styles.outfitMeta}>
@@ -515,8 +514,8 @@ const styles = StyleSheet.create({
 
   grid: { padding: spacing.lg, gap: spacing.sm },
   row: { gap: spacing.sm },
-  outfitCard: { width: CARD_SIZE, borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisBorde },
-  outfitImage: { width: CARD_SIZE, height: CARD_SIZE * 1.3 },
+  outfitCard: { borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisBorde },
+  outfitImage: {},
   outfitMeta: { padding: spacing.sm },
   outfitTitle: { fontSize: 13, fontWeight: '600', color: colors.negro },
   outfitCreator: { fontSize: 11, color: colors.grisClaro, marginTop: 2 },
