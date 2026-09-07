@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground,
+  View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, ImageBackground,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -17,7 +17,6 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { APP_WIDTH } from '../../constants/layout'
 
 const SW = APP_WIDTH
-const { height: SH } = Dimensions.get('window')
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 const CHIP_W = 118
@@ -40,8 +39,12 @@ interface Props {
   height?: number
 }
 
-export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
+export function OutfitScrollItem({ outfit, isActive, height }: Props) {
   const router = useRouter()
+  // Fallback reactivo si el caller no pasa `height` explícito (ver useWindowDimensions
+  // en outfits.tsx / user-outfits.tsx / saved-outfits.tsx para el motivo).
+  const { height: windowH } = useWindowDimensions()
+  const resolvedHeight = height ?? windowH
   const { session, profile } = useAuthStore()
   // Las cuentas de marca no pueden like/save/follow — son cuentas de contenido/venta.
   const viewerIsBrand = !!profile?.is_brand
@@ -68,8 +71,8 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
   const laidOut = sorted.map(({ og }, i) => {
     const anchor = SLOT_ANCHOR[og.slot ?? ''] ?? { x: 0.5, y: 0.22 + i * 0.2 }
     const ax = anchor.x * SW
-    const ay = anchor.y * height
-    let chipTop = Math.max(78, Math.min(ay - CHIP_H / 2, height - 210))
+    const ay = anchor.y * resolvedHeight
+    let chipTop = Math.max(78, Math.min(ay - CHIP_H / 2, resolvedHeight - 210))
     if (chipTop < lastBottom + 8) chipTop = lastBottom + 8
     lastBottom = chipTop + CHIP_H
     const chipCY = chipTop + CHIP_H / 2
@@ -81,7 +84,7 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
   })
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View style={[styles.container, { height: resolvedHeight }]}>
       <ImageBackground
         source={{ uri: outfit.cover_image_url ?? `https://picsum.photos/seed/${outfit.id}/400/711` }}
         style={styles.image}
@@ -117,7 +120,7 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
         ))}
 
         {/* Action buttons — círculos blancos, icon only (sin contadores) */}
-        <View style={[styles.actions, { top: height * 0.4 }]}>
+        <View style={[styles.actions, { top: resolvedHeight * 0.4 }]}>
           {!viewerIsBrand && (
             <>
               <TouchableOpacity onPress={toggleLike} style={styles.actionBtn}>
@@ -197,7 +200,7 @@ export function OutfitScrollItem({ outfit, isActive, height = SH }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { width: SW, height: SH },
+  container: { width: SW },
   image: { flex: 1, justifyContent: 'flex-end' },
   garmentLabel: {
     position: 'absolute',

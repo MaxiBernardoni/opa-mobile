@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  View, FlatList, StyleSheet, Dimensions, TouchableOpacity, Text,
+  View, FlatList, StyleSheet, useWindowDimensions, TouchableOpacity, Text,
   StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native'
 import { Image } from 'expo-image'
@@ -12,13 +12,18 @@ import { OutfitScrollItem } from '../../components/outfit/OutfitScrollItem'
 import { colors } from '../../constants/colors'
 import { useAuthStore } from '../../store/useAuthStore'
 
-const { height: SH } = Dimensions.get('window')
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 export default function OutfitsScreen() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [tab, setTab] = useState<'marcas' | 'descubrir'>('descubrir')
   const insets = useSafeAreaInsets()
+  // useWindowDimensions (no Dimensions.get a nivel de módulo) para que pageH se
+  // recalcule solo ante cualquier cambio de tamaño de ventana (resize en desktop-web,
+  // rotación, o la barra de direcciones del navegador mobile apareciendo/desapareciendo)
+  // — con un valor congelado al cargar el módulo, un resize posterior desalinea el
+  // viewport del FlatList del alto real del item y la barra de precio queda cortada.
+  const { height: SH } = useWindowDimensions()
   // La tab bar (BottomNavBar) se dibuja ENCIMA del contenido (no reserva espacio),
   // así que cada página del scroll debe medir la ventana MENOS el alto de la tab bar,
   // si no la barra de precio (bottom:0) queda tapada por la nav. El cálculo replica

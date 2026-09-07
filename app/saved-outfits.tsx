@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  View, FlatList, StyleSheet, Dimensions,
+  View, FlatList, StyleSheet, useWindowDimensions,
   TouchableOpacity, Text, StatusBar, ActivityIndicator,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -9,11 +9,10 @@ import { OutfitScrollItem } from '../components/outfit/OutfitScrollItem'
 import { colors } from '../constants/colors'
 import { useAuthStore } from '../store/useAuthStore'
 
-const { height: SH } = Dimensions.get('window')
-
 export default function SavedOutfitsScreen() {
   const router = useRouter()
   const { startIndex } = useLocalSearchParams<{ startIndex?: string }>()
+  const { height: SH } = useWindowDimensions()
   const { session } = useAuthStore()
   const { outfits, loading } = useSavedOutfits(session?.user.id)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -67,7 +66,7 @@ export default function SavedOutfitsScreen() {
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
         renderItem={({ item, index }) => (
-          <OutfitScrollItem outfit={item} isActive={index === activeIndex} />
+          <OutfitScrollItem outfit={item} isActive={index === activeIndex} height={SH} />
         )}
       />
     </View>
