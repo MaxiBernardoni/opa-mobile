@@ -45,11 +45,21 @@ export interface CreateGarmentPayload {
   external_url: string | null
 }
 
+export interface BrandMetrics {
+  likes: number
+  saves: number
+  outfits_with_brand_garments: number
+  note: string
+}
+
 export const api = {
   likeOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/like`, { method: 'POST' }),
   unlikeOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/like`, { method: 'DELETE' }),
   saveOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/save`, { method: 'POST' }),
   unsaveOutfit: (outfitId: string) => apiFetch(`/outfits/${outfitId}/save`, { method: 'DELETE' }),
+  // Likes + saves agregados sobre outfits que contienen prendas de la marca.
+  // Visitas/clics todavía no están: no hay tabla de tracking para eso (ver `note`).
+  getBrandMetrics: (): Promise<BrandMetrics> => apiFetch('/brands/me/metrics'),
   // Crea una prenda para la marca autenticada. El endpoint ya vive en
   // opa-backend (pensado originalmente "para opa-web"), pero es un REST
   // genérico gateado por auth+ownership — nada impide llamarlo desde acá.

@@ -141,6 +141,21 @@ export interface Review {
   created_at: string
 }
 
+// preguntas — Q&A entre un usuario y una marca (sobre una prenda puntual, o la
+// marca en general si garment_id es null). answer/answered_at null = sin responder.
+export interface Question {
+  id: string
+  user_id: string
+  brand_id: string
+  garment_id: string | null
+  question: string
+  answer: string | null
+  answered_at: string | null
+  created_at: string
+  user?: { username: string; avatar_url: string | null } | null
+  garment?: { name: string } | null
+}
+
 // ─── Size guide system ────────────────────────────────────────────────────────
 
 export interface SizeGuide {

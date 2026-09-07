@@ -41,6 +41,9 @@ app/
     [id].tsx           # Perfil de otro usuario (no el propio) — solo lectura + follow
   marca/
     [id].tsx           # Perfil público de marca (banner + catálogo); modo isOwn para la propia marca logueada
+  brand/
+    create-garment.tsx # Cargar prenda nueva (cuentas de marca)
+    questions.tsx      # Todas las preguntas sin responder + flujo de contestar (nuevo 2026-09-07)
 ```
 
 ---
@@ -48,6 +51,9 @@ app/
 ## Implemented Screens
 
 ### Home (`app/(tabs)/index.tsx`)
+**Rama por tipo de cuenta (2026-09-07):** `HomeScreen()` lee `profile.is_brand` y renderiza `<BrandHomeView />` o `<ConsumerHomeView />` — mismo criterio que ya usa `app/(tabs)/wardrobe.tsx` para armario vs. catálogo. `ConsumerHomeView` es exactamente el Home que ya existía (sin cambios), documentado abajo. `BrandHomeView` es una pantalla completamente distinta, ver sección propia más abajo.
+
+#### `ConsumerHomeView` (usuarios normales)
 - Header: transparent OPA logo (left) + white truck icon (right)
 - **Outfit Carousel** with depth effect:
   - `Animated.FlatList` horizontal, `snapToInterval`
@@ -58,6 +64,23 @@ app/
 - **Brands**: horizontal scroll, 110×110 square cards with black border. Shows logo if available, name otherwise
 - **Recently Viewed**: 4 grey placeholder cards (110×150)
 - Connected to real data via `useOutfits()`
+
+#### `BrandHomeView` (cuentas de marca, nuevo 2026-09-07)
+A pedido explícito del usuario: "que no tengan la misma experiencia" — deliberadamente no es un feed de descubrimiento, es un panel de gestión de la cuenta. Header: logo OPA + avatar circular de la marca (logo_url o inicial), saludo "Hola, {marca}". Secciones, en este orden:
+1. **Tráfico de tu cuenta** — carrusel horizontal de 3 tarjetas KPI (Me gusta, Guardados, Seguidores), todo dato real (`useBrandMetrics`). Visitas y Clics a tienda quedaron **afuera a propósito**: no hay tracking de eso en la DB (`GET /api/brands/me/metrics` ya lo aclara en su `note`) y no se iban a inventar números en la app real — a diferencia del mockup de diseño previo a esta implementación, que sí los mostraba como placeholder.
+2. **Preguntas sin responder** — título + badge de conteo real (`totalCount` de `useBrandQuestions`) + flecha "→" (mismo glifo que ya usa `SectionHeader`) que navega a `app/brand/questions.tsx`; la flecha y el badge se ocultan si no hay ninguna pendiente. Muestra las primeras 3 (`useBrandQuestions(brandId, {limit:3})`) en cards con avatar (iniciales), texto de la pregunta (2 líneas), "Sobre: {prenda}" o "Sobre: Perfil de la marca", y una pill "Responder" — tocar cualquier parte de la card o la flecha del header lleva a `app/brand/questions.tsx` (no hay un flujo de responder embebido en el Home mismo, a propósito, para no duplicar esa UI).
+3. **Tus outfits publicados** — `SectionHeader` con flecha "→" a `/(tabs)/wardrobe` (tab Catálogo → sub-tab Outfits, ya existente). Carrusel horizontal (140×210, mismo placeholder gris que usa el resto de la app cuando no hay foto) de los outfits reales de la marca (`useBrand(brandId).outfits`), con contador de likes superpuesto. **No incluye un botón "+ Nuevo outfit"** — se decidió no construirlo: no existe ninguna pantalla de creación de outfit para marcas todavía en `opa-mobile` (se investigó, no hay precedente), así que hubiera sido un botón sin acción real; ver pendiente en `meta-2026-06-10-pending-features.md`.
+4. **Prendas en tendencia** — `SectionHeader` sin flecha (el catálogo completo ya se ve en Catálogo → Prendas). Carrusel horizontal reusando el mismo `garmentCard`/`garmentImageWrap` que `ÚLTIMAS PRENDAS` del Home de consumidor, ordenado por `useTrendingGarments` (RPC `get_trending_garments`, más guardado en los últimos 7 días). Medalla numerada (#1/#2/#3) solo si esa prenda tiene `recent_saves > 0` — nunca se muestra un ranking fabricado sobre datos en cero; en ese caso el texto dice "Sin guardados esta semana" en gris en vez de inventar una tendencia.
+5. **Opiniones recientes** — `SectionHeader` sin flecha. **Siempre las últimas 3 reseñas recibidas** entre todas las prendas de la marca (`useBrandReviews`), sin ningún botón de "ver más" — decisión explícita del usuario: para ver el resto de las opiniones de una prenda hay que entrar a esa prenda puntual (`app/product/[id].tsx` ya tiene su propia sección de reseñas completa).
+
+Estados de carga y vacío por sección son independientes entre sí (cada una tiene su propio `loading`/empty state, no hay un loading global de toda la pantalla salvo mientras se resuelve la marca del usuario logueado).
+
+Verificado de punta a punta en browser real logueado como `capas@opa.com`: Tráfico mostrando 1/2/1 (Me gusta/Guardados/Seguidores, todo real), Preguntas sin responder pasando de "No tenés preguntas pendientes" a mostrar una pregunta real con badge tras insertarla desde una cuenta de prueba descartable, Tus outfits publicados en estado vacío (Capas no tiene ninguno), Prendas en tendencia mostrando las 4 prendas reales de Capas (todas en 0 guardados recientes, texto "Sin guardados esta semana", sin medallas), Opiniones recientes en estado vacío. Cuenta de prueba y sus preguntas borradas al terminar.
+
+### Brand Questions (`app/brand/questions.tsx`, nuevo 2026-09-07)
+Destino del "→" de la sección "Preguntas sin responder" del Home de marca. Header con flecha `flecha.png` + título centrado (mismo patrón que `app/brand/create-garment.tsx`, no el de `settings.tsx`). Lista completa (sin límite) de `useBrandQuestions(brandId)`. Responder es **inline, sin pantalla ni modal aparte**: tocar "Responder" en una card expande un `TextInput` + botones Cancelar/Enviar respuesta dentro de la misma card (estado local `openId`); al confirmar, `answer(questionId, texto)` hace el UPDATE y la pregunta desaparece de la lista (tanto acá como, al volver, del Home). Verificado de punta a punta con una cuenta de prueba descartable: preguntar como usuario → responder como Capas → fila confirmada en la DB con `answer`/`answered_at` seteados.
+
+**Preguntar, del lado del usuario:** dos puntos de entrada nuevos, ambos usando `hooks/useAskQuestion.ts` — `app/product/[id].tsx` (sección "¿TENÉS UNA PREGUNTA?" después de Reseñas, pregunta ligada a esa prenda) y `app/marca/[id].tsx` (botón "Preguntar" al lado de "Seguir", pregunta general sobre la marca — `garment_id` null). Ambos ocultos para cuentas de marca viendo el perfil (`viewerIsBrand`, mismo criterio que oculta like/save/follow) y redirigen a `/auth` si no hay sesión. **Falta explícitamente fuera de alcance:** el usuario que pregunta no tiene todavía ninguna forma de ver la respuesta en la app (ni notificación) — ver pendiente en `meta-2026-06-10-pending-features.md`.
 
 ### Outfit Scroll (`app/(tabs)/outfits.tsx`)
 - Full-screen `FlatList` with `pagingEnabled` — vertical TikTok-style scroll. En web, `snapToInterval` es un no-op (react-native-web 0.21.2); el snap real lo da `pagingEnabled`. El `FlatList` fuerza `style={{ height: pageH }}` (viewport == alto de cada item) para que el snap no quede desalineado.
@@ -105,6 +128,7 @@ Rediseño completo 2026-08-10 — antes era una vista básica (imagen, talle, CT
 - **Tags:** categoría + estilo como chips con borde `bordeTag`
 - **"Más de {marca}"** (nuevo): fila horizontal con otras prendas de la misma marca → tap navega a otra `product/[id]`
 - **Reseñas** (nuevo): lee `reseñas` vía `useGarmentReviews` — estrellas promedio + lista de comentarios si hay filas, o estado vacío "Aún no hay reseñas de esta prenda" (la tabla está vacía hoy — requiere `order_id`, o sea compra verificada, y todavía no hay flujo de compra; queda lista para cuando haya datos reales)
+- **"¿Tenés una pregunta?"** (nuevo, 2026-09-07): justo debajo de Reseñas. `TextInput` + "Enviar pregunta" que llama `useAskQuestion().ask(brand_id, texto, garment_id)` — alimenta "Preguntas sin responder" en la Home de la marca (ver esa sección). Oculto para viewers de marca; redirige a `/auth` sin sesión. Tras enviar, muestra un mensaje de confirmación en vez del form (no hay forma de ver la respuesta desde acá todavía — ver pendiente).
 - **CTA sticky:** `sale_mode === 'redirect'` → "Ver en tienda →" (ahora sí conectado, `Linking.openURL(garment.external_url)`); `direct` → "Agregar al carrito" — ahora hace un INSERT/UPDATE real en `productos_carrito` vía `useCart().addItem()` (si ya existe una fila con mismo talle, suma cantidad en vez de duplicar), deshabilitado si falta seleccionar talle o si no hay stock, muestra "Sin stock" en el botón cuando corresponde. Si no hay sesión, redirige a `/auth`. Toast simple ("Agregado al carrito") tras el insert
 - **Prenda descontinuada (2026-08-14):** si `garment.descontinuada`, aparece un banner gris arriba del nombre ("Esta prenda fue descontinuada por la marca") y el CTA se reemplaza por un botón deshabilitado "Ya no disponible" (pisa tanto `direct` como `redirect`) — sigue siendo posible **ver** la prenda (ej. si aparece referenciada en un outfit ya publicado), solo se bloquea la compra. `fetchRelated` ("más de esta marca") también filtra `descontinuada = false`.
 - **`SizeGuideSheet` (inline, sin cambios):** `Modal` con `animationType: 'slide'`, `transparent`, overlay semitransparente. Tabla horizontal scrolleable con columnas adaptadas por categoría: `calzado` → pie; `piernas`/`bottoms` → cintura/cadera/muslo; default → busto/cintura/cadera. Fila del talle recomendado destacada en `rosaOpaLight` con texto `rosaOpa`. Banner inferior con el talle recomendado.
@@ -229,7 +253,7 @@ Accessible from Settings → "Mis medidas" row.
 Perfil público de una marca — layout distinto al de usuario (banner + avatar-logo circular, badge `verificado_ondas.png` si `marcas.verified`, `@handle · Marca`, bio, tags, stats Seguidores/Outfits/Prendas, tabs icon-only Grid/Catálogo). Hook `useBrand(marcaId)`.
 
 - **Modo `isOwn`** (`brand.profile_id === session.user.id`, agregado 2026-07-13): engranaje de configuración (→ `/settings`) en vez de compartir/menú, sin botón "Seguir", tab "perfil" de la navbar activo. Es el layout que ve una cuenta de marca logueada de sí misma (ver Profile arriba).
-- **Modo ajeno**: banner "Ya lo tenés" si el usuario logueado tiene prendas de esa marca en el armario (cruza `useWardrobe` con `garment.brand_id`), botón Seguir.
+- **Modo ajeno**: banner "Ya lo tenés" si el usuario logueado tiene prendas de esa marca en el armario (cruza `useWardrobe` con `garment.brand_id`), botón Seguir. **Botón "Preguntar" (nuevo, 2026-09-07)** al lado de Seguir (misma fila, `followRow` pasó de un solo botón full-width a `flexDirection:'row'` con dos) — abre un `TextInput` inline debajo para una pregunta general sobre la marca (`garment_id` null), vía `useAskQuestion`. Oculto junto con Seguir para `isOwn` y para viewers de marca.
 - Igual que `app/user/[id].tsx`, vive fuera del `Tabs` navigator — bottom navbar standalone propia.
 - **Limitación conocida:** todas las `marcas` menos Revés tienen `profile_id = NULL` (falta onboarding de cuentas de marca), así que Outfits/Seguidores quedan vacíos y Seguir es inerte para esas marcas; el catálogo sí trae datos reales siempre.
 - **Prendas descontinuadas (2026-08-14):** el tab Catálogo filtra `garments` con `descontinuada = false` antes de renderizar (`visibleGarments`), incluso en modo `isOwn` — la gestión/reactivación no vive acá, vive en `app/(tabs)/wardrobe.tsx` → `BrandCatalogView`.

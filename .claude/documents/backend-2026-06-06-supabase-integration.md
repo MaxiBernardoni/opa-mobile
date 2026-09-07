@@ -134,7 +134,7 @@ Like toggle para outfits. El chequeo de estado inicial (¿ya di like?) sigue sie
 Save toggle para outfits. Mismo patrón que `useLike` en todo: lectura directa a Supabase para el estado inicial, toggle vía `lib/api.ts` → `/api/outfits/:id/save`, y contador en vivo por `postgres_changes` sobre `outfits.saves_count` (2026-08-10). Retorna `{ saved, count, toggle }`.
 
 ### `lib/api.ts` (nuevo, 2026-08-10)
-Primer cliente HTTP de `opa-mobile` hacia la API Hono de `opa-backend` (`{EXPO_PUBLIC_SUPABASE_URL}/functions/v1/api`) — hasta esta fecha, `opa-mobile` nunca la había llamado, todo iba directo a Supabase vía RLS. Adjunta el `Authorization: Bearer <access_token>` de la sesión actual. Expone `api.likeOutfit/unlikeOutfit/saveOutfit/unsaveOutfit(outfitId)`; lanza `ApiError` (con `.status`) si la respuesta no es 2xx.
+Primer cliente HTTP de `opa-mobile` hacia la API Hono de `opa-backend` (`{EXPO_PUBLIC_SUPABASE_URL}/functions/v1/api`) — hasta esta fecha, `opa-mobile` nunca la había llamado, todo iba directo a Supabase vía RLS. Adjunta el `Authorization: Bearer <access_token>` de la sesión actual. Expone `api.likeOutfit/unlikeOutfit/saveOutfit/unsaveOutfit(outfitId)`; lanza `ApiError` (con `.status`) si la respuesta no es 2xx. **`api.getBrandMetrics()` (2026-09-07):** llama `GET /brands/me/metrics` (endpoint ya existía, nunca lo había llamado el mobile) — forma real confirmada en vivo antes de tipar la interfaz: `{ likes, saves, outfits_with_brand_garments, note }`.
 
 ### `hooks/useFollow.ts`
 Follow toggle. INSERT en `follows`, DELETE para unfollow. Retorna `{ following, toggle }`.
@@ -160,11 +160,26 @@ Fetches a `marcas` row by id + sus `prendas` (catálogo) + (si tiene `profile_id
 ### `hooks/useMyBrand.ts`
 Fetches la `marcas` row donde `profile_id = session.user.id` — la marca del usuario de marca autenticado. Usado en `app/(tabs)/profile.tsx` para el redirect a `/marca/[id]` y en el modo `isOwn` de `app/marca/[id].tsx`.
 
+### `hooks/useBrandMetrics.ts` (nuevo, 2026-09-07)
+Métricas reales para la Home de marca. `likes`/`saves` vienen de `api.getBrandMetrics()` (endpoint ya existente, primera vez que `opa-mobile` lo llama); `followers` es un `count` directo sobre `follows` (mismo query que ya usa `useBrand.ts`). Visitas/clics no se piden — no hay tracking de eso en la DB todavía (ver `lib/api.ts` → `BrandMetrics.note`). Retorna `{ likes, saves, followers, loading }`.
+
+### `hooks/useTrendingGarments.ts` (nuevo, 2026-09-07)
+Llama a `supabase.rpc('get_trending_garments', { p_brand_id, p_days, p_limit })` — catálogo de la marca ordenado por guardados recientes (default 7 días). Ver `database-2026-06-06-schema-and-seed.md` para la función SQL. Retorna `{ garments, loading }`, cada `garment` trae además `recent_saves: number`.
+
+### `hooks/useBrandQuestions.ts` (nuevo, 2026-09-07)
+Preguntas SIN responder de una marca (tabla `preguntas`). Acepta `{ limit }` opcional — la Home pide `limit: 3`, `app/brand/questions.tsx` pide todas. Devuelve también `totalCount` (conteo real, independiente del `limit`, para el badge) y `answer(questionId, texto)` que hace el UPDATE y saca la pregunta de la lista local al confirmar. Retorna `{ questions, totalCount, loading, refetch, answer }`.
+
+### `hooks/useAskQuestion.ts` (nuevo, 2026-09-07)
+Insertar una pregunta en `preguntas` — `ask(brandId, question, garmentId?)`. `garmentId` omitido = pregunta general sobre la marca. Mismo patrón `requiresAuth` que `useSaveGarment`/`useFollow`. No bloquea cuentas de marca a nivel de hook (el caller oculta el botón si `viewerIsBrand`, mismo criterio no reforzado server-side que otras acciones antes de `routes/social.ts`).
+
+### `hooks/useBrandReviews.ts` (nuevo, 2026-09-07)
+Últimas reseñas de TODAS las prendas de una marca (a diferencia de `useGarmentReviews`, que es por una sola prenda). Recibe un array de `garment_id` ya resueltos (los trae `useBrand`) porque `reseñas` no tiene `brand_id` propio. Retorna `{ reviews, loading }`.
+
 ---
 
 ## TypeScript Types (`types/index.ts`)
 
-Types are aligned to the real Spanish-named schema. Core entities (see the file itself for the full list, including `WardrobeItem`, `Follow`, `SavedOutfit`, `CartItem`, `Order`/`OrderItem`, `Review`, and the size-guide types):
+Types are aligned to the real Spanish-named schema. Core entities (see the file itself for the full list, including `WardrobeItem`, `Follow`, `SavedOutfit`, `CartItem`, `Order`/`OrderItem`, `Review`, `Question` (nuevo, 2026-09-07 — tabla `preguntas`), and the size-guide types):
 
 ```ts
 export interface Profile {

@@ -11,6 +11,7 @@ import {
   FlatList,
   Share,
   Linking,
+  TextInput,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -20,6 +21,8 @@ import { useRecommendedSize } from '../../hooks/useRecommendedSize'
 import { useSaveGarment } from '../../hooks/useSaveGarment'
 import { useCart } from '../../hooks/useCart'
 import { useGarmentReviews } from '../../hooks/useGarmentReviews'
+import { useAskQuestion } from '../../hooks/useAskQuestion'
+import { useAuthStore } from '../../store/useAuthStore'
 import { ZoomableImage } from '../../components/product/ZoomableImage'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
@@ -44,12 +47,26 @@ export default function ProductDetail() {
   const [zoomVisible, setZoomVisible] = useState(false)
   const [adding, setAdding] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [questionText, setQuestionText] = useState('')
+  const [questionSent, setQuestionSent] = useState(false)
 
   const { guide, entries, loading: guideLoading } = useSizeGuide(garment?.size_guide_id)
   const { recommendation } = useRecommendedSize(garment?.size_guide_id)
   const { saved, toggle: toggleSave, requiresAuth: saveRequiresAuth } = useSaveGarment(garment?.id)
   const { addItem, count: cartCount } = useCart()
   const { reviews, average, loading: reviewsLoading } = useGarmentReviews(garment?.id)
+  const { ask, sending: askSending, requiresAuth: askRequiresAuth } = useAskQuestion()
+  const viewerIsBrand = useAuthStore((s) => !!s.profile?.is_brand)
+
+  async function handleAskQuestion() {
+    if (!garment?.brand_id || !questionText.trim()) return
+    if (askRequiresAuth) { router.push('/auth'); return }
+    const { error } = await ask(garment.brand_id, questionText.trim(), garment.id)
+    if (!error) {
+      setQuestionSent(true)
+      setQuestionText('')
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -377,6 +394,41 @@ export default function ProductDetail() {
               </View>
             )}
           </View>
+
+          {/* Preguntar a la marca sobre esta prenda */}
+          {!viewerIsBrand && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>¿TENÉS UNA PREGUNTA?</Text>
+              {questionSent ? (
+                <Text style={styles.questionSentText}>
+                  ¡Listo! Le avisamos a {garment.brand?.name ?? 'la marca'} — vas a ver la respuesta cuando la conteste.
+                </Text>
+              ) : (
+                <View style={styles.askBox}>
+                  <TextInput
+                    style={styles.askInput}
+                    placeholder={`Preguntale algo a ${garment.brand?.name ?? 'la marca'} sobre esta prenda...`}
+                    placeholderTextColor={colors.grisClaro}
+                    value={questionText}
+                    onChangeText={setQuestionText}
+                    multiline
+                  />
+                  <TouchableOpacity
+                    style={[styles.askBtn, !questionText.trim() && styles.askBtnDisabled]}
+                    disabled={!questionText.trim() || askSending}
+                    onPress={handleAskQuestion}
+                    activeOpacity={0.85}
+                  >
+                    {askSending ? (
+                      <ActivityIndicator color={colors.blanco} size="small" />
+                    ) : (
+                      <Text style={styles.askBtnText}>Enviar pregunta</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 20 }} />
@@ -671,6 +723,20 @@ const styles = StyleSheet.create({
   reviewUser: { fontSize: 13, fontWeight: '700', color: colors.negro },
   reviewStars: { fontSize: 12, color: colors.rosaOpa },
   reviewComment: { fontSize: 13, color: colors.grisOscuro, marginTop: 4, lineHeight: 18 },
+
+  questionSentText: { fontSize: 13, color: colors.grisOscuro, lineHeight: 18 },
+  askBox: { gap: spacing.sm },
+  askInput: {
+    borderWidth: 1, borderColor: colors.grisMedio, borderRadius: radius.button,
+    padding: spacing.sm, fontSize: 13, color: colors.negro, minHeight: 56,
+    textAlignVertical: 'top',
+  },
+  askBtn: {
+    backgroundColor: colors.rosaOpa, borderRadius: radius.button,
+    paddingVertical: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  askBtnDisabled: { backgroundColor: colors.rosaOpaLight },
+  askBtnText: { fontSize: 13, fontWeight: '700', color: colors.blanco, fontFamily: fonts.palanquinDark },
 
   cta: {
     padding: spacing.lg,

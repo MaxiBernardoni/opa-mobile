@@ -1,6 +1,6 @@
 # Database — Schema & Seed Data
 
-_Última actualización: 2026-07-13_
+_Última actualización: 2026-09-07_
 
 ## Proyecto Supabase
 - **Project ID:** `vecnktrbjolahcalkbml`
@@ -39,7 +39,12 @@ _Última actualización: 2026-07-13_
 | 20260807141330 | add_size_color_source_to_prendas_armario |
 | 20260810110614 | add_full_text_search_outfits_prendas |
 | 20260810113941 | add_rate_limits_table_and_function |
-| 20260810120500 | enable_realtime_on_outfits |
+| 20260810115356 | enable_realtime_on_outfits |
+| 20260814112103 | add_descontinuada_to_prendas |
+| 20260814112438 | allow_brand_owner_update_own_prendas |
+| 20260907115544 | create_preguntas_table |
+| 20260907115557 | create_trending_garments_function |
+| 20260907115647 | restrict_trending_garments_to_authenticated |
 
 > **`admin_impersonation_log` (2026-08-03) — ya identificada (2026-08-03), no es un misterio.** Tabla de auditoría (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`) del feature "login como marca sin password" de `opa-admin` (ver nota completa en `CLAUDE.md` → "Login como marca sin password"). RLS habilitado sin policies públicas — solo accesible vía `service_role`, por diseño (es un log de auditoría, no algo que la app deba leer).
 
@@ -361,6 +366,31 @@ Armario personal del usuario.
 
 ---
 
+### `preguntas` (2026-09-07)
+Q&A entre un usuario y una marca — sobre una prenda puntual (`garment_id`) o la marca en general (`garment_id` null). Tabla nueva para la Home de cuentas de marca ("Preguntas sin responder"); no existía ningún mecanismo de Q&A en el schema antes de esto.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| id | uuid (PK) | default gen_random_uuid() |
+| user_id | uuid | FK → perfiles.id ON DELETE CASCADE — quién pregunta |
+| brand_id | uuid | FK → marcas.id ON DELETE CASCADE — a quién le preguntan |
+| garment_id | uuid | FK → prendas.id ON DELETE SET NULL, nullable — null = pregunta general sobre la marca |
+| question | text | not null |
+| answer | text | nullable — null = sin responder |
+| answered_at | timestamptz | nullable |
+| created_at | timestamptz | default now() |
+
+Índices: `(brand_id, created_at desc) WHERE answer IS NULL` (parcial — la query real de todas las sesiones es "sin responder de mi marca") y `(user_id, created_at desc)`.
+
+**RLS:** habilitado.
+- SELECT: quien preguntó ve sus propias filas (`user_id = auth.uid()`); el dueño de la marca destinataria ve las suyas (`brand_id IN (SELECT id FROM marcas WHERE profile_id = auth.uid())`).
+- INSERT: cualquier autenticado, con `user_id = auth.uid()`. No hay bloqueo a nivel RLS para cuentas de marca preguntando (se resuelve solo en el cliente, ocultando el botón "Preguntar" si `viewerIsBrand` — mismo criterio no reforzado a nivel servidor que otras acciones de marca antes de que existiera `routes/social.ts`).
+- UPDATE: solo el dueño de la marca destinataria, y solo para responder (`answer`/`answered_at`) — la policy no restringe columnas, así que técnicamente podría reescribir `question` también; no hay UI que lo haga.
+
+Va todo directo a Supabase (sin pasar por la API Hono) — mismo patrón que el toggle de `descontinuada` en `prendas`. Detalle completo del feature en `product-2026-06-10-brand-system.md` y `frontend-2026-06-06-screens-and-components.md`.
+
+---
+
 ### `brand_applications`
 Solicitudes de usuarios para convertirse en dueños de marca en OPA. Revisadas y aprobadas/rechazadas por admins.
 
@@ -489,6 +519,17 @@ Devuelve `TABLE(size_label varchar, fit_preference varchar)`.
   - `extras`: match por cintura si tiene `waist_min` (Cinturón), sin match si no (Bolso devuelve vacío), siempre `'justo'`
 - Devuelve vacío si el usuario no tiene medidas cargadas
 - `SECURITY DEFINER` — `GRANT EXECUTE TO authenticated`
+
+---
+
+### Función `get_trending_garments(p_brand_id uuid, p_days int default 7, p_limit int default 8)` (2026-09-07)
+
+Devuelve el catálogo de una marca (mismas columnas que `prendas`, sin `search_vector`) + `recent_saves bigint`, ordenado por `recent_saves DESC, created_at DESC`. Poder "Prendas en tendencia" en la Home de marca.
+
+- `recent_saves` = cantidad de filas en `prendas_guardadas` para esa prenda con `created_at >= now() - p_days días`
+- Solo prendas con `descontinuada = false`
+- `SECURITY DEFINER` porque `prendas_guardadas` tiene RLS que solo deja ver las propias filas a cada usuario (correcto para esa tabla) — la función necesita el conteo agregado entre todos los usuarios, pero nunca expone filas crudas ni `user_id`, solo el `count`
+- `GRANT EXECUTE TO authenticated` — explícitamente revocado de `anon` (Supabase otorga EXECUTE a `anon`/`authenticated`/`service_role` automáticamente al crear una función nueva en `public`, como grant directo a cada rol, no vía `PUBLIC` — un primer `REVOKE ALL ... FROM PUBLIC` no alcanza para sacarle el acceso a `anon`; hace falta un `REVOKE EXECUTE ... FROM anon` explícito, ver migración `restrict_trending_garments_to_authenticated`)
 
 ---
 
