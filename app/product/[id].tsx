@@ -25,15 +25,15 @@ import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
 import { fonts } from '../../constants/fonts'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { Garment, Brand, SizeGuideEntry } from '../../types'
 
-const SCREEN_WIDTH = APP_WIDTH
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const screenWidth = useAppWidth()
 
   const [garment, setGarment] = useState<Garment & { brand?: Brand } | null>(null)
   const [related, setRelated] = useState<Garment[]>([])
@@ -189,12 +189,16 @@ export default function ProductDetail() {
         <TouchableOpacity activeOpacity={0.95} onPress={() => setZoomVisible(true)}>
           <Image
             source={{ uri: garment.image_url ?? undefined }}
-            style={styles.image}
+            style={[styles.image, { width: screenWidth, height: screenWidth * 1.1 }]}
             contentFit="cover"
           />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.saveFloatBtn} onPress={handleToggleSave} hitSlop={6}>
+        <TouchableOpacity
+          style={[styles.saveFloatBtn, { top: screenWidth * 1.1 - 56 }]}
+          onPress={handleToggleSave}
+          hitSlop={6}
+        >
           <Text style={[styles.saveFloatIcon, saved && styles.saveFloatIconActive]}>{saved ? '★' : '☆'}</Text>
         </TouchableOpacity>
 
@@ -578,9 +582,9 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center', padding: spacing.md },
   backIcon: { width: 20, height: 20 },
 
-  image: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.1, backgroundColor: colors.grisBorde },
+  image: { backgroundColor: colors.grisBorde },
   saveFloatBtn: {
-    position: 'absolute', top: SCREEN_WIDTH * 1.1 - 56, right: spacing.md,
+    position: 'absolute', right: spacing.md,
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center', justifyContent: 'center',

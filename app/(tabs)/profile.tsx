@@ -9,16 +9,12 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { useOutfits } from '../../hooks/useOutfits'
 import { useSavedOutfits } from '../../hooks/useSavedOutfits'
 import { useSavedGarments } from '../../hooks/useSavedGarments'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useMyBrand } from '../../hooks/useMyBrand'
-
-const SCREEN_WIDTH = APP_WIDTH
-const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
-const GARMENT_SIZE = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 3) / 4)
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 
@@ -37,6 +33,9 @@ const FAV_SUBTABS = [
 
 export default function ProfileScreen() {
   const router = useRouter()
+  const screenWidth = useAppWidth()
+  const cardWidth = Math.floor((screenWidth - spacing.md * 2 - 4 * 2) / 3)
+  const garmentSize = Math.floor((screenWidth - spacing.md * 2 - 4 * 3) / 4)
   const [activeTab, setActiveTab] = useState<string>('grid')
 
   function handleTabChange(key: string) {
@@ -205,7 +204,7 @@ export default function ProfileScreen() {
               columnWrapperStyle={styles.gridRow}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { width: cardWidth, height: cardWidth * (16 / 9) }]}
                   activeOpacity={0.85}
                   onPress={() => router.push({
                     pathname: '/user-outfits',
@@ -269,7 +268,7 @@ export default function ProfileScreen() {
                   columnWrapperStyle={styles.gridRow}
                   renderItem={({ item, index }) => (
                     <TouchableOpacity
-                      style={styles.gridCard}
+                      style={[styles.gridCard, { width: cardWidth, height: cardWidth * (16 / 9) }]}
                       activeOpacity={0.85}
                       onPress={() => router.push({
                         pathname: '/saved-outfits',
@@ -308,7 +307,7 @@ export default function ProfileScreen() {
                   contentContainerStyle={styles.garmentGrid}
                   columnWrapperStyle={styles.garmentRow}
                   renderItem={({ item }) => (
-                    <View style={styles.garmentCard}>
+                    <View style={[styles.garmentCard, { width: garmentSize, height: garmentSize }]}>
                       <Image
                         source={{ uri: item.garment?.image_url ?? `https://picsum.photos/seed/${item.garment_id}/100/100` }}
                         style={styles.garmentImage}
@@ -396,7 +395,7 @@ const styles = StyleSheet.create({
   // Outfit grid
   grid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
   gridRow: { gap: 4, marginBottom: 4 },
-  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * (16 / 9), borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
+  gridCard: { borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
   gridImage: { width: '100%', height: '100%' },
   likesRow: { position: 'absolute', bottom: 6, left: 6 },
   likesText: { color: colors.blanco, fontSize: 11, fontWeight: '600' },
@@ -404,7 +403,7 @@ const styles = StyleSheet.create({
   // Garment grid
   garmentGrid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
   garmentRow: { gap: 4, marginBottom: 4 },
-  garmentCard: { width: GARMENT_SIZE, height: GARMENT_SIZE, borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
+  garmentCard: { borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
   garmentImage: { width: '100%', height: '100%' },
 
   // Empty states

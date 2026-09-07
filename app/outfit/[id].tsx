@@ -15,10 +15,8 @@ import { supabase } from '../../lib/supabase'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { Outfit, OutfitItemWithData, Garment, Brand } from '../../types'
-
-const SCREEN_WIDTH = APP_WIDTH
 
 type FullOutfit = Outfit & {
   creator?: { id: string; username: string; avatar_url: string | null }
@@ -28,6 +26,7 @@ type FullOutfit = Outfit & {
 export default function OutfitDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const screenWidth = useAppWidth()
   const [outfit, setOutfit] = useState<FullOutfit | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -92,7 +91,7 @@ export default function OutfitDetail() {
         {/* Cover image */}
         <Image
           source={{ uri: outfit.cover_image_url ?? undefined }}
-          style={styles.coverImage}
+          style={[styles.coverImage, { width: screenWidth, height: screenWidth * 1.25 }]}
           contentFit="cover"
         />
 
@@ -227,7 +226,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 22, color: colors.negro },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '600', color: colors.negro },
 
-  coverImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.25, backgroundColor: colors.grisBorde },
+  coverImage: { backgroundColor: colors.grisBorde },
 
   body: { padding: spacing.lg },
 

@@ -13,9 +13,8 @@ import { useOutfits } from '../../hooks/useOutfits'
 import { SectionHeader } from '../../components/home/SectionHeader'
 import { Brand, Garment, Outfit } from '../../types'
 
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 
-const SW = APP_WIDTH
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 // Carousel config
@@ -27,7 +26,8 @@ const FULL_W = CARD_W + CARD_GAP * 2
 // ─── Outfit Carousel with depth effect ───────────────────────────────────────
 function OutfitCarousel({ outfits, onPress }: { outfits: Outfit[]; onPress: (id: string) => void }) {
   const scrollX = useRef(new Animated.Value(0)).current
-  const sidePad = (SW - CARD_W) / 2
+  const sw = useAppWidth()
+  const sidePad = (sw - CARD_W) / 2
 
   return (
     <Animated.FlatList

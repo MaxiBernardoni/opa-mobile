@@ -10,14 +10,11 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { useProfile } from '../../hooks/useProfile'
 import { useOutfits } from '../../hooks/useOutfits'
 import { useFollow } from '../../hooks/useFollow'
 import { useAuthStore } from '../../store/useAuthStore'
-
-const SCREEN_WIDTH = APP_WIDTH
-const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 const NAV_BASE = BASE + 'nav/'
@@ -39,6 +36,8 @@ export default function UserProfileScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
+  const screenWidth = useAppWidth()
+  const cardWidth = Math.floor((screenWidth - spacing.md * 2 - 4 * 2) / 3)
   const { session, profile: viewerProfile } = useAuthStore()
   // Las cuentas de marca no pueden seguir a otras cuentas ni acceder al feed.
   const viewerIsBrand = !!viewerProfile?.is_brand
@@ -177,7 +176,7 @@ export default function UserProfileScreen() {
             columnWrapperStyle={styles.gridRow}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.gridCard}
+                style={[styles.gridCard, { width: cardWidth, height: cardWidth * (16 / 9) }]}
                 activeOpacity={0.85}
                 onPress={() => router.push({
                   pathname: '/user-outfits',
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
 
   grid: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
   gridRow: { gap: 4, marginBottom: 4 },
-  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * (16 / 9), borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
+  gridCard: { borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
   gridImage: { width: '100%', height: '100%' },
   likesRow: { position: 'absolute', bottom: 6, left: 6 },
   likesText: { color: colors.blanco, fontSize: 11, fontWeight: '600' },

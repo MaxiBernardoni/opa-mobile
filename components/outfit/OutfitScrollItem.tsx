@@ -14,9 +14,8 @@ import { useSave } from '../../hooks/useSave'
 import { useFollow } from '../../hooks/useFollow'
 import { useAuthStore } from '../../store/useAuthStore'
 
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 
-const SW = APP_WIDTH
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
 
 const CHIP_W = 118
@@ -45,6 +44,7 @@ export function OutfitScrollItem({ outfit, isActive, height }: Props) {
   // en outfits.tsx / user-outfits.tsx / saved-outfits.tsx para el motivo).
   const { height: windowH } = useWindowDimensions()
   const resolvedHeight = height ?? windowH
+  const SW = useAppWidth()
   const { session, profile } = useAuthStore()
   // Las cuentas de marca no pueden like/save/follow — son cuentas de contenido/venta.
   const viewerIsBrand = !!profile?.is_brand
@@ -84,7 +84,7 @@ export function OutfitScrollItem({ outfit, isActive, height }: Props) {
   })
 
   return (
-    <View style={[styles.container, { height: resolvedHeight }]}>
+    <View style={[styles.container, { width: SW, height: resolvedHeight }]}>
       <ImageBackground
         source={{ uri: outfit.cover_image_url ?? `https://picsum.photos/seed/${outfit.id}/400/711` }}
         style={styles.image}
@@ -200,7 +200,7 @@ export function OutfitScrollItem({ outfit, isActive, height }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { width: SW },
+  container: {},
   image: { flex: 1, justifyContent: 'flex-end' },
   garmentLabel: {
     position: 'absolute',

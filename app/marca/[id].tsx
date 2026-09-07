@@ -10,14 +10,11 @@ import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
 import { spacing } from '../../constants/spacing'
 import { radius } from '../../constants/radius'
-import { APP_WIDTH } from '../../constants/layout'
+import { useAppWidth } from '../../constants/layout'
 import { useBrand } from '../../hooks/useBrand'
 import { useWardrobe } from '../../hooks/useWardrobe'
 import { useFollow } from '../../hooks/useFollow'
 import { useAuthStore } from '../../store/useAuthStore'
-
-const SCREEN_WIDTH = APP_WIDTH
-const CARD_WIDTH = Math.floor((SCREEN_WIDTH - spacing.md * 2 - 4 * 2) / 3)
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
 const NAV_BASE = BASE + 'nav/'
@@ -51,6 +48,8 @@ export default function BrandProfileScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
+  const screenWidth = useAppWidth()
+  const cardWidth = Math.floor((screenWidth - spacing.md * 2 - 4 * 2) / 3)
   const { session, profile } = useAuthStore()
   // Las cuentas de marca no pueden seguir a otras cuentas ni acceder al feed.
   const viewerIsBrand = !!profile?.is_brand
@@ -248,7 +247,7 @@ export default function BrandProfileScreen() {
               columnWrapperStyle={styles.gridRow}
               renderItem={({ item, index }) => (
                 <TouchableOpacity
-                  style={styles.gridCard}
+                  style={[styles.gridCard, { width: cardWidth, height: cardWidth * (16 / 9) }]}
                   activeOpacity={0.85}
                   onPress={() => router.push({
                     pathname: '/user-outfits',
@@ -286,13 +285,13 @@ export default function BrandProfileScreen() {
               columnWrapperStyle={styles.gridRow}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.catalogCard}
+                  style={[styles.catalogCard, { width: cardWidth }]}
                   activeOpacity={0.85}
                   onPress={() => router.push(`/product/${item.id}`)}
                 >
                   <Image
                     source={{ uri: item.image_url ?? `https://picsum.photos/seed/${item.id}/130/130` }}
-                    style={styles.catalogImage}
+                    style={[styles.catalogImage, { width: cardWidth, height: cardWidth }]}
                     contentFit="cover"
                   />
                   <Text style={styles.catalogName} numberOfLines={1}>{item.name}</Text>
@@ -425,14 +424,14 @@ const styles = StyleSheet.create({
   // Grids
   grid: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md },
   gridRow: { gap: 4, marginBottom: 4 },
-  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * (16 / 9), borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
+  gridCard: { borderRadius: radius.card, overflow: 'hidden', backgroundColor: colors.grisMedio },
   gridImage: { width: '100%', height: '100%' },
   likesRow: { position: 'absolute', bottom: 6, left: 6 },
   likesText: { color: colors.blanco, fontSize: 11, fontWeight: '600' },
 
   // Catálogo
-  catalogCard: { width: CARD_WIDTH },
-  catalogImage: { width: CARD_WIDTH, height: CARD_WIDTH, borderRadius: radius.card, backgroundColor: colors.grisBorde },
+  catalogCard: {},
+  catalogImage: { borderRadius: radius.card, backgroundColor: colors.grisBorde },
   catalogName: { fontSize: 11, color: colors.negro, marginTop: 4 },
   catalogPrice: { fontSize: 11, fontWeight: '700', color: colors.rosaOpa, marginTop: 1 },
 
