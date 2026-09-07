@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  StatusBar, ScrollView, FlatList, ActivityIndicator, Dimensions, TextInput,
+  StatusBar, ScrollView, FlatList, ActivityIndicator, Dimensions,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -14,7 +14,6 @@ import { useAppWidth } from '../../constants/layout'
 import { useBrand } from '../../hooks/useBrand'
 import { useWardrobe } from '../../hooks/useWardrobe'
 import { useFollow } from '../../hooks/useFollow'
-import { useAskQuestion } from '../../hooks/useAskQuestion'
 import { useAuthStore } from '../../store/useAuthStore'
 
 const BASE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets/'
@@ -58,7 +57,6 @@ export default function BrandProfileScreen() {
   const { brand, garments, outfits, followersCount, adjustFollowersCount, loading } = useBrand(id)
   const { items: wardrobe } = useWardrobe(session?.user.id)
   const { following, toggle: toggleFollow } = useFollow(brand?.profile_id ?? '')
-  const { ask, sending: askSending, requiresAuth: askRequiresAuth } = useAskQuestion()
 
   function handleToggleFollow() {
     adjustFollowersCount(following ? -1 : 1)
@@ -66,19 +64,6 @@ export default function BrandProfileScreen() {
   }
 
   const [activeTab, setActiveTab] = useState<'outfits' | 'catalogo'>('outfits')
-  const [askOpen, setAskOpen] = useState(false)
-  const [questionText, setQuestionText] = useState('')
-  const [questionSent, setQuestionSent] = useState(false)
-
-  async function handleAskQuestion() {
-    if (!brand || !questionText.trim()) return
-    if (askRequiresAuth) { router.push('/auth'); return }
-    const { error } = await ask(brand.id, questionText.trim())
-    if (!error) {
-      setQuestionSent(true)
-      setQuestionText('')
-    }
-  }
 
   // Prendas descontinuadas no se muestran en el perfil público (ni siquiera al
   // dueño viendo su propio perfil) — la gestión/reactivación vive en el tab
@@ -212,61 +197,19 @@ export default function BrandProfileScreen() {
           ))}
         </View>
 
-        {/* Follow + Preguntar — ocultos cuando la marca ve su propio perfil, o cuando quien mira es una cuenta de marca */}
+        {/* Follow button — oculto cuando la marca ve su propio perfil, o cuando quien mira es una cuenta de marca */}
         {!isOwn && !viewerIsBrand && (
-          <>
-            <View style={styles.followRow}>
-              <TouchableOpacity
-                style={[styles.followBtn, following && styles.followBtnActive]}
-                onPress={handleToggleFollow}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
-                  {following ? 'Siguiendo' : 'Seguir'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.askToggleBtn}
-                onPress={() => setAskOpen((v) => !v)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.askToggleBtnText}>Preguntar</Text>
-              </TouchableOpacity>
-            </View>
-
-            {askOpen && (
-              <View style={styles.askRow}>
-                {questionSent ? (
-                  <Text style={styles.questionSentText}>
-                    ¡Listo! Le avisamos a {brand.name} — vas a ver la respuesta cuando la conteste.
-                  </Text>
-                ) : (
-                  <View style={styles.askBox}>
-                    <TextInput
-                      style={styles.askInput}
-                      placeholder={`Preguntale algo a ${brand.name}...`}
-                      placeholderTextColor={colors.grisClaro}
-                      value={questionText}
-                      onChangeText={setQuestionText}
-                      multiline
-                    />
-                    <TouchableOpacity
-                      style={[styles.askBtn, !questionText.trim() && styles.askBtnDisabled]}
-                      disabled={!questionText.trim() || askSending}
-                      onPress={handleAskQuestion}
-                      activeOpacity={0.85}
-                    >
-                      {askSending ? (
-                        <ActivityIndicator color={colors.blanco} size="small" />
-                      ) : (
-                        <Text style={styles.askBtnText}>Enviar pregunta</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-          </>
+          <View style={styles.followRow}>
+            <TouchableOpacity
+              style={[styles.followBtn, following && styles.followBtnActive]}
+              onPress={handleToggleFollow}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                {following ? 'Siguiendo' : 'Seguir'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Tab bar: Outfits (grid) + Catálogo (bag) */}
@@ -466,31 +409,11 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: colors.grisClaro, marginTop: 2 },
 
   // Follow
-  followRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  followBtn: { flex: 1, backgroundColor: colors.rosaOpa, borderRadius: radius.button, paddingVertical: 12, alignItems: 'center' },
+  followRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  followBtn: { backgroundColor: colors.rosaOpa, borderRadius: radius.button, paddingVertical: 12, alignItems: 'center' },
   followBtnActive: { backgroundColor: colors.rosaOpaLight },
   followBtnText: { color: colors.blanco, fontSize: 15, fontFamily: fonts.palanquinDark },
   followBtnTextActive: { color: colors.rosaOpa },
-  askToggleBtn: {
-    borderWidth: 1, borderColor: colors.negro, borderRadius: radius.button,
-    paddingHorizontal: spacing.lg, paddingVertical: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  askToggleBtnText: { color: colors.negro, fontSize: 15, fontFamily: fonts.palanquinDark },
-
-  askRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  questionSentText: { fontSize: 13, color: colors.grisOscuro, lineHeight: 18 },
-  askBox: { gap: spacing.sm },
-  askInput: {
-    borderWidth: 1, borderColor: colors.grisMedio, borderRadius: radius.button,
-    padding: spacing.sm, fontSize: 13, color: colors.negro, minHeight: 56,
-    textAlignVertical: 'top',
-  },
-  askBtn: {
-    backgroundColor: colors.rosaOpa, borderRadius: radius.button,
-    paddingVertical: 10, alignItems: 'center', justifyContent: 'center',
-  },
-  askBtnDisabled: { backgroundColor: colors.rosaOpaLight },
-  askBtnText: { fontSize: 13, fontWeight: '700', color: colors.blanco, fontFamily: fonts.palanquinDark },
 
   // Tabs
   tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.grisBorde },

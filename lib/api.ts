@@ -65,4 +65,8 @@ export const api = {
   // genérico gateado por auth+ownership — nada impide llamarlo desde acá.
   createGarment: (payload: CreateGarmentPayload) =>
     apiFetch('/brands/me/prendas', { method: 'POST', body: JSON.stringify(payload) }),
+  // Editar prenda (2026-09-07): mismo payload que crear, el endpoint ya soporta
+  // los 12 campos (confirmado en vivo antes de construir el form de edición).
+  updateGarment: (id: string, payload: CreateGarmentPayload) =>
+    apiFetch(`/brands/me/prendas/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 }

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '../../constants/colors'
 import { fonts } from '../../constants/fonts'
@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { useMyBrand } from '../../hooks/useMyBrand'
 import { useSizeGuidesForCategory } from '../../hooks/useSizeGuidesForCategory'
 import { uploadGarmentImage } from '../../lib/uploadImage'
+import { supabase } from '../../lib/supabase'
 import { api } from '../../lib/api'
 
 const STORAGE = 'https://vecnktrbjolahcalkbml.supabase.co/storage/v1/object/public/assets'
@@ -35,6 +36,8 @@ function sizeOptionsFor(category: string | null): string[] {
 
 export default function CreateGarmentScreen() {
   const router = useRouter()
+  const { id: garmentId } = useLocalSearchParams<{ id?: string }>()
+  const isEditing = !!garmentId
   const { session } = useAuthStore()
   const { brand } = useMyBrand(session?.user.id)
 
@@ -49,15 +52,63 @@ export default function CreateGarmentScreen() {
   const [saleMode, setSaleMode] = useState<'direct' | 'redirect'>('direct')
   const [externalUrl, setExternalUrl] = useState('')
   const [localImageUri, setLocalImageUri] = useState<string | null>(null)
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
 
+  const [loadingGarment, setLoadingGarment] = useState(isEditing)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const { guides, loading: guidesLoading } = useSizeGuidesForCategory(category, brand?.id)
 
+  // Precarga los datos de la prenda cuando se abre en modo edición (?id=...).
+  // skipCategoryResetRef evita que el efecto de abajo (que borra talles/guía al
+  // cambiar de categoría, pensado para cuando el usuario elige otra categoría a
+  // mano) pise los valores recién precargados apenas se setea `category`.
+  const skipCategoryResetRef = useRef(false)
+  useEffect(() => {
+    if (!garmentId || !brand) return
+    let cancelled = false
+    setLoadingGarment(true)
+    supabase
+      .from('prendas')
+      .select('*')
+      .eq('id', garmentId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return
+        if (!data || data.brand_id !== brand.id) {
+          setError('No tenés permiso para editar esta prenda.')
+          setLoadingGarment(false)
+          return
+        }
+        skipCategoryResetRef.current = true
+        setName(data.name ?? '')
+        setDescription(data.description ?? '')
+        setPrice(data.price != null ? String(Math.round(Number(data.price))) : '')
+        setCategory(data.category ?? null)
+        setColor(data.color ?? '')
+        setStyle(data.style ?? '')
+        const stock: Record<string, string> = {}
+        Object.entries((data.stock_por_talle as Record<string, number>) ?? {}).forEach(([size, qty]) => {
+          stock[size] = String(qty)
+        })
+        setSizeStock(stock)
+        setSizeGuideId(data.size_guide_id ?? null)
+        setSaleMode((data.sale_mode as 'direct' | 'redirect') ?? 'direct')
+        setExternalUrl(data.external_url ?? '')
+        setExistingImageUrl(data.image_url ?? null)
+        setLoadingGarment(false)
+      })
+    return () => { cancelled = true }
+  }, [garmentId, brand])
+
   // Al cambiar de categoría, los talles y la guía elegida ya no son válidos
   // (calzado usa numeración EU, el resto XS–XXL; las guías son por categoría).
   useEffect(() => {
+    if (skipCategoryResetRef.current) {
+      skipCategoryResetRef.current = false
+      return
+    }
     setSizeStock({})
     setSizeGuideId(null)
   }, [category])
@@ -95,7 +146,7 @@ export default function CreateGarmentScreen() {
   }
 
   function validate(): string | null {
-    if (!localImageUri) return 'Agregá una foto de la prenda.'
+    if (!localImageUri && !existingImageUrl) return 'Agregá una foto de la prenda.'
     if (!name.trim()) return 'Ponele un nombre a la prenda.'
     const priceNum = Number(price)
     if (!price || isNaN(priceNum) || priceNum <= 0) return 'El precio tiene que ser un número mayor a 0.'
@@ -119,7 +170,7 @@ export default function CreateGarmentScreen() {
     setError(null)
     setSaving(true)
     try {
-      let imageUrl: string | null = null
+      let imageUrl: string | null = existingImageUrl
       if (localImageUri) {
         imageUrl = await uploadGarmentImage(localImageUri, brand.name, name.trim())
       }
@@ -127,7 +178,7 @@ export default function CreateGarmentScreen() {
       const stockPorTalle: Record<string, number> = {}
       Object.entries(sizeStock).forEach(([size, qty]) => { stockPorTalle[size] = Number(qty) })
 
-      await api.createGarment({
+      const payload = {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(price),
@@ -140,11 +191,17 @@ export default function CreateGarmentScreen() {
         size_guide_id: sizeGuideId,
         sale_mode: saleMode,
         external_url: saleMode === 'redirect' ? externalUrl.trim() : null,
-      })
+      }
+
+      if (isEditing) {
+        await api.updateGarment(garmentId!, payload)
+      } else {
+        await api.createGarment(payload)
+      }
 
       router.back()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo crear la prenda. Probá de nuevo.')
+      setError(e instanceof Error ? e.message : `No se pudo ${isEditing ? 'guardar los cambios' : 'crear la prenda'}. Probá de nuevo.`)
     } finally {
       setSaving(false)
     }
@@ -158,10 +215,19 @@ export default function CreateGarmentScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Image source={{ uri: `${STORAGE}/flecha.png` }} style={styles.backIcon} contentFit="contain" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nueva prenda</Text>
+        <Text style={styles.headerTitle}>{isEditing ? 'Editar prenda' : 'Nueva prenda'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
+      {loadingGarment ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.rosaOpa} size="large" />
+        </View>
+      ) : error && isEditing && !name ? (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
 
@@ -169,6 +235,8 @@ export default function CreateGarmentScreen() {
           <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8}>
             {localImageUri ? (
               <Image source={{ uri: localImageUri }} style={styles.imagePreview} contentFit="cover" />
+            ) : existingImageUrl ? (
+              <Image source={{ uri: existingImageUrl }} style={styles.imagePreview} contentFit="cover" />
             ) : (
               <View style={styles.imagePlaceholder}>
                 <Text style={styles.imagePlaceholderIcon}>+</Text>
@@ -323,10 +391,15 @@ export default function CreateGarmentScreen() {
             onPress={handleSubmit}
             disabled={saving}
           >
-            {saving ? <ActivityIndicator color={colors.blanco} size="small" /> : <Text style={styles.submitBtnText}>Publicar prenda</Text>}
+            {saving ? (
+              <ActivityIndicator color={colors.blanco} size="small" />
+            ) : (
+              <Text style={styles.submitBtnText}>{isEditing ? 'Guardar cambios' : 'Publicar prenda'}</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   )
 }
@@ -363,6 +436,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: colors.negro, fontFamily: fonts.mergeOne },
 
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
 
   imagePicker: {
     width: 160, height: 176, borderRadius: radius.card, overflow: 'hidden',

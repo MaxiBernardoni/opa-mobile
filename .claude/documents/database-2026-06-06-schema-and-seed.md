@@ -45,6 +45,7 @@ _Última actualización: 2026-09-07_
 | 20260907115544 | create_preguntas_table |
 | 20260907115557 | create_trending_garments_function |
 | 20260907115647 | restrict_trending_garments_to_authenticated |
+| 20260907130554 | public_read_garment_questions |
 
 > **`admin_impersonation_log` (2026-08-03) — ya identificada (2026-08-03), no es un misterio.** Tabla de auditoría (`id`, `admin_profile_id`, `brand_id`, `brand_profile_id`, `created_at`) del feature "login como marca sin password" de `opa-admin` (ver nota completa en `CLAUDE.md` → "Login como marca sin password"). RLS habilitado sin policies públicas — solo accesible vía `service_role`, por diseño (es un log de auditoría, no algo que la app deba leer).
 
@@ -367,7 +368,7 @@ Armario personal del usuario.
 ---
 
 ### `preguntas` (2026-09-07)
-Q&A entre un usuario y una marca — sobre una prenda puntual (`garment_id`) o la marca en general (`garment_id` null). Tabla nueva para la Home de cuentas de marca ("Preguntas sin responder"); no existía ningún mecanismo de Q&A en el schema antes de esto.
+Q&A entre un usuario y una marca — sobre una prenda puntual (`garment_id`) o la marca en general (`garment_id` null, ya sin punto de entrada en la UI, ver nota de RLS abajo). Tabla nueva para la Home de cuentas de marca ("Preguntas sin responder"); no existía ningún mecanismo de Q&A en el schema antes de esto. **Reworkeada el mismo día** a un Q&A público estilo Mercado Libre dentro de `app/product/[id].tsx` — ver policy `public_select_garment_questions` abajo.
 
 | Columna | Tipo | Notas |
 |---|---|---|
@@ -383,7 +384,7 @@ Q&A entre un usuario y una marca — sobre una prenda puntual (`garment_id`) o l
 Índices: `(brand_id, created_at desc) WHERE answer IS NULL` (parcial — la query real de todas las sesiones es "sin responder de mi marca") y `(user_id, created_at desc)`.
 
 **RLS:** habilitado.
-- SELECT: quien preguntó ve sus propias filas (`user_id = auth.uid()`); el dueño de la marca destinataria ve las suyas (`brand_id IN (SELECT id FROM marcas WHERE profile_id = auth.uid())`).
+- SELECT: quien preguntó ve sus propias filas (`user_id = auth.uid()`); el dueño de la marca destinataria ve las suyas (`brand_id IN (SELECT id FROM marcas WHERE profile_id = auth.uid())`); **público (`to public`) para cualquier fila con `garment_id IS NOT NULL`** (migración `public_read_garment_questions`, 2026-09-07) — el Q&A de una prenda es visible para cualquiera que visite la publicación, logueado o no, estilo Mercado Libre. Las preguntas generales sobre la marca (`garment_id` null) siguen privadas (solo asker/marca) porque ya no hay forma de crearlas desde la UI, pero la policy vieja no se tocó por si se reactiva ese caso más adelante.
 - INSERT: cualquier autenticado, con `user_id = auth.uid()`. No hay bloqueo a nivel RLS para cuentas de marca preguntando (se resuelve solo en el cliente, ocultando el botón "Preguntar" si `viewerIsBrand` — mismo criterio no reforzado a nivel servidor que otras acciones de marca antes de que existiera `routes/social.ts`).
 - UPDATE: solo el dueño de la marca destinataria, y solo para responder (`answer`/`answered_at`) — la policy no restringe columnas, así que técnicamente podría reescribir `question` también; no hay UI que lo haga.
 

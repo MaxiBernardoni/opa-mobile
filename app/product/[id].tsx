@@ -22,7 +22,10 @@ import { useSaveGarment } from '../../hooks/useSaveGarment'
 import { useCart } from '../../hooks/useCart'
 import { useGarmentReviews } from '../../hooks/useGarmentReviews'
 import { useAskQuestion } from '../../hooks/useAskQuestion'
+import { useGarmentQuestions } from '../../hooks/useGarmentQuestions'
+import { useMyBrand } from '../../hooks/useMyBrand'
 import { useAuthStore } from '../../store/useAuthStore'
+import { timeAgo } from '../../lib/timeAgo'
 import { ZoomableImage } from '../../components/product/ZoomableImage'
 import { colors } from '../../constants/colors'
 import { spacing } from '../../constants/spacing'
@@ -48,7 +51,6 @@ export default function ProductDetail() {
   const [adding, setAdding] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [questionText, setQuestionText] = useState('')
-  const [questionSent, setQuestionSent] = useState(false)
 
   const { guide, entries, loading: guideLoading } = useSizeGuide(garment?.size_guide_id)
   const { recommendation } = useRecommendedSize(garment?.size_guide_id)
@@ -56,15 +58,18 @@ export default function ProductDetail() {
   const { addItem, count: cartCount } = useCart()
   const { reviews, average, loading: reviewsLoading } = useGarmentReviews(garment?.id)
   const { ask, sending: askSending, requiresAuth: askRequiresAuth } = useAskQuestion()
+  const { questions, loading: questionsLoading, refetch: refetchQuestions } = useGarmentQuestions(garment?.id)
+  const session = useAuthStore((s) => s.session)
   const viewerIsBrand = useAuthStore((s) => !!s.profile?.is_brand)
+  const { brand: myBrand } = useMyBrand(viewerIsBrand ? session?.user.id : undefined)
 
   async function handleAskQuestion() {
     if (!garment?.brand_id || !questionText.trim()) return
     if (askRequiresAuth) { router.push('/auth'); return }
     const { error } = await ask(garment.brand_id, questionText.trim(), garment.id)
     if (!error) {
-      setQuestionSent(true)
       setQuestionText('')
+      refetchQuestions()
     }
   }
 
@@ -155,6 +160,8 @@ export default function ProductDetail() {
     )
   }
 
+  const isOwnGarment = viewerIsBrand && myBrand?.id === garment.brand_id
+
   const availableSizes: string[] = garment.available_sizes ?? []
   const hasSizes = availableSizes.length > 0
   const stockMap = garment.stock_por_talle ?? null
@@ -190,14 +197,16 @@ export default function ProductDetail() {
               tintColor={colors.negro}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.headerBtn}>
-            <Image source={{ uri: `${STORAGE}/bag_negra.png` }} style={styles.headerIcon} contentFit="contain" />
-            {cartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          {!viewerIsBrand && (
+            <TouchableOpacity onPress={() => router.push('/cart')} style={styles.headerBtn}>
+              <Image source={{ uri: `${STORAGE}/bag_negra.png` }} style={styles.headerIcon} contentFit="contain" />
+              {cartCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -211,13 +220,15 @@ export default function ProductDetail() {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.saveFloatBtn, { top: screenWidth * 1.1 - 56 }]}
-          onPress={handleToggleSave}
-          hitSlop={6}
-        >
-          <Text style={[styles.saveFloatIcon, saved && styles.saveFloatIconActive]}>{saved ? '★' : '☆'}</Text>
-        </TouchableOpacity>
+        {!viewerIsBrand && (
+          <TouchableOpacity
+            style={[styles.saveFloatBtn, { top: screenWidth * 1.1 - 56 }]}
+            onPress={handleToggleSave}
+            hitSlop={6}
+          >
+            <Text style={[styles.saveFloatIcon, saved && styles.saveFloatIconActive]}>{saved ? '★' : '☆'}</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.body}>
           {/* Brand */}
@@ -399,67 +410,92 @@ export default function ProductDetail() {
             )}
           </View>
 
-          {/* Preguntar a la marca sobre esta prenda */}
-          {!viewerIsBrand && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>¿TENÉS UNA PREGUNTA?</Text>
-              {questionSent ? (
-                <Text style={styles.questionSentText}>
-                  ¡Listo! Le avisamos a {garment.brand?.name ?? 'la marca'} — vas a ver la respuesta cuando la conteste.
-                </Text>
-              ) : (
-                <View style={styles.askBox}>
-                  <TextInput
-                    style={styles.askInput}
-                    placeholder={`Preguntale algo a ${garment.brand?.name ?? 'la marca'} sobre esta prenda...`}
-                    placeholderTextColor={colors.grisClaro}
-                    value={questionText}
-                    onChangeText={setQuestionText}
-                    multiline
-                  />
-                  <TouchableOpacity
-                    style={[styles.askBtn, !questionText.trim() && styles.askBtnDisabled]}
-                    disabled={!questionText.trim() || askSending}
-                    onPress={handleAskQuestion}
-                    activeOpacity={0.85}
-                  >
-                    {askSending ? (
-                      <ActivityIndicator color={colors.blanco} size="small" />
+          {/* Preguntas y respuestas — público, estilo Mercado Libre: cualquiera que
+              visite la publicación puede leer las preguntas de otros usuarios y sus
+              respuestas, no solo quien preguntó */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>PREGUNTAS Y RESPUESTAS</Text>
+
+            {!viewerIsBrand && (
+              <View style={styles.askBox}>
+                <TextInput
+                  style={styles.askInput}
+                  placeholder={`Preguntale algo a ${garment.brand?.name ?? 'la marca'} sobre esta prenda...`}
+                  placeholderTextColor={colors.grisClaro}
+                  value={questionText}
+                  onChangeText={setQuestionText}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.askBtn, !questionText.trim() && styles.askBtnDisabled]}
+                  disabled={!questionText.trim() || askSending}
+                  onPress={handleAskQuestion}
+                  activeOpacity={0.85}
+                >
+                  {askSending ? (
+                    <ActivityIndicator color={colors.blanco} size="small" />
+                  ) : (
+                    <Text style={styles.askBtnText}>Preguntar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {questionsLoading ? (
+              <ActivityIndicator color={colors.rosaOpa} style={{ marginVertical: spacing.md }} />
+            ) : questions.length === 0 ? (
+              <Text style={styles.questionsEmpty}>Todavía no hay preguntas sobre esta prenda. ¡Sé el primero en preguntar!</Text>
+            ) : (
+              <View style={styles.qaList}>
+                {questions.map((q) => (
+                  <View key={q.id} style={styles.qaRow}>
+                    <Text style={styles.qaQuestion}>P: {q.question}</Text>
+                    <Text style={styles.qaMeta}>@{q.user?.username ?? 'usuario'} · {timeAgo(q.created_at)}</Text>
+                    {q.answer ? (
+                      <Text style={styles.qaAnswer}>R: {q.answer}</Text>
                     ) : (
-                      <Text style={styles.askBtnText}>Enviar pregunta</Text>
+                      <Text style={styles.qaPending}>Todavía sin responder</Text>
                     )}
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* CTA */}
-      <View style={styles.cta}>
-        {garment.descontinuada ? (
-          <View style={[styles.ctaBtn, styles.ctaBtnDisabled]}>
-            <Text style={styles.ctaBtnText}>Ya no disponible</Text>
-          </View>
-        ) : garment.sale_mode === 'redirect' ? (
-          <TouchableOpacity style={styles.ctaBtn} onPress={handleOpenStore}>
-            <Text style={styles.ctaBtnText}>Ver en tienda →</Text>
+      {/* CTA — una marca no compra ni guarda; en su propia prenda puede editarla en vez de eso */}
+      {isOwnGarment ? (
+        <View style={styles.cta}>
+          <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push(`/brand/create-garment?id=${garment.id}`)}>
+            <Text style={styles.ctaBtnText}>Editar prenda</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.ctaBtn, (!canAddToCart || adding) && styles.ctaBtnDisabled]}
-            disabled={!canAddToCart || adding}
-            onPress={handleAddToCart}
-          >
-            <Text style={styles.ctaBtnText}>
-              {outOfStockForSelection ? 'Sin stock' : adding ? 'Agregando…' : 'Agregar al carrito'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      ) : viewerIsBrand ? null : (
+        <View style={styles.cta}>
+          {garment.descontinuada ? (
+            <View style={[styles.ctaBtn, styles.ctaBtnDisabled]}>
+              <Text style={styles.ctaBtnText}>Ya no disponible</Text>
+            </View>
+          ) : garment.sale_mode === 'redirect' ? (
+            <TouchableOpacity style={styles.ctaBtn} onPress={handleOpenStore}>
+              <Text style={styles.ctaBtnText}>Ver en tienda →</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.ctaBtn, (!canAddToCart || adding) && styles.ctaBtnDisabled]}
+              disabled={!canAddToCart || adding}
+              onPress={handleAddToCart}
+            >
+              <Text style={styles.ctaBtnText}>
+                {outOfStockForSelection ? 'Sin stock' : adding ? 'Agregando…' : 'Agregar al carrito'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {toast && (
         <View style={styles.toast}>
@@ -728,8 +764,7 @@ const styles = StyleSheet.create({
   reviewStars: { fontSize: 12, color: colors.rosaOpa },
   reviewComment: { fontSize: 13, color: colors.grisOscuro, marginTop: 4, lineHeight: 18 },
 
-  questionSentText: { fontSize: 13, color: colors.grisOscuro, lineHeight: 18 },
-  askBox: { gap: spacing.sm },
+  askBox: { gap: spacing.sm, marginBottom: spacing.md },
   askInput: {
     borderWidth: 1, borderColor: colors.grisMedio, borderRadius: radius.button,
     padding: spacing.sm, fontSize: 13, color: colors.negro, minHeight: 56,
@@ -739,6 +774,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.rosaOpa, borderRadius: radius.button,
     paddingVertical: 10, alignItems: 'center', justifyContent: 'center',
   },
+  questionsEmpty: { fontSize: 13, color: colors.grisClaro },
+  qaList: { gap: spacing.md },
+  qaRow: { borderBottomWidth: 1, borderBottomColor: colors.grisBorde, paddingBottom: spacing.md },
+  qaQuestion: { fontSize: 13, fontWeight: '700', color: colors.negro, lineHeight: 18 },
+  qaMeta: { fontSize: 11, color: colors.grisClaro, marginTop: 2 },
+  qaAnswer: { fontSize: 13, color: colors.grisOscuro, marginTop: 6, lineHeight: 18 },
+  qaPending: { fontSize: 12, color: colors.grisClaro, fontStyle: 'italic', marginTop: 6 },
   askBtnDisabled: { backgroundColor: colors.rosaOpaLight },
   askBtnText: { fontSize: 13, fontWeight: '700', color: colors.blanco, fontFamily: fonts.palanquinDark },
 
