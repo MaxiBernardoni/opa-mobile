@@ -100,14 +100,20 @@ export default function UserProfileScreen() {
           )}
           <View style={styles.statsRow}>
             {[
-              { label: 'Seguidores', value: profile.followers_count },
-              { label: 'Seguidos', value: profile.following_count },
-              { label: 'Outfits', value: profile.outfits_count },
+              { label: 'Seguidores', value: profile.followers_count, onPress: () => router.push(`/followers/${id}?type=followers`) },
+              { label: 'Seguidos', value: profile.following_count, onPress: () => router.push(`/followers/${id}?type=following`) },
+              { label: 'Outfits', value: profile.outfits_count, onPress: undefined },
             ].map((stat) => (
-              <View key={stat.label} style={styles.statItem}>
+              <TouchableOpacity
+                key={stat.label}
+                style={styles.statItem}
+                disabled={!stat.onPress}
+                activeOpacity={stat.onPress ? 0.6 : 1}
+                onPress={stat.onPress}
+              >
                 <Text style={styles.statValue}>{stat.value.toLocaleString()}</Text>
                 <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>

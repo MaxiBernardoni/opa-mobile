@@ -235,6 +235,18 @@ Perfil público de una marca — layout distinto al de usuario (banner + avatar-
 - **Prendas descontinuadas (2026-08-14):** el tab Catálogo filtra `garments` con `descontinuada = false` antes de renderizar (`visibleGarments`), incluso en modo `isOwn` — la gestión/reactivación no vive acá, vive en `app/(tabs)/wardrobe.tsx` → `BrandCatalogView`.
 - **Bug de `useFollow('')` encontrado y arreglado (2026-08-14):** `useFollow(brand?.profile_id ?? '')` disparaba una query a `follows` con `following_id` vacío en el primer render de esta pantalla (antes de que `useBrand` termine de cargar `brand`), tirando un 400 en consola — inofensivo (nunca hay match, no rompe nada visualmente) pero ruidoso. Encontrado de casualidad mientras se investigaba un bug no relacionado (switcher multi-cuenta, ver `CLAUDE.md`). Fix: `hooks/useFollow.ts` ahora corta si `targetUserId` es falsy, antes de armar la query.
 
+### Follow List (`app/followers/[id].tsx`) — nuevo 2026-09-07
+Lista de seguidores/seguidos estilo Instagram/TikTok. Antes de esto los stats "Seguidores"/"Seguidos" en `profile.tsx`, `user/[id].tsx` y `marca/[id].tsx` eran texto plano, no tocable.
+
+- Params: `id` (perfil cuyos seguidores/seguidos se listan), `type` (`'followers' | 'following'`, tab inicial).
+- Standalone (fuera del `Tabs` navigator), sin bottom navbar — mismo patrón liviano que `user-outfits.tsx`/`saved-outfits.tsx`, no el patrón "perfil completo" de `user/[id].tsx`.
+- Tabs Seguidores/Siguiendo — **ocultos** (solo lista de Seguidores) cuando `useProfile(id).profile.is_brand` es `true`, porque hoy no existe ningún mecanismo para que una marca siga a alguien.
+- Buscador (`TextInput`) que filtra **client-side** sobre la lista ya cargada por `username`/`display_name` — no dispara una query nueva; con el volumen actual de follows esto alcanza (mismo criterio que el buscador de `search.tsx`).
+- Hook `hooks/useFollowList.ts`: 2 queries (mismo patrón que `useFollowedBrandIds.ts`) — primero `follows` filtrado por `follower_id` o `following_id` según `type`, después `perfiles.in(ids)`. Si algún resultado es `is_brand`, un tercer paso resuelve `marcas.id` a partir de `profile_id` (necesario porque `follows` solo guarda el `profile_id`, y navegar a una marca requiere el id de la fila `marcas`, no el `profile_id`).
+- Componente de fila `components/profile/FollowListRow.tsx`: avatar + username/nombre, botón Seguir/Siguiendo inline (usa `useFollow` por fila, con `e.stopPropagation()` para no disparar también la navegación de la fila al tocarlo) — oculto si la fila es el propio usuario logueado, o si el viewer es una cuenta de marca (mismo criterio `viewerIsBrand` que el resto de la app). Tocar el resto de la fila navega a `/marca/[id]` (si `is_brand` y se resolvió `brandId`) o `/user/[id]`.
+- Conectado desde los 3 puntos existentes: `app/(tabs)/profile.tsx`, `app/user/[id].tsx` (stats "Seguidores"/"Seguidos"), y `app/marca/[id].tsx` (solo "Seguidores", y solo si `brand.profile_id` existe — sin onboarding no hay perfil al que navegar).
+- Verificado en browser real con datos reales (no seed inventado): perfil de marca (Capas, 1 seguidor real) → lista sin botón Seguir (viewer marca) → tap navega a `/user/[id]` → su stat Seguidos (3) muestra la lista con tabs, incluye 2 marcas y 1 usuario, tap en una marca de la lista confirma que navega a `/marca/[id]` (resolución de `brandId` correcta). Con una cuenta de prueba no-marca: botón Seguir/Siguiendo hace INSERT/DELETE real en `follows`, contador se actualiza, no navega al tocarlo. Cuenta de prueba borrada al terminar.
+
 ### User Outfits (`app/user-outfits.tsx`)
 - Scroll full-screen TikTok para los outfits de un perfil específico
 - Parámetros: `userId`, `startIndex`

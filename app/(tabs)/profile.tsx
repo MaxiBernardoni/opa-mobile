@@ -144,18 +144,24 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Stats */}
+        {/* Stats — Seguidores/Seguidos abren la lista de cuentas (estilo IG/TikTok) */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Seguidores', value: profile?.followers_count ?? 0 },
-            { label: 'Seguidos', value: profile?.following_count ?? 0 },
-            { label: 'Outfits', value: profile?.outfits_count ?? 0 },
-            { label: 'Guardados', value: savedOutfits.length },
+            { label: 'Seguidores', value: profile?.followers_count ?? 0, onPress: () => router.push(`/followers/${session!.user.id}?type=followers`) },
+            { label: 'Seguidos', value: profile?.following_count ?? 0, onPress: () => router.push(`/followers/${session!.user.id}?type=following`) },
+            { label: 'Outfits', value: profile?.outfits_count ?? 0, onPress: undefined },
+            { label: 'Guardados', value: savedOutfits.length, onPress: undefined },
           ].map((stat) => (
-            <View key={stat.label} style={styles.statItem}>
+            <TouchableOpacity
+              key={stat.label}
+              style={styles.statItem}
+              disabled={!stat.onPress}
+              activeOpacity={stat.onPress ? 0.6 : 1}
+              onPress={stat.onPress}
+            >
               <Text style={styles.statValue}>{stat.value.toLocaleString()}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 

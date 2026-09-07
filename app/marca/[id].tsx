@@ -173,17 +173,28 @@ export default function BrandProfileScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Stats de marca: Seguidores / Outfits / Prendas (sin "Seguidos") */}
+        {/* Stats de marca: Seguidores / Outfits / Prendas (sin "Seguidos") — Seguidores
+            abre la lista de cuentas, solo si la marca ya tiene profile_id (onboarding) */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Seguidores', value: followersCount },
-            { label: 'Outfits', value: outfits.length },
-            { label: 'Prendas', value: visibleGarments.length },
+            {
+              label: 'Seguidores',
+              value: followersCount,
+              onPress: brand.profile_id ? () => router.push(`/followers/${brand.profile_id}?type=followers`) : undefined,
+            },
+            { label: 'Outfits', value: outfits.length, onPress: undefined },
+            { label: 'Prendas', value: visibleGarments.length, onPress: undefined },
           ].map((stat) => (
-            <View key={stat.label} style={styles.statItem}>
+            <TouchableOpacity
+              key={stat.label}
+              style={styles.statItem}
+              disabled={!stat.onPress}
+              activeOpacity={stat.onPress ? 0.6 : 1}
+              onPress={stat.onPress}
+            >
               <Text style={styles.statValue}>{formatCount(stat.value)}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
